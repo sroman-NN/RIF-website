@@ -683,6 +683,17 @@ class TypeDefinition:
         except (TypeError, ValueError):
             return None
 
+    def get_bool(self, key: str, default: bool = False) -> bool:
+        """Determina de forma dinámica si un atributo de la definición de tipo es verdadero."""
+        val = self.values.get(key)
+        if val is None:
+            val = self.values.get(key.upper())
+        if val is None:
+            return default
+        if isinstance(val, bool):
+            return val
+        return str(val).strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
+
 
 @dataclass
 class TypesInfo:
@@ -847,6 +858,14 @@ class PackerConfig:
     plugins: list[str] = field(default_factory=list)
     precompilers: list[str] = field(default_factory=list)
     types: dict[str, str] = field(default_factory=dict)
+    output: str | None = None
+    source_extensions: list[str] = field(default_factory=lambda: [".rif", ".asm", ".s"])
+    source_comment: str | None = None
+    source_separator: str | None = None
+    source_block: str | None = None
+    source_require_section: bool = True
+    source_validate_sections: bool = True
+    source_section_directive: str = ".section"
 
     @property
     def recursive(self) -> bool:

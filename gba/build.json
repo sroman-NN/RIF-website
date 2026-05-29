@@ -1,0 +1,10 @@
+{
+  "name": "rif-gba",
+  "displayName": "RIF GBA",
+  "publisher": "rif",
+  "version": "0.0.1",
+  "description": "Documentacion y soporte minimo para el proyecto GBA de RIF",
+  "languageId": "rif-gba",
+  "extensions": [".rif"],
+  "output": "rif-gba-0.0.1.vsix"
+}

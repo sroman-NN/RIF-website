@@ -61,7 +61,24 @@ class ExamplePackTests(unittest.TestCase):
 
     def test_program_source_compiles(self):
         compiler = Compiler.from_file(PACK)
-        source = (ROOT / "examples" / "program.rif").read_text(encoding="utf-8")
+        source = """
+.text
+start:
+byte 0x2a
+regbyte a
+pair
+branchfalse
+callsite
+stop
+
+.data
+target:
+rel8
+relocabs
+msg char[2] = Hi
+stack temp b8 4 bss 1 0
+heap bag b8 8 bss 1 0
+"""
         results = compiler.compile_lines(source)
 
         self.assertEqual(results[0].hex, "2a")

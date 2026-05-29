@@ -242,6 +242,21 @@ class Linker:
         linked = self.link(write=False)
         return BinaryLinker(linked.program).build(source, output_path, write=write)
 
+    def build_project(
+        self,
+        project_path: str | Path,
+        output_path: str | Path | None = None,
+        write: bool = True,
+    ) -> BinaryLinkResult:
+        """Construye el proyecto enlazado leyendo las fuentes del proyecto y compilándolas."""
+        from .source_reader import SourceReader
+
+        linked = self.link(write=False)
+        config = parse_packer_config(linked.program)
+        source = SourceReader(linked.program, config).read_project_source(project_path)
+        output = Path(output_path) if output_path is not None else _project_output_path(Path(project_path), self.source_path, config)
+        return BinaryLinker(linked.program).build(source, output, write=write)
+
 
 class BinaryLinker:
     """Linker binario genérico para programas RIF parseados.
@@ -265,6 +280,7 @@ class BinaryLinker:
         self.blocks: dict[str, LinkBlock] = {}
         self.placeholders: list[Placeholder] = []
         self.relocations: list[Any] = []
+        self.labels: dict[str, dict[str, Any]] = {}
 
     def build(self, source: str = "", output_path: str | Path | None = None, write: bool = True) -> BinaryLinkResult:
         """Construye y enlaza la imagen binaria final a partir del AST del programa y código fuente adicional.
@@ -292,6 +308,7 @@ class BinaryLinker:
         self._relocate_memory_regions(blocks)
         self._materialize_headers(blocks)
 
+        self._apply_relocations(blocks)
         data = self._assemble_data(blocks)
         result = BinaryLinkResult(self.program, blocks, data, list(self.placeholders), list(self.relocations))
 
@@ -409,29 +426,36 @@ class BinaryLinker:
         """
         from .compiler import Compiler
 
-        results = Compiler(self.program).compile_lines(source)
-        missing = [ph.name for result in results for ph in result.placeholders]
+        compiler = Compiler(self.program)
+        results = compiler.compile_lines(source)
+        self.labels.update(compiler.labels)
+        missing = [ph.name for result in results for ph in result.placeholders if ph.kind != "reldis"]
         self.relocations.extend(relocation for result in results for relocation in result.relocations)
         if missing:
             raise PackError("no se puede linkear source con placeholders: " + ", ".join(missing))
 
         code_section = self._payload_section("code")
         data_section = self._payload_section("data")
-        sections: dict[str, bytearray] = {code_section: bytearray(), data_section: bytearray()}
-        data_offsets: dict[str, int] = {data_section: 0}
+        sections: dict[str, bytearray] = {}
+        data_offsets: dict[str, int] = {}
         for result in results:
             payload = result.data or b""
+            if result.rule_name in {"stack", "heap"}:
+                continue
+
+            sec_name = result.section or code_section
+            normalized_sec = sec_name.lstrip(".")
+
+            sections.setdefault(normalized_sec, bytearray())
+
             if result.rule_name == "data":
                 name = _source_symbol_name(result.source)
                 if name is not None:
-                    offset = data_offsets.setdefault(data_section, 0)
-                    self._update_source_data_offsets(name, data_section, offset)
-                sections[data_section].extend(payload)
-                data_offsets[data_section] = data_offsets.get(data_section, 0) + len(payload)
-            elif result.rule_name in {"stack", "heap"}:
-                continue
-            else:
-                sections[code_section].extend(payload)
+                    offset = data_offsets.setdefault(normalized_sec, 0)
+                    self._update_source_data_offsets(name, normalized_sec, offset)
+                data_offsets[normalized_sec] = data_offsets.get(normalized_sec, 0) + len(payload)
+
+            sections[normalized_sec].extend(payload)
 
         return {name: bytes(data) for name, data in sections.items() if data}
 
@@ -695,6 +719,62 @@ class BinaryLinker:
             region.values["addrs"] = row.values["addrs"]
             region.values["paddrs"] = row.values["paddrs"]
             self._materialize_memory_symbols(region, row)
+
+    def _apply_relocations(self, blocks: list[LinkBlock]) -> None:
+        """Resuelve y aplica sobre los datos de cada bloque todas las relocaciones pendientes.
+
+        Args:
+            blocks: Lista de bloques de enlace.
+        """
+        for reloc in self.relocations:
+            sec_name = reloc.section or ".text"
+            block = next((b for b in blocks if b.name == sec_name or b.name == "." + sec_name or "." + b.name == sec_name), None)
+            if block is None:
+                continue
+
+            block_data = bytearray(block.data)
+
+            target_addr = 0
+            if reloc.target in self.labels:
+                lbl = self.labels[reloc.target]
+                target_sec = lbl.get("section") or ".text"
+                target_block = next((b for b in blocks if b.name == target_sec or b.name == "." + target_sec or "." + b.name == target_sec), None)
+                target_addr = lbl["offset"]
+                if target_block is not None:
+                    target_addr += target_block.virtual_offset
+            elif reloc.target in self.program.objects:
+                obj = self.program.objects[reloc.target]
+                target_addr = _intish(obj.values.get("addrs", 0), 0)
+            else:
+                try:
+                    target_addr = int(reloc.target)
+                except ValueError:
+                    target_addr = 0
+
+            value = 0
+            if reloc.kind == "reldis":
+                origin_addr = block.virtual_offset + (reloc.offset_bits // 8)
+                origin_next = origin_addr + (reloc.width // 8)
+                value = target_addr - origin_next
+            elif reloc.kind in ("abs", "absolute"):
+                value = target_addr + reloc.addend
+            else:
+                value = target_addr
+
+            offset_bytes = reloc.offset_bits // 8
+            width_bytes = reloc.width // 8
+            if offset_bytes + width_bytes > len(block_data):
+                block_data.extend(b"\x00" * (offset_bytes + width_bytes - len(block_data)))
+
+            try:
+                val_bytes = value.to_bytes(width_bytes, byteorder=reloc.byteorder, signed=reloc.signed)
+            except OverflowError:
+                mask = (1 << reloc.width) - 1
+                masked_val = value & mask
+                val_bytes = masked_val.to_bytes(width_bytes, byteorder=reloc.byteorder, signed=False)
+
+            block_data[offset_bytes:offset_bytes + width_bytes] = val_bytes
+            block.data = bytes(block_data)
 
     def _materialize_memory_symbols(self, region: MemoryRegion, row: TableRow) -> None:
         """Materializa y registra símbolos y offsets auxiliares relativos a regiones de memoria (base, limit, sp, cursor).
@@ -1133,19 +1213,64 @@ def build_file(
     output_path: str | Path | None = None,
     source: str = "",
     write: bool = True,
+    use_packs_path: str | Path | None = None,
 ) -> BinaryLinkResult:
-    """Función de conveniencia global para construir el binario a partir de un archivo de origen.
-
-    Args:
-        source_path: Ruta al archivo fuente original.
-        output_path: Ruta del archivo binario final.
-        source: Ensamblador complementario.
-        write: Si es True, guarda el binario compilado en disco.
-
-    Returns:
-        El resultado detallado BinaryLinkResult.
-    """
+    """Función de conveniencia global para construir el binario a partir de un archivo o directorio de origen."""
+    path = Path(source_path)
+    if path.is_dir():
+        return build_project(path, output_path, write=write, use_packs_path=use_packs_path)
     return Linker(source_path).build_binary(source, output_path, write=write)
+
+
+def build_project(
+    project_path: str | Path,
+    output_path: str | Path | None = None,
+    write: bool = True,
+    use_packs_path: str | Path | None = None,
+) -> BinaryLinkResult:
+    """Construye un proyecto completo enlazando sus fuentes y usando la definición de pack correspondiente."""
+    root = Path(project_path)
+    pack = _find_project_pack(root, use_packs_path)
+    return Linker(pack).build_project(root, output_path, write=write)
+
+
+def _find_project_pack(root: Path, use_packs_path: str | Path | None = None) -> Path:
+    """Busca el archivo .pack del proyecto, soportando subcarpetas y rutas personalizadas de packs."""
+    if not root.exists():
+        raise PackError(f"project folder does not exist: {root}")
+    if not root.is_dir():
+        raise PackError(f"project path is not a folder: {root}")
+
+    if use_packs_path is not None:
+        packs_dir = Path(use_packs_path)
+    else:
+        packs_dir = root / "pack"
+        if not packs_dir.exists() or not packs_dir.is_dir():
+            packs_dir = root
+
+    if not packs_dir.exists():
+        raise PackError(f"directorio de packs no existe: {packs_dir}")
+
+    preferred = packs_dir / f"{root.name}.pack"
+    if preferred.exists():
+        return preferred
+
+    packs = sorted(path for path in packs_dir.glob("*.pack") if path.is_file())
+    if not packs:
+        raise PackError(f"el directorio no contiene ningún archivo .pack: {packs_dir}")
+    if len(packs) > 1:
+        names = ", ".join(path.name for path in packs)
+        raise PackError(f"el directorio tiene múltiples archivos .pack: {names}")
+    return packs[0]
+
+
+def _project_output_path(root: Path, pack_path: Path, config: PackerConfig) -> Path:
+    """Calcula la ruta de salida para el binario generado a partir del proyecto."""
+    if config.output:
+        output = Path(config.output)
+        return output if output.is_absolute() else root / output
+    name = root.name
+    return root / f"{name}{config.ext}"
 
 
 def _contains_section_header(text: str) -> bool:

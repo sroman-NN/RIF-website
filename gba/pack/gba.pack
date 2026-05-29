@@ -1,0 +1,72 @@
+comment ;
+
+.pack
+plugext ".py"
+plugin "gba"
+
+packer:
+    fsystem 0
+    ext ".gba"
+    output "hello.gba"
+
+reader:
+    comment "#"
+    blocks ":"
+    section ".section"
+    sources ".rif"
+    requiresect true
+    validatesect true
+
+.world
+arch "arm7tdmi"
+os "gba"
+endianness little
+
+.types
+| NAME    | bits  | array | setsize  | setlong | ; setsize define size explicito, setlong tamaño explicito. Por lo general, setlong siempre debe ser True
+|  bitmap | 8     | true  | false    | yes     | ; A bitmap[7] = []
+|  b8     | 8     | false | false    | false   |
+|  b16    | 16    | false | false    | false   |
+|  b32    | 32    | false | false    | false   |
+
+.DATA_DEFINITION
+arrautofill
+index true
+
+
+
+.sections
+| NAME | type | perms | align | fill | emit | order |
+| rom  | code | rx    | 4     | 00   | yes  | 0     |
+
+.words
+| NAME         |  hex   |
+| set_headers  |        |
+| set_logo     |        |
+| set_checksum |        |
+| set_entry    |        |
+| set_frame    |        |
+| set_rompad   |        |
+| rompad       |        |
+
+.rules
+set_headers:
+    gba_headers
+
+set_logo:
+    gba_logo
+
+set_checksum:
+    gba_checksum "Hola mundo"
+
+set_entry:
+    gba_entry
+
+set_frame:
+    gba_frame "Hola mundo", green, black
+
+set_rompad:
+    gba_rompad
+
+rompad:
+    gba_rompad

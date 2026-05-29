@@ -9,11 +9,13 @@ directamente desde la terminal.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.util
 import sys
 import webbrowser
 from pathlib import Path
 
-from .errors import RIFError
+from .errors import RIFError, PackError
 from .linker import build_file, link_file
 from .packer import pack_file
 from .parser import Parser, parse_packer_config
@@ -30,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     - link: Enlaza los fragmentos locales a las secciones de ensamblador.
     - compile: Compila y emite el stream de bits para una única línea de instrucción de hardware.
     - build: Enlaza y genera un binario ejecutable estructurado.
+    - help: Muestra la documentación local de RIF.
 
     Args:
         argv: Lista opcional de argumentos pasados por terminal.
@@ -37,7 +40,13 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Código de estado de la aplicación (0 para éxito, 1 para error controlado, 2 para comando no reconocido).
     """
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    if raw_args and raw_args[0] in {"-pcli", "--plugin-cli"}:
+        return _run_plugin_cli(raw_args[1:])
+
+    from . import __version__
     parser = argparse.ArgumentParser(prog="rif", description="RIF lexer/parser/packer tools")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_lex = sub.add_parser("lex", help="lex a source file")
@@ -62,16 +71,87 @@ def main(argv: list[str] | None = None) -> int:
     p_build.add_argument("source", help="RIF rule/link file")
     p_build.add_argument("-o", "--output")
     p_build.add_argument("-s", "--source-text", default="", help="optional assembly source text")
+    p_build.add_argument("--source-file", help="optional assembly source file")
+    p_build.add_argument("-use", "--use", help="alternative path to packs or special flag")
+    p_build.add_argument("--plugin", help="name of the plugin to use packs from")
+    p_build.add_argument("--name", help="name of the pack inside the plugin")
 
     p_help = sub.add_parser("help", help="show local RIF help")
     p_help.add_argument("topic", nargs="?", help="markdown topic name")
     p_help.add_argument("--open", action="store_true", help="open help/index.html")
 
-    args = parser.parse_args(argv)
+    p_plug = sub.add_parser("plug", help="install a plugin folder into RIF")
+    p_plug.add_argument("path", help="path to the plugin folder to install")
+
+    p_list = sub.add_parser("list", help="list items")
+    p_list.add_argument("item", choices=["plugins"], help="what to list")
+
+    p_packs = sub.add_parser("packs", help="list available packs inside a plugin")
+    p_packs.add_argument("--plugin", required=True, help="name of the plugin to query")
+
+    args = parser.parse_args(raw_args)
 
     try:
         if args.cmd == "help":
             return _run_help(args.topic, args.open)
+
+        if args.cmd == "list":
+            if args.item == "plugins":
+                from rif.parser import _plugin_roots
+                roots = _plugin_roots(Path.cwd())
+                print("Installed plugins:")
+                count = 0
+                for root in roots:
+                    if root.exists():
+                        for item in root.iterdir():
+                            if item.is_dir() and item.name != "__pycache__":
+                                print(f"  - {item.name}")
+                                count += 1
+                if count == 0:
+                    print("  (no plugins installed)")
+            return 0
+
+        if args.cmd == "plug":
+            src = Path(args.path)
+            if not src.exists() or not src.is_dir():
+                raise RIFError(f"ruta de plugin no válida o no es un directorio: {src}")
+            plugin_name = src.name
+            
+            import rif
+            plugins_dir = Path(rif.__file__).parent / "plugins"
+            plugins_dir.mkdir(parents=True, exist_ok=True)
+            
+            dest = plugins_dir / plugin_name
+            if dest.exists():
+                raise RIFError(f"plugin '{plugin_name}' ya existe en {dest}")
+                
+            import shutil
+            shutil.copytree(src, dest)
+            print(f"plugin '{plugin_name}' instalado exitosamente en RIF.")
+            return 0
+
+        if args.cmd == "packs":
+            import rif as _rif
+            plugins_dir = Path(_rif.__file__).parent / "plugins"
+            plugin_path = plugins_dir / args.plugin / "pack"
+            if not plugin_path.exists():
+                plugin_path = plugins_dir / args.plugin / "packs"
+            if not plugin_path.exists() or not plugin_path.is_dir():
+                print(f"Packs de plugin '{args.plugin}':")
+                print("  (no hay packs disponibles o el plugin no existe)")
+                return 0
+
+            print(f"Packs disponibles para el plugin '{args.plugin}':")
+            count = 0
+            for item in sorted(plugin_path.iterdir()):
+                if item.is_dir() and item.name != "__pycache__":
+                    has_pack = any(path.suffix == ".pack" for path in item.glob("*.pack"))
+                    if has_pack:
+                        print(f"  - {item.name}")
+                        count += 1
+            if count == 0:
+                print("  (no hay packs configurados en este plugin)")
+            return 0
 
         if args.cmd == "lex":
             text = Path(args.source).read_text(encoding="utf-8")
@@ -143,6 +223,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"packer.plugins={config.plugins}")
             print(f"packer.precompile={config.precompilers}")
             print(f"packer.types={config.types}")
+            print(f"packer.output={config.output}")
+            print(f"reader.sources={config.source_extensions}")
             return 0
 
         if args.cmd == "pack":
@@ -178,9 +260,35 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.cmd == "build":
-            result = build_file(args.source, args.output, args.source_text, write=args.output is not None)
+            source_text = args.source_text
+            if args.source_file:
+                source_text = Path(args.source_file).read_text(encoding="utf-8")
+            source_path = Path(args.source)
+            if source_path.is_dir() and source_text:
+                raise PackError("build de carpeta no acepta --source-text ni --source-file")
+            
+            use_packs_path = args.use
+            if args.plugin and args.name:
+                import rif as _rif
+                plugin_pack_dir = Path(_rif.__file__).parent / "plugins" / args.plugin / "pack" / args.name
+                if not plugin_pack_dir.exists():
+                    plugin_pack_dir = Path(_rif.__file__).parent / "plugins" / args.plugin / "packs" / args.name
+                if not plugin_pack_dir.exists() or not plugin_pack_dir.is_dir():
+                    raise RIFError(f"el pack de plugin especificado no existe: {plugin_pack_dir}")
+                use_packs_path = str(plugin_pack_dir)
+
+            project_build = source_path.is_dir()
+            result = build_file(args.source, args.output, source_text, write=project_build or args.output is not None, use_packs_path=use_packs_path)
             print(f"bytes={len(result.data)}")
-            print(f"hex={result.hex}")
+            output = _build_output_path(args.source, args.output) if (project_build or args.output is not None) else None
+            if output is not None:
+                print(f"output={output}")
+            if len(result.data) <= 256:
+                print(f"hex={result.hex}")
+            else:
+                print(f"sha256={hashlib.sha256(result.data).hexdigest()}")
+                print(f"hex.head={result.data[:32].hex()}")
+                print(f"hex.tail={result.data[-32:].hex()}")
             for block in result.blocks:
                 print(
                     f"block={block.name}:{block.kind}:off={block.physical_offset}:"
@@ -197,32 +305,164 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
+def _run_plugin_cli(args: list[str]) -> int:
+    if not args:
+        print("error: -pcli requiere nombre de plugin", file=sys.stderr)
+        return 1
+
+    plugin_name, plugin_args = args[0], args[1:]
+    path = _find_plugin_cli(plugin_name)
+    if path is None:
+        print(f"error: plugin cli not found: {plugin_name}", file=sys.stderr)
+        return 1
+
+    module_name = f"rif.plugin_cli.{plugin_name}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        print(f"error: cannot load plugin cli: {path}", file=sys.stderr)
+        return 1
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+    entry = getattr(module, "main", None) or getattr(module, "run", None)
+    if entry is None:
+        print(f"error: plugin cli has no main(): {plugin_name}", file=sys.stderr)
+        return 1
+
+    result = entry(plugin_args)
+    return int(result or 0)
+
+
+def _find_plugin_cli(plugin_name: str) -> Path | None:
+    roots = []
+    cwd = Path.cwd().resolve()
+    roots.extend(path / "plugins" for path in (cwd, *cwd.parents))
+    roots.extend([
+        Path(__file__).resolve().parents[1] / "plugins",
+        Path(__file__).resolve().parent / "plugins",
+    ])
+    for root in roots:
+        path = root / plugin_name / "cli.py"
+        if path.exists():
+            return path
+    return None
+
+
+def _build_output_path(source: str, output: str | None) -> Path | None:
+    if output:
+        return Path(output)
+
+    source_path = Path(source)
+    if not source_path.is_dir():
+        return None
+
+    from .linker import _find_project_pack
+    try:
+        pack = _find_project_pack(source_path)
+    except Exception:
+        return None
+
+    program = Parser(pack.read_text(encoding="utf-8"), pack).parse()
+    config = parse_packer_config(program)
+    if config.output:
+        output_path = Path(config.output)
+        return output_path if output_path.is_absolute() else source_path / output_path
+    return source_path / f"{pack.stem}{config.ext}"
+
+
 def _help_root() -> Path:
-    source_root = Path(__file__).resolve().parents[1] / "help"
-    if source_root.exists():
-        return source_root
-    return Path(sys.prefix) / "share" / "rif" / "help"
+    import rif
+    return Path(rif.__file__).parent / "help"
 
 
 def _help_topics() -> dict[str, Path]:
     root = _help_root()
-    if not root.exists():
-        return {}
-    return {path.stem: path for path in sorted((root / "resources").rglob("*.md"))}
+    topics = {}
+    if root.exists():
+        topics.update({path.stem: path for path in sorted((root / "resources").rglob("*.md"))})
+    
+    from .parser import _plugin_roots
+    plugin_roots = _plugin_roots(Path.cwd())
+    for pr in plugin_roots:
+        if not pr.exists(): continue
+        for item in pr.iterdir():
+            if item.is_dir() and item.name != "__pycache__":
+                mds = list(item.glob("*.md"))
+                if mds:
+                    # Usamos el nombre de la carpeta
+                    topics[f"plugin_{item.name}"] = mds[0]
+                    topics[item.name] = mds[0] # Para acceso rápido via cli
+    return topics
 
+def _inject_dynamic_help(index: Path, topics: dict[str, Path]):
+    import json
+    if not index.exists(): return
+    html = index.read_text(encoding="utf-8")
+    
+    menu_html = '<div class="menu-group" data-category="paquetes">\n<div class="menu-category">Paquetes Instalados</div>\n<ul>\n'
+    docs_json = []
+    
+    plugin_keys = [k for k in topics.keys() if k.startswith("plugin_")]
+    if not plugin_keys:
+        menu_html += '<li><span class="menu-link" style="opacity:0.5; cursor:default; padding-left:20px;">Ninguno</span></li>\n'
+    else:
+        for k in sorted(plugin_keys):
+            name = k.replace("plugin_", "")
+            path = topics[k]
+            content = path.read_text(encoding="utf-8")
+            menu_html += f'''<li>
+              <a href="#" class="menu-link" data-key="{k}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                {name}
+              </a>
+            </li>\n'''
+            docs_json.append(f'      "{k}": {json.dumps(content)}')
+            
+    menu_html += '</ul>\n</div>'
+    
+    import re
+    html = re.sub(
+        r'<!-- DYNAMIC_PLUGINS_MENU_START -->.*?<!-- DYNAMIC_PLUGINS_MENU_END -->',
+        lambda m: f'<!-- DYNAMIC_PLUGINS_MENU_START -->\n{menu_html}\n<!-- DYNAMIC_PLUGINS_MENU_END -->',
+        html, flags=re.DOTALL
+    )
+    
+    docs_str = ",\n".join(docs_json)
+    if docs_str:
+        docs_str = ",\n" + docs_str
+        
+    html = re.sub(
+        r'// DYNAMIC_PLUGINS_DOCS_START.*?// DYNAMIC_PLUGINS_DOCS_END',
+        lambda m: f'// DYNAMIC_PLUGINS_DOCS_START\n{docs_str}\n// DYNAMIC_PLUGINS_DOCS_END',
+        html, flags=re.DOTALL
+    )
+    
+    index.write_text(html, encoding="utf-8")
 
 def _run_help(topic: str | None, open_index: bool) -> int:
     root = _help_root()
     index = root / "index.html"
+    topics = _help_topics()
+    
+    _inject_dynamic_help(index, topics)
 
-    if open_index:
-        webbrowser.open(index.resolve().as_uri())
-        print(index)
+    # Si no hay un topic específico, o si el usuario puso explícitamente --open, abrimos el navegador
+    if open_index or not topic:
+        import webbrowser
+        # Convertir a cadena absoluta para mayor compatibilidad con Windows en vez de as_uri() si as_uri() falla
+        path_str = str(index.resolve())
+        webbrowser.open(f"file:///{path_str.replace(chr(92), '/')}")
+        print(f"Abriendo documentación en: {index}")
+        if topic:  # Si pidieron un topic Y --open
+            return 0
+        # Si no pidieron topic, imprimimos los topics además
+        _print_help_topics(topics)
         return 0
 
-    topics = _help_topics()
     if topic:
-        path = topics.get(topic)
+        path = topics.get(topic) or topics.get(f"plugin_{topic}")
         if path is None:
             print(f"help topic not found: {topic}", file=sys.stderr)
             _print_help_topics(topics)
@@ -230,8 +470,6 @@ def _run_help(topic: str | None, open_index: bool) -> int:
         print(path.read_text(encoding="utf-8"))
         return 0
 
-    print(index)
-    _print_help_topics(topics)
     return 0
 
 

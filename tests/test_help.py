@@ -7,7 +7,7 @@ from rif.cli import main
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HELP = ROOT / "help"
+HELP = ROOT / "rif" / "help"
 
 
 class HelpTests(unittest.TestCase):

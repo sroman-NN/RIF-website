@@ -62,6 +62,7 @@ class _Runtime:
     stack: list[str] | None = None
     base_offset_bits: int = 0
     labels: dict[str, int] | None = None
+    section: str | None = None
 
     def __post_init__(self) -> None:
         if self.bit_values is None:
@@ -115,6 +116,8 @@ class Compiler:
             self._saved_operators = {key: list(value) for key, value in program.operator_saved.items()}
             self._operator_bindings = {key: dict(value) for key, value in program.operator_bindings.items()}
         self.labels: dict[str, int] = {}
+        from .source_reader import SourceReader
+        self.source_reader = SourceReader(program, self.config)
 
     @classmethod
     def from_file(cls, source_path: str | Path) -> "Compiler":
@@ -142,13 +145,14 @@ class Compiler:
         with GLOBAL_STATE_LOCK:
             return self._compile_line_at(source, 0, self.labels)
 
-    def _compile_line_at(self, source: str, base_offset_bits: int, labels: dict[str, int]) -> CompileResult:
+    def _compile_line_at(self, source: str, base_offset_bits: int, labels: dict[str, int], section: str | None = None) -> CompileResult:
         """Compila una instrucción en un desplazamiento de bits y contexto de etiquetas específico.
 
         Args:
             source: Línea de instrucción.
             base_offset_bits: Posición base en bits dentro de la sección actual.
             labels: Diccionario de etiquetas resueltas y sus desplazamientos en bytes.
+            section: Sección activa para la instrucción.
 
         Returns:
             Resultado detallado de la compilación.
@@ -181,6 +185,7 @@ class Compiler:
             bindings=bindings,
             base_offset_bits=base_offset_bits,
             labels=labels,
+            section=section,
         )
         try:
             self._execute_rule_body(rule_name, runtime)
@@ -239,38 +244,68 @@ class Compiler:
             return self._compile_lines_locked(source)
 
     def _compile_lines_locked(self, source: str) -> list[CompileResult]:
-        lines = [_strip_source_comment(raw).strip() for raw in source.splitlines()]
-        lines = [line for line in lines if line]
-
-        labels: dict[str, int] = {}
-        offset_bits = 0
-        for line in lines:
-            label = _label_from_line(line)
-            if label is not None:
+        """Compila un flujo de líneas estructurado en base a las secciones y etiquetas del SourceReader."""
+        read = self.source_reader.read(source)
+        
+        labels = {}
+        section_offsets = {}
+        
+        for entry in read.entries:
+            sec = entry.section or ".text"
+            if sec not in section_offsets:
+                section_offsets[sec] = 0
+                
+            if entry.kind == "label":
+                offset_bits = section_offsets[sec]
                 if offset_bits % 8 != 0:
-                    raise PackError(f'la etiqueta "{label}" no cae en límite de byte')
-                labels[label] = offset_bits // 8
+                    raise PackError(f'la etiqueta "{entry.name}" no cae en límite de byte')
+                labels[entry.name] = offset_bits // 8
+            elif entry.kind == "instruction":
+                line = entry.text
+                data_result = self._compile_data_definition(line, section_offsets[sec])
+                if data_result is not None:
+                    section_offsets[sec] += len(data_result.bits)
+                    continue
+                memory_result = self._compile_memory_definition(line)
+                if memory_result is not None:
+                    continue
+                result = self._compile_line_at(line, section_offsets[sec], labels, sec)
+                section_offsets[sec] += len(result.bits)
+
+        self.labels = {
+            e.name: {"section": e.section or ".text", "offset": labels[e.name]}
+            for e in read.entries if e.kind == "label"
+        }
+        
+        out = []
+        section_offsets = {}
+        for entry in read.entries:
+            sec = entry.section or ".text"
+            if sec not in section_offsets:
+                section_offsets[sec] = 0
+                
+            if entry.kind in ("label", "section"):
                 continue
-            data_result = self._compile_data_definition(line, offset_bits)
+                
+            line = entry.text
+            data_result = self._compile_data_definition(line, section_offsets[sec])
             if data_result is not None:
-                offset_bits += len(data_result.bits)
+                data_result.section = sec
+                out.append(data_result)
+                section_offsets[sec] += len(data_result.bits)
                 continue
+                
             memory_result = self._compile_memory_definition(line)
             if memory_result is not None:
+                memory_result.section = sec
+                out.append(memory_result)
                 continue
-            result = self._compile_line_at(line, offset_bits, labels)
-            offset_bits += len(result.bits)
-
-        self.labels = labels
-        out: list[CompileResult] = []
-        offset_bits = 0
-        for line in lines:
-            label = _label_from_line(line)
-            if label is not None:
-                continue
-            result = self._compile_line_at(line, offset_bits, labels)
+                
+            result = self._compile_line_at(line, section_offsets[sec], labels, sec)
+            result.section = sec
             out.append(result)
-            offset_bits += len(result.bits)
+            section_offsets[sec] += len(result.bits)
+            
         return out
 
     def compile_bytes(self, source: str) -> bytes:
@@ -357,7 +392,7 @@ class Compiler:
         parsed_type = _parse_type_token(type_token, self.program)
         if parsed_type is None:
             return None
-        type_def, requested_size, dimensions = parsed_type
+        type_def, requested_size, dimensions, elem_size = parsed_type
 
         value_token = " ".join(tokens[3:]).strip()
         allow_string = _type_allows_string(type_def, self.program)
@@ -365,9 +400,19 @@ class Compiler:
         if immediate is None:
             raise PackError(f'data definition "{source}" necesita VALUE valido')
 
-        type_size = requested_size if requested_size is not None else type_def.bits
         value_bits = str(immediate["binary"])
         value_size = int(immediate["size"])
+
+        is_array = type_def.get_bool("array")
+        if is_array and requested_size is None:
+            elem_bits = elem_size if elem_size is not None else (type_def.bits or 8)
+            length = (value_size + elem_bits - 1) // elem_bits
+            if length == 0:
+                length = 1
+            requested_size = elem_bits * length
+            dimensions = [length]
+
+        type_size = requested_size if requested_size is not None else type_def.bits
 
         if type_size is not None:
             strict = _truthy(type_def.values.get("strictsize"))
@@ -375,7 +420,19 @@ class Compiler:
                 raise PackError(f'VALUE de {value_size} bits no cabe en TYPE {type_def.name} de {type_size} bits')
             if strict and value_size != type_size:
                 raise PackError(f'TYPE {type_def.name} exige {type_size} bits exactos; VALUE tiene {value_size}')
-            value_bits = value_bits.rjust(type_size, "0")
+
+            arrautofill_opt = self.program.data_definition.options.get("arrautofill")
+            arrautofill_global = arrautofill_opt is not None and (not arrautofill_opt or _truthy(arrautofill_opt[0]))
+            arrautofill_type = type_def.get_bool("arrautofill")
+            arrautofill = arrautofill_global or arrautofill_type
+
+            if arrautofill:
+                if is_array:
+                    value_bits = value_bits.ljust(type_size, "0")
+                else:
+                    value_bits = value_bits.rjust(type_size, "0")
+            else:
+                value_bits = value_bits.rjust(type_size, "0")
 
         if len(value_bits) % 8 != 0:
             raise PackError("data definition debe emitir un numero completo de bytes")
@@ -404,7 +461,7 @@ class Compiler:
             count = 1
             for item in dimensions:
                 count *= item
-            element_bits = type_def.bits
+            element_bits = elem_size if elem_size is not None else type_def.bits
             if element_bits is None and count and len(value_bits) % count == 0:
                 element_bits = len(value_bits) // count
             if element_bits is not None and element_bits % 8 == 0:
@@ -1497,6 +1554,7 @@ class Compiler:
                 target=target,
                 offset_bits=runtime.base_offset_bits + len(runtime.bits),
                 width=width,
+                section=runtime.section,
                 addend=addend,
                 signed=kind in {"rel", "reldis", "relative"},
                 byteorder=self._byteorder(),
@@ -1552,6 +1610,7 @@ class Compiler:
                         relative_to=source,
                         offset_bits=relocation_offset,
                         width=width_int,
+                        section=runtime.section,
                         signed=True,
                         byteorder=self._byteorder(),
                         rule_name=rule_name,
@@ -1582,6 +1641,7 @@ class Compiler:
                         relative_to=source,
                         offset_bits=relocation_offset,
                         width=width_int,
+                        section=runtime.section,
                         signed=True,
                         byteorder=self._byteorder(),
                         rule_name=rule_name,
@@ -1632,6 +1692,11 @@ class Compiler:
             return current_bits // 8
 
         if token in runtime.labels:
+            if token in self.labels:
+                target_sec = self.labels[token].get("section") or ".text"
+                runtime_sec = runtime.section or ".text"
+                if target_sec != runtime_sec:
+                    return Placeholder(target=token, kind="reldis", reason="cruce de secciones diferido", rule_name=rule_name)
             return runtime.labels[token]
 
         obj = self.program.objects.get(token)
@@ -1797,18 +1862,12 @@ def compile_instruction(program_or_path: Program | str | Path, source: str) -> C
 
 
 def _split_instruction(source: str) -> list[str]:
-    """Divide una línea de instrucción en tokens léxicos respetando comillas y delimitadores.
-
-    Args:
-        source: Cadena de texto de la instrucción ensamblador.
-
-    Returns:
-        Lista de tokens resultantes.
-    """
+    """Divide una línea de instrucción en tokens léxicos respetando comillas, delimitadores y corchetes de arrays."""
     out: list[str] = []
     current: list[str] = []
     quote = False
     escaped = False
+    bracket_level = 0
 
     def push() -> None:
         if current:
@@ -1829,12 +1888,27 @@ def _split_instruction(source: str) -> list[str]:
         if quote:
             current.append(ch)
             continue
+        if ch == "[":
+            bracket_level += 1
+            current.append(ch)
+            continue
+        if ch == "]":
+            if bracket_level > 0:
+                bracket_level -= 1
+            current.append(ch)
+            continue
         if ch.isspace():
-            push()
+            if bracket_level > 0:
+                current.append(ch)
+            else:
+                push()
             continue
         if ch in {",", "=", ":"}:
-            push()
-            out.append(ch)
+            if bracket_level > 0:
+                current.append(ch)
+            else:
+                push()
+                out.append(ch)
             continue
         current.append(ch)
     push()
@@ -1935,15 +2009,10 @@ def _transform_bits(kind: str, bits: str, width: int) -> str:
     raise PackError(f"transformacion de bits desconocida: {kind}")
 
 
-def _parse_type_token(token: str, program: Program) -> tuple[TypeDefinition, int | None, list[int]] | None:
+def _parse_type_token(token: str, program: Program) -> tuple[TypeDefinition, int | None, list[int], int | None] | None:
     """Parseará el tipo de dato especificado en ensamblador, detectando dimensiones y tamaño total.
 
-    Args:
-        token: Token del tipo (e.g., 'u32', 'i8[10]', etc.).
-        program: El AST de configuración global RIF.
-
-    Returns:
-        Tupla con la definición del tipo, el tamaño total calculado y las dimensiones si las hay, o None.
+    Soporta la declaración dinámica de arrays basándose en las columnas de .types.
     """
     raw = token.strip()
     if not raw:
@@ -1968,13 +2037,69 @@ def _parse_type_token(token: str, program: Program) -> tuple[TypeDefinition, int
     if definition is None:
         return None
 
-    requested_size = definition.bits
-    if dimensions and definition.bits is not None:
-        count = 1
-        for item in dimensions:
-            count *= item
-        requested_size = definition.bits * count
-    return definition, requested_size, dimensions
+    is_array = definition.get_bool("array")
+    elem_size = definition.bits
+
+    if is_array:
+        longset = definition.get_bool("longset")
+        sizeset = definition.get_bool("sizeset")
+
+        if sizeset and longset:
+            if len(dimensions) != 2:
+                raise PackError(f"El tipo array {name} requiere especificar [SIZE, LONG]. Ejemplo: {name}[8, 10]")
+            elem_size = dimensions[0]
+            length = dimensions[1]
+            requested_size = elem_size * length
+            logical_dimensions = [length]
+        elif sizeset and not longset:
+            if len(dimensions) == 1:
+                elem_size = dimensions[0]
+                requested_size = None
+                logical_dimensions = []
+            elif len(dimensions) == 2:
+                elem_size = dimensions[0]
+                length = dimensions[1]
+                requested_size = elem_size * length
+                logical_dimensions = [length]
+            else:
+                raise PackError(f"El tipo array {name} requiere especificar [SIZE] o [SIZE, LONG]")
+        elif not sizeset and longset:
+            if len(dimensions) != 1:
+                raise PackError(f"El tipo array {name} requiere especificar [LONG]. Ejemplo: {name}[10]")
+            if elem_size is None:
+                raise PackError(f"El tipo array {name} requiere un tamaño en bits (bits/SIZE) por defecto en .types")
+            length = dimensions[0]
+            requested_size = elem_size * length
+            logical_dimensions = [length]
+        else:
+            if not dimensions:
+                if elem_size is None:
+                    raise PackError(f"El tipo array {name} requiere un tamaño en bits (bits/SIZE) por defecto en .types")
+                requested_size = None
+                logical_dimensions = []
+            elif len(dimensions) == 1:
+                if elem_size is None:
+                    raise PackError(f"El tipo array {name} requiere un tamaño en bits (bits/SIZE) por defecto en .types")
+                length = dimensions[0]
+                requested_size = elem_size * length
+                logical_dimensions = [length]
+            elif len(dimensions) == 2:
+                elem_size = dimensions[0]
+                length = dimensions[1]
+                requested_size = elem_size * length
+                logical_dimensions = [length]
+            else:
+                raise PackError(f"El tipo array {name} no soporta mas de 2 dimensiones")
+    else:
+        requested_size = definition.bits
+        if dimensions and definition.bits is not None:
+            count = 1
+            for item in dimensions:
+                count *= item
+            requested_size = definition.bits * count
+        logical_dimensions = dimensions
+
+    return definition, requested_size, logical_dimensions, elem_size
 
 
 def _parse_immediate_value(token: str, allow_string: bool = True) -> dict[str, Any] | None:

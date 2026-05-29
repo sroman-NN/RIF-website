@@ -1,0 +1,1 @@
+"""GBA plugin CLI commands."""

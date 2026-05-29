@@ -7,7 +7,7 @@ generados durante la compilación, tales como etiquetas, símbolos diferidos
 y referencias relativas de memoria.
 """
 
-from typing import Any
+from typing import Any, Dict
 
 from .errors import PackError
 from .models import Placeholder, PlaceholderResolution, Program, ResolvedPlaceholder
@@ -21,7 +21,7 @@ class PlaceholderResolver:
     evita materializar bytes cuando el marcador no reservó un ancho definido.
     """
 
-    def __init__(self, program: Program, labels: dict[str, int] | None = None):
+    def __init__(self, program: Program, labels: dict[str, dict[str, Any]] | None = None):
         self.program = program
         self.labels = labels or {}
 
@@ -52,7 +52,7 @@ class PlaceholderResolver:
         """Intenta resolver un único marcador de posición."""
         if placeholder.kind == "label":
             if placeholder.target in self.labels:
-                value = self.labels[placeholder.target]
+                value = self.labels[placeholder.target]['offset']
                 return ResolvedPlaceholder(placeholder, value, _int_to_bits(value, placeholder.width), "label")
             return None
 
@@ -76,6 +76,8 @@ class PlaceholderResolver:
             return ResolvedPlaceholder(placeholder, value, _int_to_bits(value, placeholder.width), "address")
 
         if placeholder.kind == "reldis":
+            if placeholder.reason and "cruce de secciones" in placeholder.reason:
+                return None
             value = self._address_value(placeholder.target)
             if value is None:
                 return None
@@ -99,7 +101,7 @@ class PlaceholderResolver:
 
     def _address_value(self, target: str) -> int | None:
         if target in self.labels:
-            return self.labels[target]
+            return self.labels[target]["offset"]
 
         row = self.program.objects.get(target)
         if row is None:
@@ -127,7 +129,7 @@ class PlaceholderResolver:
 def resolve_placeholders(
     program: Program,
     placeholders: list[Placeholder] | tuple[Placeholder, ...],
-    labels: dict[str, int] | None = None,
+    labels: dict[str, dict[str, Any]] | None = None,
 ) -> PlaceholderResolution:
     """Función de utilidad global para resolver una lista de marcadores de posición."""
     return PlaceholderResolver(program, labels).resolve_all(placeholders)

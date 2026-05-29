@@ -4,7 +4,7 @@ Retargetable ISA Foundry es un generador para crear ensambladores, empaquetadore
 
 El objetivo principal es que el core no este hardcodeado para una arquitectura. RIF debe saber leer, validar, ejecutar flujo comun, resolver placeholders, organizar secciones y dejar que las reglas especificas de cada ISA vivan en plugins.
 
-Estado actual: **A 0.0 Beta**.
+Estado actual: **0.0.1b1 Beta**.
 
 ## Que incluye
 
@@ -68,6 +68,15 @@ python -m rif help version_actual
 python -m rif help --open
 ```
 
+Crear la ROM de ejemplo GBA:
+
+```bash
+python -m rif build gba
+python -m rif -pcli gba install mGBA --add-path
+python -m rif -pcli gba run gba/hello.gba -nd
+python -m rif -pcli basics build-doc proyectos/gba
+```
+
 ## CLI
 
 Comandos disponibles:
@@ -79,6 +88,10 @@ python -m rif pack archivo.pack
 python -m rif link archivo.pack
 python -m rif compile archivo.pack instruccion
 python -m rif build archivo.pack
+python -m rif build archivo.pack --source-file programa.rif
+python -m rif build carpeta_proyecto
+python -m rif -pcli plugin comando
+python -m rif -pcli basics build-doc carpeta_proyecto
 python -m rif help [tema]
 ```
 
@@ -93,6 +106,7 @@ rif help
 ```text
 rif/                 core del sistema
 plugins/basics/      plugin base generico
+plugins/gba/         ejemplo de plugin con CLI propia
 examples/            paquetes y programas de ejemplo
 tests/               tests unitarios
 help/                documentacion local HTML/Markdown
@@ -127,6 +141,33 @@ RIF separa las fases principales:
 4. `Linker` organiza secciones, headers, memoria y placeholders.
 
 `Parser.parse()` mantiene el flujo completo por compatibilidad.
+
+## Lector de fuente
+
+El codigo fuente que se compila no usa reglas fijas del core. El lector toma su comportamiento desde `.pack`:
+
+```rif
+.pack
+reader:
+    comment "#"
+    blocks ":"
+    section ".section"
+    sources ".rif"
+    requiresect true
+    validatesect true
+```
+
+Opciones:
+
+- `comment`: caracter de comentario del codigo fuente.
+- `blocks`: caracter usado para labels y cabeceras con bloque.
+- `separator`: separador opcional para lectura lexica.
+- `section`: directiva para declarar seccion en fuente.
+- `sources`: extensiones que se leen al compilar una carpeta de proyecto.
+- `requiresect`: exige que cada instruccion caiga dentro de una seccion.
+- `validatesect`: valida las secciones contra `.sections`.
+
+Si el argumento de `build` es una carpeta, RIF busca su `.pack`, lee las fuentes configuradas por `reader.sources` y escribe la salida con `packer.output` o, si no existe, con `packer.ext`.
 
 ## Plugins
 
@@ -239,3 +280,9 @@ Trabajo futuro previsto:
 ## Licencia
 
 MIT.
+
+## Seguridad
+
+> **Advertencia**: Los plugins de RIF ejecutan código Python real en tu máquina.
+> No ejecutes packs o plugins de fuentes no confiables.
+> RIF no es un sandbox de seguridad.

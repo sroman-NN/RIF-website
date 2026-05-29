@@ -429,15 +429,18 @@ class Parser:
             program.vars[name] = BitVariable(name=name, bits=bits, line=stmt.line)
 
     def _build_types(self, program: Program) -> None:
+        """Construye y registra las definiciones de tipos a partir de la tabla .types."""
         table = program.tables.get(".types")
         if table is None:
             return
 
-        size_field = next((field for field in table.fields if field.lower() == "size"), "SIZE")
+        size_field = next((field for field in table.fields if field.lower() in ("size", "bits")), "SIZE")
         for row in table.rows.values():
             values = dict(row.values)
             values.setdefault("NAME", row.name)
             size = values.get(size_field)
+            if size is None:
+                size = values.get("bits") or values.get("BITS") or values.get("size") or values.get("SIZE")
             values.setdefault("SIZE", size)
             values.setdefault("PRIVTYPE", "type")
             values.setdefault("TYPE", "TYPE")
@@ -491,11 +494,13 @@ class Parser:
         table = program.tables.get(".headers")
         if table is not None:
             for row in table.rows.values():
+                hex_val = row.values.get("HEX")
+                fill_val = row.values.get("FILL")
                 block = HeaderBlock(
                     name=row.name,
                     size=row.values.get("SIZE"),
-                    hex=str(row.values.get("HEX", "") or ""),
-                    fill=str(row.values.get("FILL", "") or ""),
+                    hex=str(hex_val) if hex_val is not None else "",
+                    fill=str(fill_val) if fill_val is not None else "",
                     line=row.line,
                 )
                 program.headers.add(block)
@@ -573,8 +578,37 @@ def parse_packer_config(program: Program) -> PackerConfig:
                 elif name == "needsect":
                     _require_args(child, 1)
                     config.required_prefixes.add(_stringish(args[0]))
+                elif name == "output":
+                    _require_args(child, 1)
+                    config.output = _stringish(args[0])
                 else:
                     raise ParseError(f"unknown packer option {name!r}", child.line)
+        elif stmt.name == "reader":
+            for child in stmt.children:
+                name = child.name
+                args = child.args
+                if name == "comment":
+                    _require_args(child, 1)
+                    config.source_comment = _stringish(args[0])
+                elif name == "separator":
+                    _require_args(child, 1)
+                    config.source_separator = _stringish(args[0])
+                elif name == "blocks":
+                    _require_args(child, 1)
+                    config.source_block = _stringish(args[0])
+                elif name in ("extensions", "sources"):
+                    config.source_extensions = [_stringish(arg) for arg in args if arg.value != ","]
+                elif name in ("require_section", "requiresect"):
+                    _require_args(child, 1)
+                    config.source_require_section = _stringish(args[0]).strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
+                elif name in ("validate_sections", "validatesect"):
+                    _require_args(child, 1)
+                    config.source_validate_sections = _stringish(args[0]).strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
+                elif name in ("section_directive", "section"):
+                    _require_args(child, 1)
+                    config.source_section_directive = _stringish(args[0])
+                else:
+                    raise ParseError(f"unknown reader option {name!r}", child.line)
 
     return config
 
@@ -617,10 +651,16 @@ def load_plugins(program: Program, config: PackerConfig) -> dict[str, Any]:
     for plugin_name in config.plugins:
         plugin_root = _find_plugin_root(plugin_roots, plugin_name)
         if plugin_root is None:
-            continue
+            rutas = [str(r / plugin_name) for r in plugin_roots]
+            rutas_str = '\n'.join(f'  - {r}' for r in rutas) if rutas else '  (ninguna ruta de plugins disponible)'
+            raise PackError(
+                f'Plugin declarado no encontrado: "{plugin_name}"\nRutas buscadas:\n{rutas_str}'
+            )
         plugin_dir = plugin_root / "plugins"
         if not plugin_dir.exists():
-            continue
+            raise PackError(
+                f'Plugin "{plugin_name}" encontrado en {plugin_root} pero sin subcarpeta plugins/ (vacío)'
+            )
 
         for path in sorted(plugin_dir.rglob(f"*{ext}")):
             if path.is_file():
@@ -681,11 +721,23 @@ def run_precompilers(program: Program, config: PackerConfig) -> None:
 
 
 def _plugin_roots(base_dir: Path) -> list[Path]:
+    """Busca y resuelve las carpetas de origen donde se pueden localizar los plugins de RIF."""
     roots: list[Path] = []
     for candidate in (base_dir / "plugins", Path.cwd() / "plugins"):
         resolved = candidate.resolve()
         if candidate.exists() and resolved not in roots:
             roots.append(resolved)
+    
+    try:
+        import rif as _rif_pkg
+        pkg_plugins = Path(_rif_pkg.__file__).parent / "plugins"
+        if pkg_plugins.exists():
+            resolved = pkg_plugins.resolve()
+            if resolved not in roots:
+                roots.append(resolved)
+    except Exception:
+        pass
+        
     return roots
 
 
@@ -729,7 +781,7 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
     def token_values(stmt: Statement) -> tuple[str, ...]:
         return tuple(token.value for token in stmt.args)
 
-    def run_plugin(stmt: Statement, rule_name: str | None) -> list[Any]:
+    def run_plugin(stmt: Statement, rule_name: str | None, in_conditional: bool = False) -> list[Any]:
         mod = plugins[stmt.name]
         tokens = [stmt.name] + stmt.arg_values()
         Line.set_tokens(tokens)
@@ -753,7 +805,8 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
                 res = mod.main()
             if isinstance(res, Err):
                 raise PackError(f"Plugin {stmt.name} error: {res.message}", stmt.line)
-            _record_plugin_result(program, res, rule_name)
+            # Si estamos en una rama condicional, registramos el resultado con rule_name=None para que no afecte a la firma.
+            _record_plugin_result(program, res, None if in_conditional else rule_name)
             return _result_items(res)
         except Exception as e:
             if isinstance(e, PackError):
@@ -763,17 +816,15 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
             RuleIndicator.current = None
             Line.clear()
 
-    def process_plain_statement(stmt: Statement, rule_name: str | None) -> list[Any]:
+    def process_plain_statement(stmt: Statement, rule_name: str | None, in_conditional: bool = False) -> list[Any]:
         if stmt.name == "call" and rule_name is None:
-            return process_statement_list(stmt.children, rule_name)
+            return process_statement_list(stmt.children, rule_name, in_conditional)
         if stmt.name in plugins:
-            return run_plugin(stmt, rule_name)
+            return run_plugin(stmt, rule_name, in_conditional)
 
+        return process_statement_list(stmt.children, rule_name, in_conditional)
 
-
-        return process_statement_list(stmt.children, rule_name)
-
-    def process_on(stmts: list[Statement], index: int, rule_name: str | None) -> tuple[FlowInstruction, int]:
+    def process_on(stmts: list[Statement], index: int, rule_name: str | None, in_conditional: bool = False) -> tuple[FlowInstruction, int]:
         stmt = stmts[index]
         if not stmt.block:
             raise PackError("ON requiere ':' y un bloque indentado", stmt.line)
@@ -782,7 +833,7 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
             args=token_values(stmt),
             rule_name=rule_name,
             line=stmt.line,
-            body=process_statement_list(stmt.children, rule_name),
+            body=process_statement_list(stmt.children, rule_name, in_conditional=True),
         )
 
         next_index = index + 1
@@ -798,7 +849,7 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
                     args=(),
                     rule_name=rule_name,
                     line=off_stmt.line,
-                    body=process_statement_list(off_stmt.children, rule_name),
+                    body=process_statement_list(off_stmt.children, rule_name, in_conditional=True),
                 )
             )
             next_index += 1
@@ -806,7 +857,7 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
         program.codegen.add_flow(on_flow, rule_name)
         return on_flow, next_index
 
-    def process_switch(stmt: Statement, rule_name: str | None) -> FlowInstruction:
+    def process_switch(stmt: Statement, rule_name: str | None, in_conditional: bool = False) -> FlowInstruction:
         if not stmt.args:
             raise PackError("switch espera una expresión", stmt.line)
         if not stmt.block:
@@ -834,43 +885,43 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
                     args=token_values(child),
                     rule_name=rule_name,
                     line=child.line,
-                    body=process_statement_list(child.children, rule_name),
+                    body=process_statement_list(child.children, rule_name, in_conditional=True),
                 )
             )
 
         program.codegen.add_flow(switch_flow, rule_name)
         return switch_flow
 
-    def process_statement(stmt: Statement, rule_name: str | None) -> list[Any]:
+    def process_statement(stmt: Statement, rule_name: str | None, in_conditional: bool = False) -> list[Any]:
         if stmt.name == "ON":
-            flow, _ = process_on([stmt], 0, rule_name)
+            flow, _ = process_on([stmt], 0, rule_name, in_conditional)
             return [flow]
         if stmt.name == "OFF":
             raise PackError("OFF solo puede aparecer inmediatamente después de un ON", stmt.line)
         if stmt.name == "switch":
-            return [process_switch(stmt, rule_name)]
+            return [process_switch(stmt, rule_name, in_conditional)]
         if stmt.name == "case":
             raise PackError("case solo puede aparecer dentro de switch", stmt.line)
-        return process_plain_statement(stmt, rule_name)
+        return process_plain_statement(stmt, rule_name, in_conditional)
 
-    def process_statement_list(stmts: list[Statement], rule_name: str | None) -> list[Any]:
+    def process_statement_list(stmts: list[Statement], rule_name: str | None, in_conditional: bool = False) -> list[Any]:
         out: list[Any] = []
         index = 0
         while index < len(stmts):
             stmt = stmts[index]
             if stmt.name == "ON":
-                flow, index = process_on(stmts, index, rule_name)
+                flow, index = process_on(stmts, index, rule_name, in_conditional)
                 out.append(flow)
                 continue
             if stmt.name == "OFF":
                 raise PackError("OFF solo puede aparecer inmediatamente después de un ON", stmt.line)
             if stmt.name == "switch":
-                out.append(process_switch(stmt, rule_name))
+                out.append(process_switch(stmt, rule_name, in_conditional))
                 index += 1
                 continue
             if stmt.name == "case":
                 raise PackError("case solo puede aparecer dentro de switch", stmt.line)
-            out.extend(process_plain_statement(stmt, rule_name))
+            out.extend(process_plain_statement(stmt, rule_name, in_conditional))
             index += 1
         return out
 

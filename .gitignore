@@ -1,5 +1,7 @@
 __pycache__/
 *.py[cod]
+*.pyc
+*.pyo
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
@@ -9,3 +11,7 @@ venv/
 build/
 dist/
 *.txt
+*.gba
+*.sav
+*.vsix
+.rif-build/

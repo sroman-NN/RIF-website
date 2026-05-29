@@ -16,6 +16,7 @@ packer:
     definesec ".pack"
     definesec ".world"
     definesec ".vars"
+    definesec ".headers"
     setpre world ".world"
     needsect world
 
@@ -28,7 +29,7 @@ types:
 arch "x86_64"
 endianess 0 ; 0 litte, 1 big
 
-; headers
+.headers
 | NAME                  | SIZE | HEX         | FILL     |
 | IMAGE_DOS_HEADER      | 64   |             | 00000000 |
 | DOS_STUB              | 64   |             | 00000000 |

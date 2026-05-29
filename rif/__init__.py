@@ -4,13 +4,16 @@ Expone la interfaz pública para el Lexer, Parser, Linker, Packer, Compiler
 y los modelos de datos esenciales que estructuran el flujo del framework.
 """
 
+__version__ = "0.0.1b1"
+
 from .errors import RIFError, LexError, ParseError, PackError, Errors, EndSignal, end
 from .lexer import Lexer
 from .parser import Parser, collect_codegen
-from .linker import Linker, link_file, build_file
+from .linker import Linker, link_file, build_file, build_project
 from .packer import Packer, build_pack, pack_file
 from .resolver import PlaceholderResolver, resolve_placeholders
 from .compiler import Compiler, compile_instruction
+from .source_reader import SourceEntry, SourceReader, SourceReadResult
 from .models import (
     Token,
     Program,
@@ -54,6 +57,7 @@ from .models import (
 )
 
 __all__ = [
+    "__version__",
     "RIFError",
     "LexError",
     "ParseError",
@@ -67,6 +71,7 @@ __all__ = [
     "Linker",
     "link_file",
     "build_file",
+    "build_project",
     "Packer",
     "build_pack",
     "pack_file",
@@ -113,4 +118,7 @@ __all__ = [
     "ResolvedPlaceholder",
     "OperandValue",
     "CompileResult",
+    "SourceEntry",
+    "SourceReader",
+    "SourceReadResult",
 ]

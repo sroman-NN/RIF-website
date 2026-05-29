@@ -1,0 +1,7 @@
+.section rom
+set_headers
+set_logo
+set_checksum
+set_entry
+set_frame
+rompad
