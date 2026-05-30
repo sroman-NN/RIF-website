@@ -662,6 +662,11 @@ def load_plugins(program: Program, config: PackerConfig) -> dict[str, Any]:
                 f'Plugin "{plugin_name}" encontrado en {plugin_root} pero sin subcarpeta plugins/ (vacío)'
             )
 
+        for import_root in (plugin_dir, plugin_root):
+            import_root_str = str(import_root)
+            if import_root_str not in sys.path:
+                sys.path.insert(0, import_root_str)
+
         for path in sorted(plugin_dir.rglob(f"*{ext}")):
             if path.is_file():
                 relative_name = "_".join(path.relative_to(plugin_dir).with_suffix("").parts)

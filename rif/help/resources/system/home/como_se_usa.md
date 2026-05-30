@@ -28,3 +28,23 @@ Para leer la ayuda:
 python -m rif help
 python -m rif help instrucciones
 ```
+
+Proyecto por carpeta:
+
+```bash
+python -m rif build gba
+```
+
+CLI de plugin:
+
+```bash
+python -m rif -pcli fonts list
+python -m rif -pcli basics build-doc gba
+```
+
+Ayuda de plugin:
+
+```bash
+python -m rif help fonts
+python -m rif help fonts/fillables
+```

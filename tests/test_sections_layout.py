@@ -90,5 +90,42 @@ byte 0x01
         # Verify it resulted in a placeholder because of section crossing
         self.assertTrue(any(p.target == "target" and p.kind == "reldis" for p in placeholders))
 
+    def test_linker_warning_on_missing_section(self):
+        """Verifica que el linker emita una advertencia preventiva si no hay directiva de sección."""
+        from io import StringIO
+        import sys
+        from rif.parser import Parser
+        from rif.linker import BinaryLinker
+        
+        pack_src = """
+.pack
+plugin "basics"
+reader:
+    requiresect false
+
+.sections
+| NAME | type | perms | align | fill | emit | order |
+| text | code | rx    | 1     | 00   | yes  | 0     |
+.rules
+byte:
+    need VALUE, imm
+    emit imm.binary
+"""
+        program = Parser(pack_src, None).parse()
+        linker = BinaryLinker(program)
+        
+        # Redirigir stderr
+        stderr = StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = stderr
+        try:
+            # Compilar fuente complementario sin directivas '.section'
+            linker._compile_source("byte 0xFA")
+        finally:
+            sys.stderr = old_stderr
+            
+        self.assertIn("Aviso: El código fuente no contiene directivas '.section'", stderr.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

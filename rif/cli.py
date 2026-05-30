@@ -396,9 +396,11 @@ def _help_topics() -> dict[str, Path]:
                     topics[item.name] = mds[0] # Para acceso rápido via cli
     return topics
 
-def _inject_dynamic_help(index: Path, topics: dict[str, Path]):
+def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
     import json
-    if not index.exists(): return
+    import tempfile
+    if not index.exists():
+        return index
     html = index.read_text(encoding="utf-8")
     
     menu_html = '<div class="menu-group" data-category="paquetes">\n<div class="menu-category">Paquetes Instalados</div>\n<ul>\n'
@@ -439,22 +441,182 @@ def _inject_dynamic_help(index: Path, topics: dict[str, Path]):
         html, flags=re.DOTALL
     )
     
-    index.write_text(html, encoding="utf-8")
+    try:
+        index.write_text(html, encoding="utf-8")
+        return index
+    except (PermissionError, OSError):
+        try:
+            temp_dir = Path(tempfile.gettempdir())
+            temp_index = temp_dir / "rif_help_index.html"
+            temp_index.write_text(html, encoding="utf-8")
+            print("Aviso: No se pudo escribir en el archivo de ayuda original por falta de permisos. Se usará una copia temporal.", file=sys.stderr)
+            return temp_index
+        except Exception:
+            return index
+
+def _plugin_help_entries() -> dict[str, dict[str, object]]:
+    import tempfile
+    from .parser import _plugin_roots
+
+    entries: dict[str, dict[str, object]] = {}
+    for plugins_root in _plugin_roots(Path.cwd()):
+        if not plugins_root.exists():
+            continue
+        for plugin_dir in sorted(path for path in plugins_root.iterdir() if path.is_dir() and path.name != "__pycache__"):
+            root_doc = _plugin_root_doc(plugin_dir)
+            pages = _plugin_pages(plugin_dir)
+            if root_doc is None and not pages:
+                continue
+
+            combined_parts: list[str] = []
+            if root_doc is not None:
+                combined_parts.append(root_doc.read_text(encoding="utf-8"))
+            else:
+                combined_parts.append(f"# {plugin_dir.name}")
+
+            for page in pages:
+                combined_parts.append(f"\n\n## {page['title']}\n\n")
+                combined_parts.append(page["path"].read_text(encoding="utf-8"))
+
+            combined_path = Path(tempfile.gettempdir()) / f"rif_help_plugin_{plugin_dir.name}.md"
+            combined_path.write_text("\n".join(part.rstrip() for part in combined_parts if part is not None).rstrip() + "\n", encoding="utf-8")
+            entries[plugin_dir.name] = {
+                "name": plugin_dir.name,
+                "combined": combined_path,
+                "root": root_doc,
+                "pages": pages,
+            }
+    return entries
+
+
+def _plugin_root_doc(plugin_dir: Path) -> Path | None:
+    preferred = ["readme.md", "README.md", "Readme.md"]
+    for name in preferred:
+        candidate = plugin_dir / name
+        if candidate.exists():
+            return candidate
+    docs = sorted(path for path in plugin_dir.glob("*.md") if path.is_file())
+    return docs[0] if docs else None
+
+
+def _plugin_pages(plugin_dir: Path) -> list[dict[str, object]]:
+    pages_dir = plugin_dir / "pages"
+    if not pages_dir.exists() or not pages_dir.is_dir():
+        return []
+
+    pages: list[dict[str, object]] = []
+    for path in sorted(pages_dir.glob("*.md")):
+        match = __import__("re").match(r"^(\d+)_(.+)\.md$", path.name)
+        if not match:
+            continue
+        order = int(match.group(1))
+        key = match.group(2)
+        title = key.replace("_", " ").replace("-", " ").strip().title()
+        pages.append({"order": order, "key": key, "title": title, "path": path})
+    return sorted(pages, key=lambda item: (item["order"], item["key"]))
+
+
+def _help_topics() -> dict[str, Path]:
+    root = _help_root()
+    topics: dict[str, Path] = {}
+    if root.exists():
+        topics.update({path.stem: path for path in sorted((root / "resources").rglob("*.md"))})
+
+    for entry in _plugin_help_entries().values():
+        name = str(entry["name"])
+        topics[f"plugin_{name}"] = entry["combined"]
+        topics[name] = entry["combined"]
+        for page in entry["pages"]:
+            topics[f"{name}/{page['key']}"] = page["path"]
+            topics[f"plugin_{name}/{page['key']}"] = page["path"]
+    return topics
+
+
+def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
+    import json
+    import re
+    import tempfile
+
+    if not index.exists():
+        return index
+    html = index.read_text(encoding="utf-8")
+
+    menu_html = '<div class="menu-group" data-category="paquetes">\n<div class="menu-category">Paquetes Instalados</div>\n<ul>\n'
+    docs_json: list[str] = []
+
+    plugin_entries = _plugin_help_entries()
+    if not plugin_entries:
+        menu_html += '<li><span class="menu-link" style="opacity:0.5; cursor:default; padding-left:20px;">Ninguno</span></li>\n'
+    else:
+        for entry in plugin_entries.values():
+            name = str(entry["name"])
+            key = f"plugin_{name}"
+            content = entry["combined"].read_text(encoding="utf-8")
+            menu_html += f'''<li>
+              <a href="#" class="menu-link" data-key="{key}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                {name}
+              </a>
+            </li>\n'''
+            docs_json.append(f'      "{key}": {json.dumps(content)}')
+            for page in entry["pages"]:
+                page_key = f"plugin_{name}/{page['key']}"
+                page_content = page["path"].read_text(encoding="utf-8")
+                menu_html += f'''<li>
+              <a href="#" class="menu-link" data-key="{page_key}" style="padding-left:34px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+                {page['title']}
+              </a>
+            </li>\n'''
+                docs_json.append(f'      "{page_key}": {json.dumps(page_content)}')
+
+    menu_html += '</ul>\n</div>'
+
+    html = re.sub(
+        r'<!-- DYNAMIC_PLUGINS_MENU_START -->.*?<!-- DYNAMIC_PLUGINS_MENU_END -->',
+        lambda m: f'<!-- DYNAMIC_PLUGINS_MENU_START -->\n{menu_html}\n<!-- DYNAMIC_PLUGINS_MENU_END -->',
+        html,
+        flags=re.DOTALL,
+    )
+
+    docs_str = ",\n".join(docs_json)
+    if docs_str:
+        docs_str = ",\n" + docs_str
+
+    html = re.sub(
+        r'// DYNAMIC_PLUGINS_DOCS_START.*?// DYNAMIC_PLUGINS_DOCS_END',
+        lambda m: f'// DYNAMIC_PLUGINS_DOCS_START\n{docs_str}\n// DYNAMIC_PLUGINS_DOCS_END',
+        html,
+        flags=re.DOTALL,
+    )
+
+    try:
+        index.write_text(html, encoding="utf-8")
+        return index
+    except (PermissionError, OSError):
+        try:
+            temp_index = Path(tempfile.gettempdir()) / "rif_help_index.html"
+            temp_index.write_text(html, encoding="utf-8")
+            print("Aviso: No se pudo escribir en el archivo de ayuda original por falta de permisos. Se usara una copia temporal.", file=sys.stderr)
+            return temp_index
+        except Exception:
+            return index
+
 
 def _run_help(topic: str | None, open_index: bool) -> int:
     root = _help_root()
     index = root / "index.html"
     topics = _help_topics()
     
-    _inject_dynamic_help(index, topics)
+    resolved_index = _inject_dynamic_help(index, topics)
 
     # Si no hay un topic específico, o si el usuario puso explícitamente --open, abrimos el navegador
     if open_index or not topic:
         import webbrowser
         # Convertir a cadena absoluta para mayor compatibilidad con Windows en vez de as_uri() si as_uri() falla
-        path_str = str(index.resolve())
+        path_str = str(resolved_index.resolve())
         webbrowser.open(f"file:///{path_str.replace(chr(92), '/')}")
-        print(f"Abriendo documentación en: {index}")
+        print(f"Abriendo documentación en: {resolved_index}")
         if topic:  # Si pidieron un topic Y --open
             return 0
         # Si no pidieron topic, imprimimos los topics además

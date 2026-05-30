@@ -1,6 +1,24 @@
 # Estructura de plugin
 
-Forma minima:
+Estructura recomendada:
+
+```text
+plugins/NOMBRE/
+    readme.md
+    pages/
+        0_intro.md
+        1_detalle.md
+    cli.py
+    cli/
+    plugins/
+        instruccion.py
+```
+
+`readme.md` o cualquier `.md` en la raiz del plugin se usa como documentacion principal en `rif help`.
+
+`pages/` permite subsecciones ordenadas. El nombre `0_intro.md` usa `0` para ordenar y `intro` como nombre visible.
+
+Forma minima de instruccion:
 
 ```python
 from rif import Expr, Line

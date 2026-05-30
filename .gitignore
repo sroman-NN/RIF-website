@@ -12,6 +12,7 @@ build/
 dist/
 *.txt
 *.gba
+*.bin
 *.sav
 *.vsix
 .rif-build/

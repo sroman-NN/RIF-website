@@ -39,6 +39,9 @@ relocabs:
 
 relocdata:
     reloc abs, target, 16
+
+emit_addr:
+    emitaddress target, 16
 """
 
 class TestRelocations(unittest.TestCase):
@@ -62,6 +65,7 @@ byte 0x90
 rel8
 relocabs
 relocdata
+emit_addr
 
 .data
 target:
@@ -70,14 +74,14 @@ byte 0x02
         result = linker.build(source=source, write=False)
         data = result.data
         
-        # .text -> 0: start. 1: rel8. 2,3: relocabs. 4,5: relocdata
+        # .text -> 0: start. 1: rel8. 2,3: relocabs. 4,5: relocdata. 6,7: emit_addr
         # virtual_offsets:
         # start = 0
         # rel8 is at offset 1
         # relocabs is at offset 2
         # relocdata is at offset 4
-        # target is at .data (offset 16 due to align 16 of .text, wait. .text is size 6. Padded to 16 if needed? No, block virtual_size is 6, block align is 16, so next section .data starts at 16).
-        # Let's check sections layout.
+        # emit_addr is at offset 6
+        # target is at .data (offset 8 due to align 8 of .data and size 8 of .text)
         blocks_dict = {b.name: b for b in result.blocks}
         text_block = blocks_dict["text"]
         data_block = blocks_dict["data"]
@@ -101,6 +105,10 @@ byte 0x02
         # `relocdata` is `msg_addr` (8) in 16 bits little endian: 08 00
         self.assertEqual(data[4], 0x08)
         self.assertEqual(data[5], 0x00)
+        
+        # `emit_addr` (emitaddress) is `target_addr` (8) in 16 bits little endian: 08 00
+        self.assertEqual(data[6], 0x08)
+        self.assertEqual(data[7], 0x00)
         
         # Check .data section at index 8
         self.assertEqual(data[8], 0x02)

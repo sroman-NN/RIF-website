@@ -27,3 +27,5 @@ python -m rif help
 `rif -pcli nombre ...` delega comandos a la CLI propia de un plugin.
 
 `rif -pcli basics build-doc carpeta` lee `doc.json`, `syntaxs.json` y `build.json`; con `doc.json` y `build.json` ya puede generar un VSIX.
+
+`rif help plugin` muestra la documentacion del plugin. Si el plugin tiene `pages/0_nombre.md`, tambien puedes abrir subsecciones con `rif help plugin/nombre`.

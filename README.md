@@ -4,7 +4,7 @@ Retargetable ISA Foundry es un generador para crear ensambladores, empaquetadore
 
 El objetivo principal es que el core no este hardcodeado para una arquitectura. RIF debe saber leer, validar, ejecutar flujo comun, resolver placeholders, organizar secciones y dejar que las reglas especificas de cada ISA vivan en plugins.
 
-Estado actual: **0.0.1b1 Beta**.
+Estado actual: **0.0.1 Beta**.
 
 ## Que incluye
 
@@ -14,6 +14,9 @@ Estado actual: **0.0.1b1 Beta**.
 - Compiler runtime con `need`, `emit`, `call`, `ON/OFF`, `switch/case`, `end_instruction`, relocaciones y placeholders.
 - Linker con secciones, headers, data, stacks, heaps, `nobits`, alineacion y referencias `link:*`.
 - Plugin base `basics`.
+- Plugin `fonts` con fuente bitmap 5x7x1.
+- Fillables `@...` definidos por plugins.
+- Generacion de VSIX minimo con docs, resaltado, prediccion y diagnosticos.
 - CLI local.
 - Examples y tests limpios.
 - Help local en HTML y Markdown.
@@ -275,7 +278,7 @@ Trabajo futuro previsto:
 - Mas flujos e instrucciones internas.
 - Mejoras del linker.
 - Compiladores integrados con CLI autodefinida y manual.
-- Soporte completo para extensiones VSIX semi automaticas.
+- Soporte inicial para extensiones VSIX semi automaticas con resaltado, prediccion, hover, snippets y diagnosticos simples.
 
 ## Licencia
 

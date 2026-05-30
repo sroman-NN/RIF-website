@@ -1,22 +1,24 @@
 """Emite una dirección de memoria como placeholder.
 
-Se conserva el nombre `emitadress` porque así fue definido en la DSL.
+Alias de compatibilidad heredado de 'emitadress'. Redirige la lógica al motor principal.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from rif import Err, Expr, Line, Placeholder, RuleIndicator
+from rif import Err, Expr, Line
 
 
 def _clean(value: Any) -> str:
+    """Limpia y normaliza el valor de un operando."""
     if hasattr(value, "value"):
         value = value.value
     return str(value).strip()
 
 
 def main():
+    """Punto de entrada principal para el alias heredado de emisión de dirección."""
     if Line.elements != 2:
         return Err("emitadress espera un operando")
 
@@ -27,17 +29,9 @@ def main():
     if not target:
         return Err("emitadress espera un operando")
 
-    return Expr([
-        "emit_address",
-        Placeholder(
-            target=target,
-            kind="address",
-            reason="dirección de memoria diferida",
-            rule_name=RuleIndicator.current,
-            line=getattr(Line, "line", None),
-        ),
-    ])
+    return Expr(["emit_address", target, None])
 
 
 def _start():
+    """Función de inicio del precompilador/emisor."""
     return main()

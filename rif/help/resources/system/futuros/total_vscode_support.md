@@ -1,13 +1,22 @@
 # Total VSCode support
 
-A futuro se añadira soporte total para extensiones VSIX semi automaticas.
+RIF ya puede generar VSIX minimos con `rif -pcli basics build-doc`.
 
-El soporte previsto incluye:
+Soportado:
 
 - resaltado de sintaxis
-- diagnosticos
+- prediccion/completions
+- snippets
+- hover con Markdown
+- diagnosticos basicos por regex
+- empaquetado de documentacion `.md`
+
+Falta para soporte total:
+
+- servidor de lenguaje completo
+- diagnosticos semanticos desde `.pack`
 - navegacion de simbolos
-- ayuda contextual
-- ejecucion de CLI
+- acciones rapidas
+- ejecucion de CLI desde comandos VS Code
 - plantillas de plugins
-- integracion con examples
+- integracion profunda con examples y builds

@@ -1,0 +1,75 @@
+comment ;
+
+; ============================================================
+; GBA — Registros del procesador ARM7TDMI
+; Fragmento enlazado en: .regs
+; ============================================================
+; Los registros bajos R0-R7 usan código de 3 bits (formato Thumb).
+; Los registros altos R8-R12 usan 4 bits en ARM/Thumb2.
+; Registros especiales: SP, LR, PC son Rd en Thumb con 3 bits.
+; Los registros de hardware MMIO se identifican por su dirección física.
+
+.regs
+
+| NAME        | code       | gnp | thumb | id | ; code = bits que va en el campo Rd/Rs de la instrucción Thumb
+| R0          | 000        | yes | yes   | 0  | ; Registro bajo — Thumb 3 bits
+| R1          | 001        | yes | yes   | 0  |
+| R2          | 010        | yes | yes   | 0  |
+| R3          | 011        | yes | yes   | 0  |
+| R4          | 100        | yes | yes   | 0  |
+| R5          | 101        | yes | yes   | 0  |
+| R6          | 110        | yes | yes   | 0  |
+| R7          | 111        | yes | yes   | 0  |
+| R8          | 1000       | yes | no    | 0  | ; Registro alto — ARM only (4 bits)
+| R9          | 1001       | yes | no    | 0  |
+| R10         | 1010       | yes | no    | 0  |
+| R11         | 1011       | yes | no    | 0  |
+| R12         | 1100       | yes | no    | 0  |
+| SP          | 101        | no  | yes   | 3  | ; R13 — Stack Pointer (usa cód. especial en Thumb)
+| LR          | 110        | no  | yes   | 3  | ; R14 — Link Register
+| PC          | 111        | no  | yes   | 3  | ; R15 — Program Counter
+| CPSR        | 10000      | no  | no    | 3  | ; Estado actual del procesador
+| SPSR        | 10001      | no  | no    | 3  | ; Estado guardado del procesador
+| DISPCNT     | 0x04000000 | no  | yes   | 4  | ; Control de Pantalla LCD
+| DISPSTAT    | 0x04000004 | no  | yes   | 4  | ; Estado de Pantalla (V-Blank/H-Blank)
+| VCOUNT      | 0x04000006 | no  | yes   | 4  | ; Línea vertical actual
+| BG0CNT      | 0x04000008 | no  | yes   | 4  | ; Control de Fondo 0
+| BG1CNT      | 0x0400000A | no  | yes   | 4  | ; Control de Fondo 1
+| BG2CNT      | 0x0400000C | no  | yes   | 4  | ; Control de Fondo 2
+| BG3CNT      | 0x0400000E | no  | yes   | 4  | ; Control de Fondo 3
+| BG0HOFS     | 0x04000010 | no  | yes   | 4  |
+| BG0VOFS     | 0x04000012 | no  | yes   | 4  |
+| BG2PA       | 0x04000020 | no  | yes   | 4  |
+| BG2PB       | 0x04000022 | no  | yes   | 4  |
+| BG2PC       | 0x04000024 | no  | yes   | 4  |
+| BG2PD       | 0x04000026 | no  | yes   | 4  |
+| MOSAIC      | 0x0400004C | no  | yes   | 4  |
+| BLDCNT      | 0x04000050 | no  | yes   | 4  |
+| SOUND1CNT_L | 0x04000060 | no  | yes   | 1  |
+| SOUNDCNT_H  | 0x04000082 | no  | yes   | 1  |
+| SOUNDCNT_X  | 0x04000084 | no  | yes   | 1  |
+| DMA0SAD     | 0x040000B0 | no  | yes   | 5  |
+| DMA0DAD     | 0x040000B4 | no  | yes   | 5  |
+| DMA0CNT     | 0x040000B8 | no  | yes   | 5  |
+| DMA3SAD     | 0x040000D4 | no  | yes   | 5  |
+| DMA3DAD     | 0x040000D8 | no  | yes   | 5  |
+| DMA3CNT     | 0x040000DC | no  | yes   | 5  |
+| TM0CNT      | 0x04000100 | no  | yes   | 2  |
+| TM1CNT      | 0x04000104 | no  | yes   | 2  |
+| KEYINPUT    | 0x04000130 | no  | yes   | 6  |
+| KEYCNT      | 0x04000132 | no  | yes   | 6  |
+| IE          | 0x04000200 | no  | yes   | 7  |
+| IF          | 0x04000202 | no  | yes   | 7  |
+| IME         | 0x04000208 | no  | yes   | 7  |
+| HALTCNT     | 0x04000301 | no  | yes   | 9  |
+
+; ID / PROPÓSITO
+; 0 = GENERAL       ; Registros de propósito general ARM7TDMI
+; 1 = SOUND         ; Controlador de sonido
+; 2 = TIMER         ; Temporizadores de hardware
+; 3 = CPU_CONTROL   ; Registros especiales del procesador
+; 4 = VIDEO         ; Pantalla, fondos, efectos de color
+; 5 = DMA           ; Canales de Acceso Directo a Memoria
+; 6 = INPUT         ; Estado de botones y controles
+; 7 = SYSTEM        ; Interrupciones y control global
+; 9 = POWER         ; Control de energía

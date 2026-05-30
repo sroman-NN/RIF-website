@@ -245,6 +245,9 @@ class Compiler:
 
     def _compile_lines_locked(self, source: str) -> list[CompileResult]:
         """Compila un flujo de líneas estructurado en base a las secciones y etiquetas del SourceReader."""
+        from .fillables import expand_fillables
+
+        source = expand_fillables(self.program, source, phase="compile")
         read = self.source_reader.read(source)
         
         labels = {}
@@ -1124,7 +1127,8 @@ class Compiler:
             return
 
         if kind == "emit_address":
-            self._emit_address(expr.elements[1], runtime, rule_name)
+            width = expr.elements[2] if len(expr.elements) > 2 else 64
+            self._emit_address(expr.elements[1], width, runtime, rule_name)
             return
 
         if kind == "reldis":
@@ -1148,6 +1152,15 @@ class Compiler:
                 runtime.expressions.append(Expr(["placeholder", n]))
                 return
             self._pad(n, runtime)
+            return
+
+        if kind == "pad_to":
+            n = self._eval_int(str(expr.elements[1]), runtime, kind="number")
+            if isinstance(n, Placeholder):
+                runtime.placeholders.append(n)
+                runtime.expressions.append(Expr(["placeholder", n]))
+                return
+            self._pad_to(n, runtime)
             return
 
         if kind == "placeholder":
@@ -1504,14 +1517,24 @@ class Compiler:
 
         return Placeholder(target=token, kind="bits", reason="valor no resuelto", rule_name=runtime.rule_name)
 
-    def _emit_address(self, value: Any, runtime: _Runtime, rule_name: str) -> None:
-        """Emite una dirección absoluta de memoria dentro de la instrucción empaquetada como placeholder.
+    def _emit_address(self, value: Any, width: Any, runtime: _Runtime, rule_name: str) -> None:
+        """Emite una dirección absoluta de memoria dentro de la instrucción empaquetada, reservando espacio físico y generando una relocación.
 
         Args:
             value: Nombre del símbolo, etiqueta u operando que representa la dirección.
+            width: Ancho en bits de la dirección (ej. 16, 32, 64).
             runtime: Estado de compilación dinámico.
             rule_name: Nombre de la regla del ISA de origen.
         """
+        width_int = 64
+        if width not in (None, ""):
+            evaluated_width = self._eval_int(str(width), runtime, kind="number")
+            if isinstance(evaluated_width, Placeholder):
+                runtime.placeholders.append(evaluated_width)
+                runtime.expressions.append(Expr(["placeholder", evaluated_width]))
+                return
+            width_int = evaluated_width
+
         if isinstance(value, Placeholder):
             target = value.target
             line = value.line
@@ -1525,16 +1548,38 @@ class Compiler:
             if operand.placeholder is not None:
                 target = operand.placeholder.target
 
+        relocation_offset = runtime.base_offset_bits + len(runtime.bits)
         runtime.placeholders.append(
-            Placeholder(target=target, kind="address", reason="direccion de memoria diferida", rule_name=rule_name, line=line)
+            Placeholder(
+                target=target,
+                kind="address",
+                reason="dirección de memoria diferida",
+                rule_name=rule_name,
+                line=line,
+                width=width_int,
+            )
         )
+        runtime.relocations.append(
+            Relocation(
+                kind="abs",
+                target=target,
+                offset_bits=relocation_offset,
+                width=width_int,
+                section=runtime.section,
+                signed=False,
+                byteorder=self._byteorder(),
+                rule_name=rule_name,
+                source=runtime.source,
+            )
+        )
+        runtime.bits += "0" * width_int
         return
 
     def _reloc(self, expr: Expr, runtime: _Runtime) -> None:
         if len(expr.elements) < 4:
             raise PackError("reloc espera tipo, destino y ancho")
         kind = str(expr.elements[1])
-        target = str(expr.elements[2])
+        target = self._relocation_target(str(expr.elements[2]), runtime)
         width = self._eval_int(str(expr.elements[3]), runtime, kind="number")
         if isinstance(width, Placeholder):
             runtime.placeholders.append(width)
@@ -1574,6 +1619,10 @@ class Compiler:
             rule_name: Nombre de la regla actual.
             width: Ancho en bits para empaquetar el desplazamiento (e.g., 8, 16, 32, 64).
         """
+        if source != ".":
+            source = self._relocation_target(source, runtime)
+        target = self._relocation_target(target, runtime)
+
         width_int = None
         if width not in (None, ""):
             evaluated_width = self._eval_int(str(width), runtime, kind="number")
@@ -1751,6 +1800,33 @@ class Compiler:
             raise PackError("pad no acepta números negativos")
         if n:
             runtime.bits += "0" * (n * 8)
+
+    def _pad_to(self, n: int, runtime: _Runtime) -> None:
+        if n < 0:
+            raise PackError("pad_to no acepta numeros negativos")
+        current_bits = runtime.base_offset_bits + len(runtime.bits)
+        if current_bits % 8 != 0:
+            raise PackError("pad_to requiere que la posicion actual este en limite de byte")
+        current_byte = current_bits // 8
+        if n < current_byte:
+            raise PackError(f"pad_to {n} queda antes de la posicion actual {current_byte}")
+        self._pad(n - current_byte, runtime)
+
+    def _relocation_target(self, target: str, runtime: _Runtime) -> str:
+        operand = runtime.bindings.get(target)
+        if operand is None:
+            return target
+        if operand.placeholder is not None:
+            return str(operand.placeholder.target)
+        if operand.type.get("PRIVTYPE") == "label":
+            value = operand.type.get("NAME")
+            if value not in (None, ""):
+                return str(value)
+        for key in ("value", "addrs", "NAME"):
+            value = operand.type.get(key)
+            if value not in (None, ""):
+                return str(value)
+        return target
 
     def _emit(self, instruction: EmitInstruction, runtime: _Runtime) -> None:
         """Concatena y añade los fragmentos (chunks) binarios de una directiva `emit` a los bits de salida.

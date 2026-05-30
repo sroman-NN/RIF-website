@@ -1,0 +1,102 @@
+comment ;
+
+.pack
+plugext ".py"
+plugin "basics"
+plugin "atari2600"
+
+packer:
+    fsystem 0
+    ext ".bin"
+    output "navecitas.bin"
+
+reader:
+    comment ";"
+    blocks ":"
+    section ".section"
+    sources ".rif"
+    requiresect true
+    validatesect true
+
+.world
+arch "6502"
+os "atari2600"
+endianness little
+
+.types
+| NAME   | bits | array | sizeset | longset |
+| b8     | 8    | false | false   | false   |
+| addr16 | 16   | false | false   | false   |
+
+.sections
+| NAME | type | perms | align | fill | emit | order | voffset |
+| rom  | code | rx    | 1     | 00   | yes  | 0     | 0xF000  |
+
+.words
+| NAME              | hex |
+| sei               | 78  |
+| cld               | d8  |
+| txs               | 9a  |
+| dex               | ca  |
+| nop               | ea  |
+| ldx               | a2  |
+| lda               | a9  |
+| sta               | 85  |
+| jmp               | 4c  |
+| bne               | d0  |
+| rompad_to_vectors |     |
+| vectors           |     |
+
+.rules
+sei:
+    emit 01111000
+
+cld:
+    emit 11011000
+
+txs:
+    emit 10011010
+
+dex:
+    emit 11001010
+
+nop:
+    emit 11101010
+
+ldx:
+    need VALUE, imm
+    bitfit imm.binary, 8
+    zext _imm8, imm.binary, 8
+    emit 10100010
+    emit _imm8
+
+lda:
+    need VALUE, imm
+    bitfit imm.binary, 8
+    zext _imm8, imm.binary, 8
+    emit 10101001
+    emit _imm8
+
+sta:
+    need VALUE, addr
+    bitfit addr.binary, 8
+    zext _addr8, addr.binary, 8
+    emit 10000101
+    emit _addr8
+
+jmp:
+    need LABEL, target
+    emit 01001100
+    reloc abs, target, 16
+
+bne:
+    need LABEL, target
+    emit 11010000
+    reldis ., target, 8
+
+rompad_to_vectors:
+    atari_pad_to 4090
+
+vectors:
+    need LABEL, target
+    atari_vectors target

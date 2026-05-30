@@ -1,0 +1,15 @@
+{
+  "title": "Atari 2600 RIF",
+  "summary": "Proyecto minimo para generar una ROM Atari 2600 de pantalla verde.",
+  "words": [
+    {"label": "sei", "detail": "6502 set interrupt disable"},
+    {"label": "cld", "detail": "6502 clear decimal mode"},
+    {"label": "lda", "detail": "Load accumulator immediate"},
+    {"label": "ldx", "detail": "Load X immediate"},
+    {"label": "sta", "detail": "Store accumulator zero page"},
+    {"label": "bne", "detail": "Branch if not equal"},
+    {"label": "jmp", "detail": "Jump absolute"},
+    {"label": "rompad_to_vectors", "detail": "Rellena hasta los vectores 6502"},
+    {"label": "vectors", "detail": "Emite NMI, RESET e IRQ"}
+  ]
+}

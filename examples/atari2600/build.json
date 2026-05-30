@@ -1,0 +1,7 @@
+{
+  "name": "rif-atari2600",
+  "displayName": "RIF Atari 2600",
+  "version": "0.0.1",
+  "publisher": "rif",
+  "description": "Reglas y resaltado para proyectos Atari 2600 en RIF"
+}

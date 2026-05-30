@@ -1,0 +1,71 @@
+comment ;
+
+; ============================================================
+; GBA — Definiciones de palabras (macros y nombres de instrucciones)
+; Fragmento enlazado en: .words
+; ============================================================
+; Las words sin columna hex son instrucciones que tienen reglas en .rules.
+; Las words con hex son macros directas que insertan bytes sin reglas.
+; El parser las necesita para reconocer los nombres de instrucción
+; al leer el código fuente .rif del usuario.
+
+.words
+
+; ---- Macros ROM (delegadas al plugin gba) ----
+| NAME         | hex |
+| set_headers  |     |
+| set_logo     |     |
+| set_checksum |     |
+| set_entry    |     |
+| set_entry_thumb |     |
+| set_frame    |     |
+| set_rompad   |     |
+| rompad       |     |
+
+; ---- Instrucciones Thumb: transferencia de datos ----
+| store |  |  ; MOV Rd, #imm8   — carga inmediato de 8 bits en registro
+| move  |  |  ; ADD Rd, Rs, #0  — copia de registro a registro
+| lsl   |  |  ; LSL Rd, Rs, #imm5 — desplazamiento lógico izquierda
+| lsr   |  |  ; LSR Rd, Rs, #imm5 — desplazamiento lógico derecha
+| asr   |  |  ; ASR Rd, Rs, #imm5 — desplazamiento aritmético derecha
+
+; ---- Instrucciones Thumb: aritmética/lógica ----
+| add   |  |  ; ADD Rd, Rs, Rn  — suma tres registros
+| sub   |  |  ; SUB Rd, Rs, Rn  — resta tres registros
+| and   |  |  ; AND Rd, Rs      — AND lógico
+| or    |  |  ; ORR Rd, Rs      — OR lógico
+| xor   |  |  ; EOR Rd, Rs      — XOR lógico
+| not   |  |  ; MVN Rd, Rs      — NOT lógico
+| cmp   |  |  ; CMP Rd, Rs      — compara (establece flags)
+| neg   |  |  ; NEG Rd, Rs      — negación (0 - Rs)
+| mul   |  |  ; MUL Rd, Rs      — multiplicación
+
+; ---- Instrucciones Thumb: acceso a memoria ----
+| ldr   |  |  ; LDR Rd, [Rb, Ro]  — carga 32 bits desde memoria
+| ldrb  |  |  ; LDRB Rd, [Rb, Ro] — carga 8 bits desde memoria
+| ldrh  |  |  ; LDRH Rd, [Rb, Ro] — carga 16 bits desde memoria
+| str   |  |  ; STR Rd, [Rb, Ro]  — guarda 32 bits en memoria
+| strb  |  |  ; STRB Rd, [Rb, Ro] — guarda 8 bits en memoria
+| strh  |  |  ; STRH Rd, [Rb, Ro] — guarda 16 bits en memoria
+
+; ---- Instrucciones Thumb: control de flujo ----
+| jump  |  |  ; B  label   — salto incondicional
+| bx    |  |  ; BX Rm      — branch and exchange
+| call  |  |  ; BL label   — salto con retorno (call)
+| beq   |  |  ; BEQ label  — salto si igual (Z=1)
+| bne   |  |  ; BNE label  — salto si distinto (Z=0)
+| blt   |  |  ; BLT label  — salto si menor (N!=V)
+| bgt   |  |  ; BGT label  — salto si mayor (Z=0 y N=V)
+| ble   |  |  ; BLE label  — salto si menor o igual
+| bge   |  |  ; BGE label  — salto si mayor o igual
+
+; ---- Instrucciones Thumb: stack ----
+| push  |  |  ; PUSH {lista} — guarda registros en stack
+| pop   |  |  ; POP  {lista} — recupera registros del stack
+
+; ---- Datos y bitmaps ----
+| db    |  |  ; define byte — emite un byte u8 en la ROM
+| dh    |  |  ; define halfword — emite un u16 en la ROM
+| dw    |  |  ; define word — emite un u32 en la ROM
+| bitmap_text |  |  ; convierte texto a bitmap 5x7 y lo emite
+

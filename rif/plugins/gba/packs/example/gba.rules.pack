@@ -1,0 +1,621 @@
+comment ;
+
+; ============================================================
+; GBA — Reglas de compilación: macros de ROM + instrucciones Thumb
+; Fragmento enlazado en: .rules
+; ============================================================
+; Las instrucciones Thumb son de 16 bits, little endian (ARM7TDMI).
+; Formato general: se emite el BYTE BAJO primero, luego el BYTE ALTO.
+;
+; Referencias al manual ARM7TDMI-S (DDI 0029G):
+;   Sección 5 — Formato de instrucciones THUMB
+;   5.1  Format 1:  Move shifted register (LSL/LSR/ASR)
+;   5.2  Format 2:  Add/subtract  (ADD/SUB 3 regs)
+;   5.3  Format 3:  Move/compare/add/subtract immediate  (STORE/CMP/etc.)
+;   5.4  Format 4:  ALU operations  (AND/OR/XOR/NEG/MUL/etc.)
+;   5.6  Format 6:  PC-relative load
+;   5.7  Format 7:  Load/store with register offset
+;   5.11 Format 11: SP-relative load/store
+;   5.12 Format 12: Load address
+;   5.13 Format 13: Add offset to SP
+;   5.14 Format 14: Push/pop (PUSH/POP)
+;   5.18 Format 18: Unconditional branch  (JUMP/B)
+;   5.17 Format 17: Software interrupt
+;   5.16 Format 16: Conditional branch  (BEQ/BNE/BLT/etc.)
+;   5.19 Format 19: Long branch with link (BL / CALL)
+;
+; NOTA SOBRE cbits:
+;   emit cbits A B ... concatena los fragmentos binarios A, B... en un solo byte (8 bits).
+;   Los campos de 3 bits (Rd, Rs, Rn) vienen de reg.code en la tabla .regs.
+;   Los campos fijos se escriben literalmente como cadenas de 0/1.
+;
+; NOTA SOBRE little endian:
+;   Toda instrucción de 16 bits → primero emit del byte [7:0], luego del byte [15:8].
+; ============================================================
+
+.rules
+
+; ============================================================
+; MACROS DE ROM — Delegadas al plugin gba
+; ============================================================
+
+set_headers:
+    gba_headers
+
+set_logo:
+    gba_logo
+
+set_checksum:
+    gba_checksum "Hola mundo"
+
+set_entry:
+    gba_entry
+
+set_entry_thumb:
+    gba_entry_thumb
+
+set_frame:
+    gba_frame "Hola mundo", green, black
+
+press_start_frame:
+    gba_frame "PRESS START", black, green
+
+set_rompad:
+    gba_rompad
+
+rompad:
+    gba_rompad
+
+
+; ============================================================
+; DATOS DIRECTOS — db/dh/dw (define byte/halfword/word)
+; ============================================================
+
+; db VALUE  — emite un byte u8 (8 bits)
+db:
+    need VALUE, imm
+    emit imm.binary
+
+; dh VALUE  — emite un halfword u16 en little endian (2 bytes)
+dh:
+    need VALUE, imm
+    emit cbits imm.binary        ; byte bajo  [7:0]
+    emit cbits imm.binary        ; byte alto  [15:8]  (el compilador desplazará automáticamente)
+
+; dw VALUE  — emite un word u32 en little endian (4 bytes)
+dw:
+    need VALUE, imm
+    emit cbits imm.binary        ; byte 0  [7:0]
+    emit cbits imm.binary        ; byte 1  [15:8]
+    emit cbits imm.binary        ; byte 2  [23:16]
+    emit cbits imm.binary        ; byte 3  [31:24]
+
+; bitmap_text "texto"  — convierte cadena ASCII a bytes bitmap 5x7 y los emite
+bitmap_text:
+    need VALUE, text
+    bitmap text.value
+
+
+; ============================================================
+; INSTRUCCIÓN: store — Carga inmediato en registro
+; ============================================================
+; Manual Sección 5.3 — Format 3: Move/compare/add/subtract immediate
+; Opcode: 001_00_Rd_imm8
+; Bit[15:13] = 001   (Format 3 identifier)
+; Bit[12:11] = 00    (MOV operation: Op=00)
+; Bit[10:8]  = Rd    (destination register, 3 bits)
+; Bit[7:0]   = imm8  (8-bit unsigned immediate)
+;
+; 16 bits: 001_00_Rd[2:0]_imm8[7:0]
+; Byte bajo  [7:0]  = imm8
+; Byte alto  [15:8] = 00100_Rd[2:0]
+;
+; Sintaxis: store R0 = 42
+; ============================================================
+store:
+    need REG, rd
+    need VALUE, imm
+    zext out_imm, imm.binary, 8
+    emit out_imm                 ; byte bajo [7:0]  = inmediato
+    emit cbits 00100 rd.code     ; byte alto [15:8] = 00100 + Rd[2:0]
+
+
+; ============================================================
+; INSTRUCCIÓN: move — Copia de registro a registro
+; ============================================================
+; Manual Sección 5.2 — Format 2: Add/subtract
+; Opcode: 0001_110_000_Rs_Rd  (ADD Rd, Rs, #0)
+; Bit[15:11] = 00011  (Format 2)
+; Bit[10:9]  = 10     (I=1, Op=0 → immediate ADD)
+; Bit[8:6]   = 000    (Rn/offset3 = 0)
+; Bit[5:3]   = Rs     (source register)
+; Bit[2:0]   = Rd     (destination register)
+;
+; 16 bits: 00011_10_000_Rs_Rd
+; Byte bajo  [7:0]  = 0_Rs[2:0]_Rd[2:0]   → 0 + 3 bits Rs + 3 bits Rd
+; Byte alto  [15:8] = 00011100
+;
+; Sintaxis: move R0, R1
+; ============================================================
+move:
+    need REG, rd
+    need REG, rs
+    emit cbits 0 rs.code rd.code ; byte bajo [7:0]
+    emit 00011100                ; byte alto [15:8] fijo
+
+
+; ============================================================
+; INSTRUCCIÓN: add — Suma tres registros
+; ============================================================
+; Manual Sección 5.2 — Format 2: Add/subtract
+; Opcode: 0001_100_Rn_Rs_Rd
+; Bit[15:11] = 00011  (Format 2)
+; Bit[10:9]  = 00     (I=0, Op=0 → register ADD)
+; Bit[8:6]   = Rn     (second source)
+; Bit[5:3]   = Rs     (first source)
+; Bit[2:0]   = Rd     (destination)
+;
+; 16 bits: 00011_00_Rn[2:0]_Rs[2:0]_Rd[2:0]
+; La secuencia de 16 bits: 0 0 0 1 1 0 0 | Rn[2] Rn[1] | Rn[0] Rs[2] Rs[1] Rs[0] Rd[2] Rd[1] Rd[0]
+; Byte alto [15:8] = 0001_1_0_0_Rn[2]       = 00011 00 Rn[2]
+; Byte bajo [7:0]  = Rn[1:0] Rs[2:0] Rd[2:0]
+;
+; RIF: los 3 bits de Rn, Rs, Rd se concatenan mediante cbits en dos emits de 8 bits:
+; Sintaxis: add R0, R1, R2
+; ============================================================
+add:
+    need REG, rd
+    need REG, rs
+    need REG, rn
+    emit cbits rn.code rs.code rd.code ; byte bajo — Rn[2:0]+Rs[2:0]+Rd[2:0] (9 bits → bottom byte)
+    emit cbits 0001100                 ; byte alto — 7 bits del opcode add
+
+
+; ============================================================
+; INSTRUCCIÓN: sub — Resta tres registros
+; ============================================================
+; Manual Sección 5.2 — Format 2: Add/subtract
+; Idéntico a add pero Op=1:
+; Bit[9] = Op = 1  → 0001_1_0_1_Rn_Rs_Rd
+; Byte alto [15:8] = 00011 01 Rn[2]
+; Byte bajo [7:0]  = Rn[1:0] Rs[2:0] Rd[2:0]
+;
+; Sintaxis: sub R0, R1, R2
+; ============================================================
+sub:
+    need REG, rd
+    need REG, rs
+    need REG, rn
+    emit cbits rn.code rs.code rd.code ; byte bajo
+    emit cbits 0001101                 ; byte alto — opcode sub
+
+
+; ============================================================
+; INSTRUCCIÓN: and — AND lógico bit a bit
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_0000_Rs_Rd  (AND)
+; Bit[15:10] = 010000  (Format 4)
+; Bit[9:6]   = 0000    (AND operation)
+; Bit[5:3]   = Rs
+; Bit[2:0]   = Rd
+;
+; 16 bits: 010000_0000_Rs[2:0]_Rd[2:0]
+; Byte bajo  [7:0]  = 00_Rs[2:0]_Rd[2:0]
+; Byte alto  [15:8] = 01000000
+;
+; Sintaxis: and R0, R1
+; ============================================================
+and:
+    need REG, rd
+    need REG, rs
+    emit cbits 00 rs.code rd.code  ; byte bajo
+    emit 01000000                  ; byte alto fijo
+
+
+; ============================================================
+; INSTRUCCIÓN: or — OR lógico bit a bit (ORR)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_1100_Rs_Rd  (ORR)
+; Byte bajo  [7:0]  = 00_Rs[2:0]_Rd[2:0]
+; Byte alto  [15:8] = 01000011
+;
+; Sintaxis: or R0, R1
+; ============================================================
+or:
+    need REG, rd
+    need REG, rs
+    emit cbits 00 rs.code rd.code  ; byte bajo
+    emit 01000011                  ; byte alto fijo (ORR)
+
+
+; ============================================================
+; INSTRUCCIÓN: xor — XOR lógico bit a bit (EOR)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_0001_Rs_Rd  (EOR)
+; Byte alto [15:8] = 01000000
+; Byte bajo  [7:0] = 01_Rs[2:0]_Rd[2:0]   (ALU op EOR = 0001, bits [7:6]=01)
+;
+; Sintaxis: xor R0, R1
+; ============================================================
+xor:
+    need REG, rd
+    need REG, rs
+    emit cbits 01 rs.code rd.code  ; byte bajo  (ALU op EOR campo)
+    emit 01000000                  ; byte alto fijo
+
+
+; ============================================================
+; INSTRUCCIÓN: not — NOT lógico (MVN)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_1111_Rs_Rd  (MVN)
+; Byte alto [15:8] = 01000011
+; Byte bajo  [7:0] = 11_Rs[2:0]_Rd[2:0]   (MVN = 1111, bits [7:6]=11)
+;
+; Sintaxis: not R0, R1
+; ============================================================
+not:
+    need REG, rd
+    need REG, rs
+    emit cbits 11 rs.code rd.code  ; byte bajo
+    emit 01000011                  ; byte alto fijo (MVN campo alto)
+
+
+; ============================================================
+; INSTRUCCIÓN: neg — Negación (NEG / RSB Rd, Rs, #0)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_1001_Rs_Rd  (NEG)
+; Byte alto [15:8] = 01000010
+; Byte bajo  [7:0] = 01_Rs[2:0]_Rd[2:0]   (NEG = 1001, bits [7:6] de op)
+;
+; Sintaxis: neg R0, R1
+; ============================================================
+neg:
+    need REG, rd
+    need REG, rs
+    emit cbits 01 rs.code rd.code  ; byte bajo
+    emit 01000010                  ; byte alto (NEG)
+
+
+; ============================================================
+; INSTRUCCIÓN: mul — Multiplicación (MUL Rd, Rs)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_1101_Rs_Rd  (MUL)
+; Byte bajo  [7:0]  = 01_Rs[2:0]_Rd[2:0]   (MUL = 1101, bits altos del campo op)
+; Byte alto  [15:8] = 01000011  (coincide con ORR en byte alto, op campo diferencia)
+;
+; Sintaxis: mul R0, R1
+; ============================================================
+mul:
+    need REG, rd
+    need REG, rs
+    emit cbits 01 rs.code rd.code  ; byte bajo
+    emit 01000011                  ; byte alto (MUL)
+
+
+; ============================================================
+; INSTRUCCIÓN: cmp — Compara registros (CMP Rd, Rs)
+; ============================================================
+; Manual Sección 5.4 — Format 4: ALU operations
+; Opcode: 010000_1010_Rs_Rd  (CMP)
+; Byte bajo  [7:0]  = 10_Rs[2:0]_Rd[2:0]   (CMP = 1010)
+; Byte alto  [15:8] = 01000010
+;
+; Sintaxis: cmp R0, R1
+; ============================================================
+cmp:
+    need REG, rd
+    need REG, rs
+    emit cbits 10 rs.code rd.code  ; byte bajo
+    emit 01000010                  ; byte alto
+
+
+; ============================================================
+; INSTRUCCIÓN: lsl — Desplazamiento lógico izquierda inmediato
+; ============================================================
+; Manual Sección 5.1 — Format 1: Move shifted register
+; Opcode: 00000_imm5_Rs_Rd  (LSL)
+; Bit[15:11] = 00000  (LSL, Op=00)
+; Bit[10:6]  = imm5   (shift amount 0-31)
+; Bit[5:3]   = Rs
+; Bit[2:0]   = Rd
+;
+; 16 bits: 000_00_imm5[4:0]_Rs[2:0]_Rd[2:0]
+; Byte bajo  [7:0]  = Rs[2:0]_Rd[2:0]  + bit0 de imm5 → se incluye en cbits
+; Byte alto  [15:8] = 000_00_imm5[4:1]
+;
+; Sintaxis: lsl R0, R1, 3
+; ============================================================
+lsl:
+    need REG, rd
+    need REG, rs
+    need VALUE, imm
+    zext imm5, imm.binary, 5
+    emit cbits rs.code rd.code     ; byte bajo — Rs+Rd (imm5 se concatena en alto)
+    emit cbits 00000 imm5          ; byte alto — opcode LSL + imm5
+
+
+; ============================================================
+; INSTRUCCIÓN: lsr — Desplazamiento lógico derecha inmediato
+; ============================================================
+; Manual Sección 5.1 — Format 1: Move shifted register
+; Opcode: 00001_imm5_Rs_Rd  (LSR)
+; Op=01 en bits[12:11]
+;
+; Sintaxis: lsr R0, R1, 3
+; ============================================================
+lsr:
+    need REG, rd
+    need REG, rs
+    need VALUE, imm
+    emit cbits rs.code rd.code     ; byte bajo
+    emit cbits 00001 imm.binary    ; byte alto — opcode LSR + imm5
+
+
+; ============================================================
+; INSTRUCCIÓN: asr — Desplazamiento aritmético derecha inmediato
+; ============================================================
+; Manual Sección 5.1 — Format 1: Move shifted register
+; Opcode: 00010_imm5_Rs_Rd  (ASR)
+; Op=10 en bits[12:11]
+;
+; Sintaxis: asr R0, R1, 3
+; ============================================================
+asr:
+    need REG, rd
+    need REG, rs
+    need VALUE, imm
+    emit cbits rs.code rd.code     ; byte bajo
+    emit cbits 00010 imm.binary    ; byte alto — opcode ASR + imm5
+
+
+; ============================================================
+; INSTRUCCIÓN: ldr — Carga 32 bits con offset de registro
+; ============================================================
+; Manual Sección 5.7 — Format 7: Load/store with register offset
+; Opcode: 0101_100_Ro_Rb_Rd  (LDR — load word)
+; Bit[15:12] = 0101  (Format 7)
+; Bit[11]    = L=1   (load)
+; Bit[10]    = B=0   (word, no byte)
+; Bit[9]     = 0
+; Bit[8:6]   = Ro    (offset register)
+; Bit[5:3]   = Rb    (base register)
+; Bit[2:0]   = Rd    (destination)
+;
+; 16 bits: 0101_1_0_0_Ro[2:0]_Rb[2:0]_Rd[2:0]
+; Byte bajo  [7:0]  = Ro[0]_Rb[2:0]_Rd[2:0]  (el bit LSB de Ro va en byte bajo)
+; Byte alto  [15:8] = 0101_1_0_0_Ro[2:1]
+;
+; Sintaxis: ldr R0, R1, R2  (R0 = mem[R1 + R2])
+; ============================================================
+ldr:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo (9 bits → los 8 bajos)
+    emit cbits 0101100                   ; byte alto — opcode LDR
+
+
+; ============================================================
+; INSTRUCCIÓN: ldrb — Carga 8 bits con offset de registro
+; ============================================================
+; Manual Sección 5.7 — Format 7: Load/store with register offset
+; Opcode: 0101_110_Ro_Rb_Rd  (LDRB)  L=1, B=1
+;
+; Sintaxis: ldrb R0, R1, R2
+; ============================================================
+ldrb:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo
+    emit cbits 0101110                   ; byte alto — opcode LDRB
+
+
+; ============================================================
+; INSTRUCCIÓN: ldrh — Carga 16 bits con offset de registro
+; ============================================================
+; Manual Sección 5.8 — Format 8: Load/store sign-extended
+; Opcode: 0101_101_Ro_Rb_Rd  (LDRH)
+;
+; Sintaxis: ldrh R0, R1, R2
+; ============================================================
+ldrh:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo
+    emit cbits 0101101                   ; byte alto — opcode LDRH
+
+
+; ============================================================
+; INSTRUCCIÓN: str — Guarda 32 bits con offset de registro
+; ============================================================
+; Manual Sección 5.7 — Format 7: Load/store with register offset
+; Opcode: 0101_000_Ro_Rb_Rd  (STR)  L=0, B=0
+;
+; Sintaxis: str R0, R1, R2  (mem[R1 + R2] = R0)
+; ============================================================
+str:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo
+    emit cbits 0101000                   ; byte alto — opcode STR
+
+
+; ============================================================
+; INSTRUCCIÓN: strb — Guarda 8 bits con offset de registro
+; ============================================================
+; Manual Sección 5.7 — Format 7: Load/store with register offset
+; Opcode: 0101_010_Ro_Rb_Rd  (STRB)  L=0, B=1
+;
+; Sintaxis: strb R0, R1, R2
+; ============================================================
+strb:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo
+    emit cbits 0101010                   ; byte alto — opcode STRB
+
+
+; ============================================================
+; INSTRUCCIÓN: strh — Guarda 16 bits con offset de registro
+; ============================================================
+; Manual Sección 5.8 — Format 8:
+; Opcode: 0101_001_Ro_Rb_Rd  (STRH)
+;
+; Sintaxis: strh R0, R1, R2
+; ============================================================
+strh:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    emit cbits ro.code rb.code rd.code   ; byte bajo
+    emit cbits 0101001                   ; byte alto — opcode STRH
+
+
+; ============================================================
+; INSTRUCCIÓN: jump — Salto incondicional (B label)
+; ============================================================
+; Manual Sección 5.18 — Format 18: Unconditional branch
+; Opcode: 11100_offset11[10:0]
+; Bit[15:11] = 11100  (unconditional branch)
+; Bit[10:0]  = offset11  (signed, relativo al PC+4 en halfwords)
+;
+; 16 bits: 11100_offset[10:0]
+; Byte bajo  [7:0]  = offset[7:0]
+; Byte alto  [15:8] = 11100_offset[10:8]
+;
+; Sintaxis: jump etiqueta
+; ============================================================
+jump:
+    need SYMBOL, target
+    reldis ., target, 16
+    emit cbits 11100
+
+
+; ============================================================
+; INSTRUCCIÓN: bx — Branch and Exchange
+; ============================================================
+; Manual Sección 5.5 — Format 5: Hi register operations / BX
+; Opcode: 01000111_0_H1_H2_Rm[2:0]_000
+; BX: bits[15:8] = 01000111
+;     bits[7:6] = 0, H2 (pero H1=0 si se omite, asumiremos Rm de 4 bits en total con ID)
+;     bits[6:3] = Rm  -> bits[6] es H2, bits[5:3] es Rm[2:0]
+;     bits[2:0] = 000
+; Byte bajo [7:0] = 0_Rm[3:0]_000  (Rm << 3)
+; Byte alto [15:8] = 01000111 (0x47)
+;
+; Sintaxis: bx R0 / bx LR
+; ============================================================
+bx:
+    need REG, rm
+    emit cbits 0 rm.id 000        ; byte bajo (rm.id es de 4 bits, ocupa bits [6:3])
+    emit 01000111                 ; byte alto (BX)
+
+
+; ============================================================
+; INSTRUCCIÓN: call — Salto con retorno (BL label)
+; ============================================================
+; Manual Sección 5.19 — Format 19: Long branch with link
+; BL se emite como DOS instrucciones Thumb de 16 bits:
+;   1ª instrucción: 11110_offset[22:12]  (prefijo, bits altos del offset)
+;   2ª instrucción: 11111_offset[11:1]   (sufijo, bits bajos del offset)
+;
+; RIF no tiene soporte nativo de BL de dos halfwords todavía.
+; Esta implementación emite solo la primera mitad como placeholder.
+; TODO: implementar BL completo con plugin de relocation de 2 halfwords.
+;
+; Sintaxis: call etiqueta
+; ============================================================
+call:
+    need SYMBOL, target
+    reldis ., target, 11
+
+
+; ============================================================
+; INSTRUCCIONES: saltos condicionales (BEQ/BNE/BLT/BGT/BLE/BGE)
+; ============================================================
+; Manual Sección 5.16 — Format 16: Conditional branch
+; Opcode: 1101_cond[3:0]_offset8[7:0]
+; Bit[15:12] = 1101
+; Bit[11:8]  = cond (condition code de 4 bits)
+; Bit[7:0]   = offset8 (signed, relativo al PC+4 en bytes)
+;
+; Tabla de condiciones:
+;   0000 = EQ (Z=1)    0001 = NE (Z=0)
+;   0010 = CS (C=1)    0011 = CC (C=0)
+;   0100 = MI (N=1)    0101 = PL (N=0)
+;   0110 = VS (V=1)    0111 = VC (V=0)
+;   1000 = HI (C&!Z)   1001 = LS (!C|Z)
+;   1010 = GE (N=V)    1011 = LT (N!=V)
+;   1100 = GT (!Z&N=V) 1101 = LE (Z|N!=V)
+;   1110 = always      1111 = SWI (no usar aquí)
+;
+; Cada instrucción de salto condicional rellena el campo cond apropiado.
+; Sintaxis: beq etiqueta  /  bne etiqueta  / etc.
+; ============================================================
+
+beq:
+    need SYMBOL, target
+    reldis OUT_BEQ, target, 8
+    emit 11010000
+
+bne:
+    need SYMBOL, target
+    reldis OUT_BNE, target, 8
+    emit 11010001
+
+blt:
+    need SYMBOL, target
+    reldis ., target, 8
+
+bgt:
+    need SYMBOL, target
+    reldis ., target, 8
+
+ble:
+    need SYMBOL, target
+    reldis ., target, 8
+
+bge:
+    need SYMBOL, target
+    reldis ., target, 8
+
+
+; ============================================================
+; INSTRUCCIONES: push y pop
+; ============================================================
+; Manual Sección 5.14 — Format 14: Push/pop registers
+; PUSH: 1011_0_10_rlist[7:0]  (con LR opcional en bit[8])
+; POP:  1011_1_10_rlist[7:0]  (con PC opcional en bit[8])
+;
+; Estas instrucciones requieren una lista de registros.
+; La implementación simplificada acepta un solo registro.
+; TODO: añadir soporte de lista de registros {R0-R7, LR/PC}
+;
+byte:
+    need VALUE, imm
+    zext out_imm, imm.binary, 8
+    emit out_imm
+
+word:
+    need VALUE, imm
+    zext out_imm, imm.binary, 16
+    emit out_imm
+push:
+    need REG, rd
+    emit cbits rd.code 00000000   ; byte bajo — registro en lista (bit rd en rlist)
+    emit 10110100                 ; byte alto fijo PUSH (sin LR)
+
+pop:
+    need REG, rd
+    emit cbits rd.code 00000000   ; byte bajo — registro en lista
+    emit 10111100                 ; byte alto fijo POP (con PC implícito en retorno)

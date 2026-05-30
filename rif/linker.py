@@ -296,6 +296,9 @@ class BinaryLinker:
         Returns:
             El resultado del enlazado binario BinaryLinkResult.
         """
+        from .fillables import expand_fillables
+
+        source = expand_fillables(self.program, source, phase="link")
         self.placeholders.clear()
         self.relocations.clear()
         blocks = self._plan_blocks(source)
@@ -424,6 +427,10 @@ class BinaryLinker:
         Returns:
             Diccionario que asocia el nombre de la sección con sus bytes compilados.
         """
+        import sys
+        if source.strip() and not _contains_section_header(source):
+            print("Aviso: El código fuente no contiene directivas '.section' explícitas. Se compilará y asignará de forma predeterminada en la sección de código principal del pack.", file=sys.stderr)
+
         from .compiler import Compiler
 
         compiler = Compiler(self.program)
@@ -674,9 +681,14 @@ class BinaryLinker:
         virtual = 0
         for block in blocks:
             if block.kind in {"section", "nobits"}:
-                physical = _align_to(physical, block.align)
-                valign = _intish(block.row.values.get("valign", block.align), block.align) if block.row else block.align
-                virtual = _align_to(virtual, max(1, valign))
+                forced_physical = _optional_row_int(block.row, "offset", "paddr", "poffset", "physical")
+                forced_virtual = _optional_row_int(block.row, "voffset", "vaddr", "addr", "virtual")
+                physical = forced_physical if forced_physical is not None else _align_to(physical, block.align)
+                if forced_virtual is not None:
+                    virtual = forced_virtual
+                else:
+                    valign = _intish(block.row.values.get("valign", block.align), block.align) if block.row else block.align
+                    virtual = _align_to(virtual, max(1, valign))
 
             block.physical_offset = physical
             block.virtual_offset = virtual
@@ -746,10 +758,7 @@ class BinaryLinker:
                 obj = self.program.objects[reloc.target]
                 target_addr = _intish(obj.values.get("addrs", 0), 0)
             else:
-                try:
-                    target_addr = int(reloc.target)
-                except ValueError:
-                    target_addr = 0
+                target_addr = _intish(reloc.target, 0)
 
             value = 0
             if reloc.kind == "reldis":
@@ -1283,6 +1292,9 @@ def _contains_section_header(text: str) -> bool:
         True si encuentra alguna directiva de sección, False en caso contrario.
     """
     for raw in text.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith(".section ") or stripped == ".section":
+            return True
         if _section_name_from_raw(raw) is not None:
             return True
     return False
@@ -1427,6 +1439,17 @@ def _intish(value: Any, default: int = 0) -> int:
         return int(text, 0)
     except ValueError:
         return default
+
+
+def _optional_row_int(row: TableRow | None, *keys: str) -> int | None:
+    if row is None:
+        return None
+    for key in keys:
+        value = row.values.get(key)
+        if value in (None, "", "*"):
+            continue
+        return _intish(value, 0)
+    return None
 
 
 def _align_to(value: int, align: int) -> int:

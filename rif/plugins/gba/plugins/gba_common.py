@@ -106,6 +106,21 @@ def make_entry_code() -> bytes:
     return b"".join(u32(word) for word in words)
 
 
+def make_entry_thumb_code() -> bytes:
+    base = GBA_ROM_BASE + ENTRY_OFFSET
+    literal_base = base + 20
+    words = [
+        arm_ldr_literal(4, base + 0, literal_base + 0),
+        arm_ldr_literal(5, base + 4, literal_base + 4),
+        arm_strh_pre(5, 4),
+        arm_ldr_literal(0, base + 12, literal_base + 8),
+        0xE12FFF10, # BX R0
+        0x04000000,
+        0x00000403,
+        base + 32 + 1, # address de la instruccion siguiente + 1 para modo Thumb
+    ]
+    return b"".join(u32(word) for word in words)
+
 def make_checksum_block(text: str) -> bytes:
     block = bytearray(32)
     block[0x00:0x0C] = text.upper().encode("ascii", "ignore")[:12].ljust(12, b" ")

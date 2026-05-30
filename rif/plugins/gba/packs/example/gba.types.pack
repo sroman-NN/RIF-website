@@ -1,0 +1,19 @@
+comment ;
+
+; ============================================================
+; GBA — Tipos de datos del pack
+; Fragmento enlazado en: .types
+; ============================================================
+; Los tipos definen cómo RIF interpreta los literales y datos estáticos.
+; Para GBA en modo Thumb, todo es unsigned (sin signo).
+
+.types
+
+| NAME   | bits | array | sizeset | longset | ; sizeset = tamaño explícito. longset = longitud explícita.
+| bitmap | 8    | true  | false   | yes     | ; bitmap[N] = array de N bytes para gráficos
+| u8     | 8    | false | false   | false   | ; byte sin signo (8 bits)
+| u16    | 16   | false | false   | false   | ; halfword sin signo (16 bits)
+| u32    | 32   | false | false   | false   | ; word sin signo (32 bits)
+| imm8   | 8    | false | false   | false   | ; inmediato de 8 bits (para store, mov, etc.)
+| imm11  | 11   | false | false   | false   | ; inmediato de 11 bits (para saltos Thumb)
+| imm16  | 16   | false | false   | false   | ; inmediato de 16 bits

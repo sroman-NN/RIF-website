@@ -1,0 +1,13 @@
+{
+  "keywords": ["sei", "cld", "txs", "dex", "ldx", "lda", "sta", "jmp", "bne", "rompad_to_vectors", "vectors"],
+  "directives": [".section"],
+  "types": ["b8", "addr16"],
+  "builtins": ["start", "main", "vblank", "visible", "overscan"],
+  "errors": [
+    {
+      "match": "^\\s*(lda|ldx|sta)\\s*$",
+      "message": "Esta instruccion espera un valor inmediato.",
+      "severity": "error"
+    }
+  ]
+}

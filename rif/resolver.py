@@ -21,9 +21,15 @@ class PlaceholderResolver:
     evita materializar bytes cuando el marcador no reservó un ancho definido.
     """
 
-    def __init__(self, program: Program, labels: dict[str, dict[str, Any]] | None = None):
+    def __init__(self, program: Program, labels: dict[str, Any] | None = None):
         self.program = program
-        self.labels = labels or {}
+        self.labels = {}
+        if labels:
+            for k, v in labels.items():
+                if isinstance(v, dict):
+                    self.labels[k] = v
+                else:
+                    self.labels[k] = {"offset": v, "section": ".text"}
 
     def resolve_all(self, placeholders: list[Placeholder] | tuple[Placeholder, ...]) -> PlaceholderResolution:
         """Resuelve todos los marcadores de posición suministrados."""

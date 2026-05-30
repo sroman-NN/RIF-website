@@ -3,6 +3,7 @@ comment ;
 .pack
 plugext ".py"
 plugin "gba"
+plugin "fonts"
 
 packer:
     fsystem 0
@@ -23,31 +24,35 @@ os "gba"
 endianness little
 
 .types
-| NAME    | bits  | array | setsize  | setlong | ; setsize define size explicito, setlong tamaño explicito. Por lo general, setlong siempre debe ser True
-|  bitmap | 8     | true  | false    | yes     | ; A bitmap[7] = []
-|  b8     | 8     | false | false    | false   |
-|  b16    | 16    | false | false    | false   |
-|  b32    | 32    | false | false    | false   |
+| NAME   | bits | array | sizeset | longset |
+| bitmap | 8    | true  | false   | yes     |
+| b8     | 8    | false | false   | false   |
+| b16    | 16   | false | false   | false   |
+| b32    | 32   | false | false   | false   |
 
 .DATA_DEFINITION
-arrautofill
+\
+IDENT
+TYPE
+LITERAL "="
+VALUE
+\
+arrautofill true
 index true
-
-
 
 .sections
 | NAME | type | perms | align | fill | emit | order |
 | rom  | code | rx    | 4     | 00   | yes  | 0     |
 
 .words
-| NAME         |  hex   |
-| set_headers  |        |
-| set_logo     |        |
-| set_checksum |        |
-| set_entry    |        |
-| set_frame    |        |
-| set_rompad   |        |
-| rompad       |        |
+| NAME         | hex |
+| set_headers  |     |
+| set_logo     |     |
+| set_checksum |     |
+| set_entry    |     |
+| set_frame    |     |
+| set_rompad   |     |
+| rompad       |     |
 
 .rules
 set_headers:
