@@ -57,14 +57,33 @@ _REG_ALIAS = {
 
 
 def _int(value: Any, *, name: str = "valor") -> int:
-    text = str(value).strip().replace("_", "")
-    if not text:
+    text = str(value).strip().upper()
+    
+    # 1. Buscar en registros del programa
+    ctx = globals().get("CONTEXT")
+    if ctx is not None and ctx.program is not None:
+        reg_obj = next((r for r in ctx.program.regs.registers if r.name.upper() == text or (r.alias and r.alias.upper() == text)), None)
+        if reg_obj is not None:
+            hex_val = reg_obj.values.get("hex") or reg_obj.values.get("code")
+            if hex_val:
+                return _int(hex_val, name=name)
+
+    # 2. Buscar en objetos globales del programa
+    if ctx is not None and ctx.program is not None and hasattr(ctx.program, "objects"):
+        obj = ctx.program.objects.get(str(value).strip())
+        if obj is not None:
+            val = obj.values.get("VALUE") or obj.values.get("addrs") or obj.values.get("hex")
+            if val is not None:
+                return _int(val, name=name)
+
+    text_clean = text.replace("_", "")
+    if not text_clean:
         raise ValueError(f"{name} vacio")
-    if text.startswith(("0x", "0X")):
-        return int(text, 16)
-    if text.startswith(("0b", "0B")):
-        return int(text[2:], 2)
-    return int(text, 10)
+    if text_clean.startswith(("0X", "0x")):
+        return int(text_clean, 16)
+    if text_clean.startswith(("0B", "0b")):
+        return int(text_clean[2:], 2)
+    return int(text_clean, 10)
 
 
 def _range(value: int, bits: int, *, name: str) -> int:

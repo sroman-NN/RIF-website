@@ -543,7 +543,7 @@ arm_mov:
 
 arm_mov_imm:
     need REG, rd
-    need VALUE, imm
+    need REG, VALUE, SYMBOL, imm
     arm_ins mov_imm, rd, imm
 
 arm_mvn:
@@ -553,7 +553,7 @@ arm_mvn:
 
 arm_mvn_imm:
     need REG, rd
-    need VALUE, imm
+    need REG, VALUE, SYMBOL, imm
     arm_ins mvn_imm, rd, imm
 
 arm_add:
@@ -565,7 +565,7 @@ arm_add:
 arm_add_imm:
     need REG, rd
     need REG, rn
-    need VALUE, imm
+    need REG, VALUE, SYMBOL, imm
     arm_ins add_imm, rd, rn, imm
 
 arm_sub:
@@ -577,7 +577,7 @@ arm_sub:
 arm_sub_imm:
     need REG, rd
     need REG, rn
-    need VALUE, imm
+    need REG, VALUE, SYMBOL, imm
     arm_ins sub_imm, rd, rn, imm
 
 arm_rsb:
@@ -593,7 +593,7 @@ arm_cmp:
 
 arm_cmp_imm:
     need REG, rn
-    need VALUE, imm
+    need REG, VALUE, SYMBOL, imm
     arm_ins cmp_imm, rn, imm
 
 arm_cmn:
@@ -627,7 +627,7 @@ arm_bic:
 
 arm_tst:
     need REG, rn
-    need REG, rm
+    need REG, VALUE, SYMBOL, rm
     arm_ins tst, rn, rm
 
 arm_teq:
@@ -699,6 +699,11 @@ arm_ldr:
     need REG, rn
     need VALUE, imm
     arm_ins ldr, rd, rn, imm
+
+arm_ldr_label:
+    need REG, rd
+    need LABEL, target
+    arm_ins ldr_label, rd, target
 
 arm_str:
     need REG, rd
@@ -776,3 +781,9 @@ arm_mrs:
     need REG, rd
     need SYMBOL, psr
     arm_ins mrs, rd, psr
+
+apply_reloc:
+    need SYMBOL, type
+    need LABEL, target
+    need VALUE, width
+    reloc type, target, width

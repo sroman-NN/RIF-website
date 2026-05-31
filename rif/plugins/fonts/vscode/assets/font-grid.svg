@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="240" viewBox="0 0 520 240" role="img" aria-label="5x7 bitmap font grid">
+  <rect width="520" height="240" fill="#0f172a"/>
+  <text x="24" y="36" fill="#f8fafc" font-family="Segoe UI, Arial" font-size="22" font-weight="700">5x7x1 Bitmap Glyph</text>
+  <g transform="translate(48 62)">
+    <rect width="140" height="196" fill="#1e293b" rx="8"/>
+    <g fill="#38bdf8">
+      <rect x="48" y="16" width="16" height="16"/><rect x="64" y="16" width="16" height="16"/><rect x="80" y="16" width="16" height="16"/>
+      <rect x="32" y="40" width="16" height="16"/><rect x="96" y="40" width="16" height="16"/>
+      <rect x="32" y="64" width="16" height="16"/><rect x="96" y="64" width="16" height="16"/>
+      <rect x="32" y="88" width="16" height="16"/><rect x="48" y="88" width="16" height="16"/><rect x="64" y="88" width="16" height="16"/><rect x="80" y="88" width="16" height="16"/><rect x="96" y="88" width="16" height="16"/>
+      <rect x="32" y="112" width="16" height="16"/><rect x="96" y="112" width="16" height="16"/>
+      <rect x="32" y="136" width="16" height="16"/><rect x="96" y="136" width="16" height="16"/>
+      <rect x="32" y="160" width="16" height="16"/><rect x="96" y="160" width="16" height="16"/>
+    </g>
+  </g>
+  <text x="230" y="96" fill="#e2e8f0" font-family="Consolas, monospace" font-size="18">@&quot;TEXT&quot;@fonts_fill_5x7x1</text>
+  <text x="230" y="132" fill="#94a3b8" font-family="Segoe UI, Arial" font-size="16">rows become u16 words for ROM-friendly GBA reads</text>
+</svg>

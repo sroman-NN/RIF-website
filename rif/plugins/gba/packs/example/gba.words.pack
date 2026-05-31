@@ -133,6 +133,7 @@
 | arm_dp_shift    | 0xE0000000 |
 | arm_dp_shift_reg | 0xE0000010 |
 | arm_ldr         | 0xE5900000 |
+| arm_ldr_label   | 0xE59F0000 |
 | arm_str         | 0xE5800000 |
 | arm_ldrb        | 0xE5D00000 |
 | arm_strb        | 0xE5C00000 |

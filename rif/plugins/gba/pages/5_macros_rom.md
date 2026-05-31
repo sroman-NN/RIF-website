@@ -1,39 +1,38 @@
-# Macros de ROM
+# Macros Estructurales de ROM (GBA)
 
-El plugin `gba` incluye macros para formar una ROM GBA valida.
+Para que el hardware real de Game Boy Advance (o un emulador estricto) inicie un cartucho, los primeros 192 bytes de la memoria flash (`.rom` desde la dirección `0x08000000`) deben contener una cabecera extremadamente precisa.
 
-## Secuencia minima funcional
+El plugin `gba` proporciona macros que resuelven todas las exigencias binarias automáticamente.
 
-```rif
-.section .rom
-set_headers
-set_logo
-set_checksum
-set_entry
-set_frame
-set_rompad
-```
+## 🧱 Secuencia Funcional Mínima
 
-## Secuencia avanzada del ejemplo
+El orden de los siguientes componentes es fundamental. RIF emitirá bloques binarios del tamaño exacto en el orden en que pongas estas macros:
 
 ```rif
 .section .rom
-set_headers
-set_logo
-set_checksum
-set_entry_thumb
-set_frame
-game_code
-set_rompad
+set_headers        ; [0x00-0x03] Salto de la BIOS a tu código
+set_logo           ; [0x04-0x9F] Logo nativo de Nintendo (Comprimido)
+set_checksum       ; [0xA0-0xBF] Título, Códigos y Checksums cruzados
+set_entry_thumb    ; [0xC0-...]  Punto de entrada ARM -> Salta a Thumb
 ```
 
-## Macros
+> [!CAUTION]  
+> Si omites la macro `set_logo`, la BIOS del GBA asumirá que el cartucho es pirata y se negará a bootear.
+> De igual forma, si alteras `set_checksum`, el cálculo matemático que valida los bytes del título fallará y la consola bloqueará la ejecución con una pantalla en blanco.
 
-- `set_headers`: emite la instruccion ARM inicial que salta a `0x080000C0`.
-- `set_logo`: emite el logo Nintendo requerido por el BIOS.
-- `set_checksum`: emite titulo, game code, maker code, version y checksum de cabecera.
-- `set_entry`: emite entrada ARM que configura video mode 3, copia framebuffer a VRAM y queda en loop.
-- `set_entry_thumb`: emite stub ARM que configura video mode 3 y salta al codigo Thumb ubicado despues del framebuffer.
-- `set_frame`: emite un framebuffer 240x160 BGR555 con texto centrado.
-- `game_code`: codigo Thumb de ejemplo para la ROM avanzada.
-- `set_rompad` / `rompad`: rellena hasta el tamaño ROM configurado usando el offset actual real.
+## 🛠️ Detalles de las Macros
+
+### `set_headers`
+Crea el vector de salto original en ARM (32 bits). Generalmente emite `B 0x080000C0`, instruyendo a la BIOS que el código del juego comienza justo después del bloque de la cabecera.
+
+### `set_logo`
+Inyecta 156 bytes exactos equivalentes al logo vectorizado de Nintendo. La BIOS lee y compara estos bits a mano.
+
+### `set_checksum`
+Inyecta metadatos del juego (Game Title, Maker Code, Version) y calcula un checksum complementario (Complemento a 2 negado) del header completo. RIF calcula esto automáticamente por ti.
+
+### `set_entry_thumb`
+Al finalizar el booteo, la consola está en modo ARM nativo. Esta macro inyecta el estado (Stubs) y ejecuta un `BX` (Branch and Exchange) para forzar a la CPU a cambiar al modo **Thumb** (16-bits). Después de esta línea, todo el código que escribas debajo será código Thumb real validado por RIF.
+
+### `set_rompad`
+Si un cartucho se construye muy corto (por ejemplo, 137 KB), los emuladores podrían tener problemas de paginación o alineación de caché. Esta macro se debe colocar al final de tu documento `.gbasm` y rellenará inteligentemente con `0xFF` el archivo hasta alcanzar los bloques oficiales (alineados a potencias de 2 KB, 32 KB, etc.) calculando en caliente cuánto código ya ha sido emitido.

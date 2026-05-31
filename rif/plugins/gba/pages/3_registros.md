@@ -1,51 +1,43 @@
-# Registros
+# Registros de CPU y MMIO (GBA)
 
-El ARM7TDMI tiene 16 registros de propósito general (R0-R15) y 2 de estado (CPSR/SPSR).
-En modo Thumb, solo los registros bajos R0-R7 son accesibles en la mayoría de instrucciones.
+La consola GBA tiene a su disposición los 16 registros de la familia ARM. Sin embargo, al operar bajo las reglas del conjunto **Thumb** de 16-bits para reducir el uso de memoria, hay ciertas restricciones sobre qué registros puedes tocar de forma aritmética.
 
-## Registros de CPU
+## 🗄️ Registros de Hardware (R0-R15)
 
-| Registro | Código (3 bits) | Uso en Thumb | Propósito                          |
-|----------|-----------------|--------------|------------------------------------|
-| R0       | 000             | ✓            | General purpose                    |
-| R1       | 001             | ✓            | General purpose                    |
-| R2       | 010             | ✓            | General purpose                    |
-| R3       | 011             | ✓            | General purpose                    |
-| R4       | 100             | ✓            | General purpose (callee-save)      |
-| R5       | 101             | ✓            | General purpose (callee-save)      |
-| R6       | 110             | ✓            | General purpose (callee-save)      |
-| R7       | 111             | ✓            | General purpose (callee-save)      |
-| R8       | 1000            | ✗            | Solo ARM (requiere instrucciones especiales) |
-| R9-R12   | 1001-1100       | ✗            | Solo ARM                           |
-| SP       | 1101            | ✓ (especial) | Stack Pointer — R13                |
-| LR       | 1110            | ✓ (especial) | Link Register — R14 (return addr)  |
-| PC       | 1111            | ✓ (especial) | Program Counter — R15              |
+| Registro (ARM) | ID Binario | Acceso en Thumb | Propósito Principal (APCS) |
+| :--- | :--- | :--- | :--- |
+| **`R0` - `R3`** | `000` - `011` | ✅ Absoluto | Argumentos de funciones y valores de retorno. |
+| **`R4` - `R7`** | `100` - `111` | ✅ Absoluto | Variables de propósito general (Callee-saved). |
+| **`R8` - `R12`**| `1000`-`1100`| ❌ Denegado | *Solo accesibles en modo ARM o con trucos avanzados.* |
+| **`SP` (`R13`)**| `1101`        | ⚠️ Especial | **S**tack **P**ointer (Puntero a la Pila). Usa `push`/`pop`. |
+| **`LR` (`R14`)**| `1110`        | ⚠️ Especial | **L**ink **R**egister (Dirección de retorno de subrutinas). |
+| **`PC` (`R15`)**| `1111`        | ⚠️ Especial | **P**rogram **C**ounter (Puntero de la instrucción actual + 4). |
 
-## Convención de llamada (APCS)
+> [!WARNING]  
+> Nunca modifiques el registro `PC` (`R15`) manualmente a través de sumas aritméticas en Thumb. Utiliza siempre las directivas nativas `jump` (para flujos locales) o `call` (para subrutinas).
 
-- `R0-R3`: parámetros / valor de retorno
-- `R4-R7`: callee-saved (preservar antes de usar)
-- `SP` (R13): Stack Pointer — siempre alineado a 4 bytes
-- `LR` (R14): Link Register — guarda la dirección de retorno al hacer `call`
-- `PC` (R15): Program Counter — contiene la dirección de la instrucción + 4
+---
 
-## Registros MMIO seleccionados
+## 📞 Convención de Llamada
 
-| Nombre   | Dirección  | Descripción                     |
-|----------|------------|---------------------------------|
-| DISPCNT  | 0x04000000 | Control de pantalla LCD         |
-| DISPSTAT | 0x04000004 | Estado de pantalla (VBlank etc) |
-| VCOUNT   | 0x04000006 | Línea vertical actual           |
-| KEYINPUT | 0x04000130 | Estado de botones (active low)  |
-| IME      | 0x04000208 | Habilitador maestro IRQ         |
-| IE       | 0x04000200 | Interrupt Enable                |
-| IF       | 0x04000202 | Interrupt Flag (limpiar con 1)  |
+Cuando programes rutinas complejas o funciones reutilizables, sigue la convención APCS de ARM:
+- Utiliza **`R0`, `R1`, `R2`, y `R3`** para pasar variables a la función.
+- El resultado del cálculo devuélvelo siempre en **`R0`**.
+- Si tu función necesita usar los registros **`R4-R7`**, estás obligado a guardarlos en la pila con `push` al iniciar tu función, y restaurarlos con `pop` justo antes del salto de retorno.
 
-Para acceder a un registro MMIO desde Thumb:
+## 🕹️ Memory-Mapped I/O (Registros de Hardware)
 
-```rif
-store R0 = 0x00  ; valor a escribir
-store R1 = 0x00  ; byte bajo de la dirección
-store R2 = 0x00  ; byte alto de la dirección
-; luego componer la dirección en un registro y usar strh
-```
+El GBA controla el hardware de la consola, la pantalla y los botones escribiendo números mágicos en direcciones específicas de memoria (`0x04000000`).
+
+| Nombre del Registro | Dirección Hex | Función |
+| :--- | :--- | :--- |
+| **`DISPCNT`** | `0x04000000` | Display Control. Sirve para activar fondos, objetos y el modo de video (Ej. Mode 3). |
+| **`DISPSTAT`** | `0x04000004` | Display Status. Monitorea cuando la pantalla se apaga (VBlank/HBlank) para evitar parpadeos. |
+| **`VCOUNT`** | `0x04000006` | Vertical Count. Devuelve qué línea de píxeles (0-227) está dibujando el cañón de electrones. |
+| **`SOUNDCNT_L`** | `0x04000060` | Control de volúmenes de los canales del Game Boy clásico. |
+| **`SOUNDCNT_H`** | `0x04000082` | Control principal del flujo DMA (Direct Sound) para audio de alta calidad. |
+| **`KEYINPUT`** | `0x04000130` | Lector de los botones (Pad y Gatillos). *Atención: La señal es activa en bajo (0 es presionado).* |
+| **`IME` / `IE` / `IF`** | `0x04000200` | Sistema maestro de habilitación y banderas de interrupciones de hardware (IRQs). |
+
+> [!TIP]
+> Debido a que las direcciones (como `0x04000000`) son muy grandes para cargarse directamente en Thumb con la instrucción `store Rd = imm` (que solo acepta de 0 a 255), RIF incluye soporte para componer números altos iterativamente o apoyarse en el _Literal Pool_ con el plugin GBA.

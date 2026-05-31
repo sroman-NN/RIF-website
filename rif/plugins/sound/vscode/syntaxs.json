@@ -1,0 +1,55 @@
+{
+  "builtins": [
+    "@sound_wav",
+    "@sound_mp3",
+    "@fill_sound_wav",
+    "@gba_dsound_start"
+  ],
+  "types": [
+    "pcm-s8",
+    "gba-direct-sound-a"
+  ],
+  "completions": [
+    {
+      "label": "gba_bgm_mp3",
+      "insertText": "@sound_mp3 \"${1:assets/music.mp3}\" ${2:bgm_sample} ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}\n@gba_dsound_start ${2:bgm_sample} ${3:8192}",
+      "detail": "sound",
+      "documentation": "Plantilla de musica de fondo con volumen y fade-in suaves.",
+      "kind": "Snippet",
+      "sortText": "000-gba-bgm-mp3"
+    },
+    {
+      "label": "sound_mp3",
+      "insertText": "@sound_mp3 \"${1:assets/music.mp3}\" ${2:bgm_sample} ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}",
+      "detail": "fillable",
+      "documentation": "Convierte MP3 a PCM s8 mono."
+    },
+    {
+      "label": "sound_wav",
+      "insertText": "@sound_wav \"${1:assets/music.wav}\" ${2:bgm_sample} ${3:8192}",
+      "detail": "fillable",
+      "documentation": "Convierte audio a PCM s8 mono."
+    },
+    {
+      "label": "gba_dsound_start",
+      "insertText": "@gba_dsound_start ${1:bgm_sample} ${2:8192}",
+      "detail": "fillable",
+      "documentation": "Inicializa Direct Sound A en GBA para un simbolo PCM."
+    }
+  ],
+  "errors": [
+    {
+      "match": "@(?:fill_)?sound_(?:wav|mp3)\\s*(?:\\r?\\n|$)",
+      "message": "Sound: falta archivo y simbolo. Ejemplo: @sound_mp3 \"assets/music.mp3\" bgm_sample 8192.",
+      "severity": "error",
+      "code": "sound-missing-path",
+      "suggest": "Completa la llamada: @sound_mp3 \"assets/music.mp3\" bgm_sample 8192."
+    },
+    {
+      "match": "@sound_(?:wav|mp3)\\s+\"[^\"]+\"\\s+\\w+\\s+(?:44100|48000)",
+      "message": "Sound: sample rates altos ocupan mucha ROM y DMA en GBA; considera 8192, 11025 o 16000.",
+      "severity": "warning",
+      "code": "sound-high-samplerate"
+    }
+  ]
+}

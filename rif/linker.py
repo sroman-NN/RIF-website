@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 from typing import Any
 
-from .errors import PackError
+from .errors import PackError, format_os_error
 from .expr import UnresolvedExpression, eval_int_expr
 from .lexer import Lexer
 from .models import BinaryLinkResult, HeaderBlock, LinkBlock, MemoryRegion, PackedResult, PackerConfig, PluginContext, Program, TableRow, Placeholder
@@ -56,7 +57,13 @@ class Linker:
             linked_source = self._merge(source, link_config, fragments)
 
         if write:
-            output.write_text(linked_source, encoding="utf-8")
+            try:
+                output.write_text(linked_source, encoding="utf-8")
+            except OSError as exc:
+                raise PackError(
+                    f"no se pudo escribir el archivo enlazado en {output}: {format_os_error(exc)}. "
+                    "Revisa que la ruta de salida sea valida, que su carpeta exista y que el archivo no este abierto o bloqueado."
+                ) from exc
 
         linked_program = Parser(linked_source, output).parse()
         final_config = parse_packer_config(linked_program)
@@ -313,15 +320,223 @@ class BinaryLinker:
         self._materialize_headers(blocks)
         self._assign_offsets(blocks)
         self._relocate_source_data(blocks)
+    def _subprefix(self, path: Path, base: str, ext: str) -> str | None:
+        """Determina y valida el subprefijo del nombre de un archivo de fragmento.
+
+        Args:
+            path: Ruta del fragmento.
+            base: Nombre base del archivo principal.
+            ext: Extensión de archivos esperada.
+
+        Returns:
+            El subprefijo como cadena si es válido, o None en caso contrario.
+        """
+        name = path.name
+        prefix = f"{base}."
+        if not name.startswith(prefix) or not name.endswith(ext):
+            return None
+        middle = name[len(prefix):-len(ext)]
+        if not middle or "." in middle:
+            return None
+        return middle
+
+    def _merge(self, source: str, config: PackerConfig, fragments: list[Path]) -> str:
+        """Fusiona el contenido de todos los fragmentos con el archivo fuente base.
+
+        Args:
+            source: Contenido original del archivo principal.
+            config: Configuración del empaquetador.
+            fragments: Lista de rutas de fragmentos a mezclar.
+
+        Returns:
+            Código fuente unificado y enlazado.
+        """
+        buckets: dict[str, list[str]] = {}
+        base = self.source_path.stem
+
+        for fragment in fragments:
+            subprefix = self._subprefix(fragment, base, config.ext)
+            if subprefix is None:
+                continue
+            target = config.prefix_to_section.get(subprefix)
+            if target is None:
+                continue
+
+            body = self._fragment_body(fragment, target)
+            if body.strip():
+                buckets.setdefault(target, []).append(body.rstrip())
+
+        if not buckets:
+            return source
+
+        return self._append_to_sections(source, config, buckets)
+
+    def _fragment_body(self, path: Path, target: str) -> str:
+        """Extrae el contenido pertinente de un archivo de fragmento.
+
+        Si el fragmento contiene declaraciones de secciones explícitas, aísla únicamente
+        el cuerpo de la sección destino.
+
+        Args:
+            path: Ruta del archivo de fragmento.
+            target: Nombre de la sección destino.
+
+        Returns:
+            Texto con el cuerpo del fragmento extraído.
+        """
+        text = path.read_text(encoding="utf-8")
+
+        if not _contains_section_header(text):
+            return text
+
+        parsed = Parser(text, path).parse()
+        section = parsed.section(target)
+        if section is None:
+            return ""
+        return "\n".join(raw for _, raw in section.body_lines)
+
+    def _append_to_sections(
+        self,
+        source: str,
+        config: PackerConfig,
+        buckets: dict[str, list[str]],
+    ) -> str:
+        """Inserta los fragmentos agrupados en sus correspondientes secciones dentro del código fuente.
+
+        Args:
+            source: Código fuente original.
+            config: Configuración del empaquetador.
+            buckets: Diccionario de fragmentos agrupados por sección destino.
+
+        Returns:
+            Código fuente final con los fragmentos insertados en los límites de sección.
+        """
+        lines = source.splitlines()
+        ranges = _section_ranges(lines)
+        output_lines = list(lines)
+
+        sort_key = lambda item: ranges.get(item[0], (10**12, 10**12))[1]
+        for section, fragments in sorted(buckets.items(), key=sort_key, reverse=True):
+            if section in ranges:
+                _, end = ranges[section]
+                output_lines[end:end] = [""] + _flat_fragments(fragments)
+            else:
+                header = _section_header(config, section)
+                output_lines.extend(["", header])
+                output_lines.extend(_flat_fragments(fragments))
+
+        return "\n".join(output_lines).rstrip() + "\n"
+
+    def build_binary(
+        self,
+        source: str = "",
+        output_path: str | Path | None = None,
+        write: bool = True,
+    ) -> BinaryLinkResult:
+        """Enlaza las fuentes y genera directamente el archivo ejecutable binario.
+
+        Args:
+            source: Código ensamblador complementario opcional a compilar.
+            output_path: Ruta destino para escribir los bytes.
+            write: Si es True, escribe los bytes del binario en el archivo.
+
+        Returns:
+            El resultado detallado BinaryLinkResult del enlazado binario.
+        """
+        linked = self.link(write=False)
+        return BinaryLinker(linked.program).build(source, output_path, write=write)
+
+    def build_project(
+        self,
+        project_path: str | Path,
+        output_path: str | Path | None = None,
+        write: bool = True,
+    ) -> BinaryLinkResult:
+        """Construye el proyecto enlazado leyendo las fuentes del proyecto y compilándolas."""
+        from .package_packer import PackagePacker
+        from .source_reader import SourceReader
+
+        linked = PackagePacker(self.source_path).pack(write=False)
+        setattr(linked.program, "project_path", Path(project_path).resolve())
+        setattr(linked.program, "cache_project_path", Path(project_path).resolve())
+        config = parse_packer_config(linked.program)
+        source = SourceReader(linked.program, config).read_project_source(project_path)
+        output = Path(output_path) if output_path is not None else _project_output_path(Path(project_path), self.source_path, config)
+        return BinaryLinker(linked.program).build(source, output, write=write)
+
+
+class BinaryLinker:
+    """Linker binario genérico para programas RIF parseados.
+
+    El núcleo del linker comprende primitivas de diseño y ordenación neutras
+    (`link:offset`, `link:size`, `link:count`, `link:each`, etc.). Nombres de
+    propiedades específicos de cada arquitectura (como `amd64:entry`) se delegan
+    a ganchos (hooks) opcionales de compiladores plugins o se registran como placeholders.
+    """
+
+    def __init__(self, program: Program):
+        """Inicializa el linker binario a partir del AST de un programa parseado.
+
+        Args:
+            program: Estructura de datos AST del programa.
+        """
+        self.program = program
+        self.config = parse_packer_config(program)
+        run_precompilers(program, self.config)
+        self.plugin_modules = self._load_plugin_compilers()
+        self.blocks: dict[str, LinkBlock] = {}
+        self.placeholders: list[Placeholder] = []
+        self.relocations: list[Any] = []
+        self.labels: dict[str, dict[str, Any]] = {}
+
+    def build(self, source: str = "", output_path: str | Path | None = None, write: bool = True) -> BinaryLinkResult:
+        """Construye y enlaza la imagen binaria final a partir del AST del programa y código fuente adicional.
+
+        Lleva a cabo la planeación de bloques, asignación recursiva de offsets físicos/virtuales,
+        reubicación de símbolos de datos, materialización de cabeceras estructuradas y ensamblado.
+
+        Args:
+            source: Código ensamblador fuente adicional para compilar y linkear.
+            output_path: Ruta del archivo binario de salida.
+            write: Si es True, guarda el binario compilado en disco.
+
+        Returns:
+            El resultado del enlazado binario BinaryLinkResult.
+        """
+        from .fillables import expand_fillables
+
+        source = expand_fillables(self.program, source, phase="link")
+        self.placeholders.clear()
+        self.relocations.clear()
+        blocks = self._plan_blocks(source)
+        self._assign_offsets(blocks)
+        self._relocate_source_data(blocks)
+        self._relocate_memory_regions(blocks)
+        self._materialize_headers(blocks)
+        self._assign_offsets(blocks)
+        self._relocate_source_data(blocks)
         self._relocate_memory_regions(blocks)
         self._materialize_headers(blocks)
 
         self._apply_relocations(blocks)
         data = self._assemble_data(blocks)
+        if os.environ.get("RIF_LINKER_DEBUG"):
+            print("\nLINKER TRUE LABELS:")
+            print("-" * 50)
+            for k, v in sorted(self.labels.items()):
+                print(f"  {k}: {v}")
         result = BinaryLinkResult(self.program, blocks, data, list(self.placeholders), list(self.relocations))
 
         if write and output_path is not None:
-            Path(output_path).write_bytes(result.data)
+            target = Path(output_path)
+            try:
+                target.write_bytes(result.data)
+            except OSError as exc:
+                raise PackError(
+                    f"\033[93m[ COMPILATION ] Error al intentar compilar {target.name}.\n"
+                    f"No se pudo escribir el binario en {target} ({len(result.data)} bytes): {format_os_error(exc)}.\n"
+                    f"Revisa que la ruta de salida sea válida, que su carpeta exista y que el archivo no esté abierto o bloqueado.\033[0m"
+                ) from exc
 
         return result
 

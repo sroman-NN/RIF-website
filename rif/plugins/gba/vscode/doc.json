@@ -1,0 +1,129 @@
+{
+  "words": {
+    "gba_overview": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Bundle de soporte para ensamblar ROMs de Game Boy Advance con RIF sin acoplar el plugin a un juego concreto."
+        },
+        {
+          "type": "image",
+          "src": "assets/gba/gba-memory.svg",
+          "alt": "GBA memory map",
+          "caption": "Mapa visual de memoria usado por los snippets y diagnostics del plugin."
+        },
+        {
+          "type": "tip",
+          "content": "El plugin conoce ARM7TDMI, registros y espacios de memoria; el proyecto decide sprites, musica y gameplay."
+        }
+      ],
+      "links": [
+        "https://problemkaputt.de/gbatek.htm"
+      ]
+    },
+    "set_headers": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Inserta la entrada ARM inicial requerida por una ROM de Game Boy Advance."
+        }
+      ]
+    },
+    "set_logo": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Inserta el logo oficial requerido por la cabecera de cartucho GBA."
+        }
+      ]
+    },
+    "set_checksum": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Calcula y escribe el checksum de cabecera GBA."
+        }
+      ]
+    },
+    "set_entry_thumb": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Inserta el puente de arranque que cambia del modo ARM al modo Thumb."
+        }
+      ]
+    },
+    "rompad": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Rellena la ROM hasta el siguiente tamano valido de cartucho usando 0xFF."
+        }
+      ]
+    },
+    "store": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Alias de Thumb MOV inmediato: carga un valor de 8 bits en un registro bajo."
+        },
+        {
+          "type": "code",
+          "content": "store R0 = 42"
+        }
+      ]
+    },
+    "strb": {
+      "doc": [
+        {
+          "type": "warning",
+          "content": "En VRAM de GBA evita escrituras byte a byte. Para pixeles/colores usa strh."
+        },
+        {
+          "type": "code",
+          "content": "strh R0, R1, 0"
+        }
+      ]
+    },
+    "ldr": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Carga una palabra desde memoria usando registros Thumb."
+        }
+      ]
+    },
+    "strh": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Guarda un halfword de 16 bits; es la forma normal para escribir colores BGR555 en VRAM."
+        }
+      ]
+    },
+    "arm_ldr_label": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Carga en un registro ARM la direccion de una etiqueta usando literal pool/relocalizacion."
+        },
+        {
+          "type": "code",
+          "content": "arm_ldr_label R1, sprite_data"
+        }
+      ]
+    },
+    "apply_reloc": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Emite una relocacion directa usada por rutinas ARM/GBA generadas."
+        },
+        {
+          "type": "code",
+          "content": "apply_reloc abs, sprite_data, 32"
+        }
+      ]
+    }
+  }
+}

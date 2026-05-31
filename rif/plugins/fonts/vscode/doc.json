@@ -1,0 +1,50 @@
+{
+  "words": {
+    "fonts_overview": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Herramientas de fuentes bitmap retargetables para convertir texto a datos binarios en build time."
+        },
+        {
+          "type": "image",
+          "src": "assets/fonts/font-grid.svg",
+          "alt": "5x7 bitmap font grid",
+          "caption": "Un glyph 5x7x1 se serializa por filas para que el proyecto lo renderice donde quiera."
+        }
+      ]
+    },
+    "fonts_fill_5x7x1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Genera texto bitmap 5x7 de 1 bit por pixel como filas u16 listas para leer desde una ROM GBA."
+        },
+        {
+          "type": "code",
+          "content": "@\"Esto es una prueba\"@fonts_fill_5x7x1"
+        },
+        {
+          "type": "text",
+          "content": "La forma inversa deja primero los argumentos y despues la funcion. Si no se pasa simbolo, RIF crea un nombre estable basado en el texto."
+        },
+        {
+          "type": "tip",
+          "content": "Para GBA este fillable emite u16 con el byte de fila en la parte baja, evitando lecturas byte a byte desde ROM."
+        }
+      ]
+    },
+    "bitmap_array_logo": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Genera un arreglo u8 con el bitmap de un texto usando una fuente bitmap registrada."
+        },
+        {
+          "type": "code",
+          "content": "@bitmap_array_logo \"RIF\" logo_bitmap"
+        }
+      ]
+    }
+  }
+}

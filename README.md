@@ -1,291 +1,127 @@
-# RIF Foundry
+# Retargetable ISA Foundry (RIF)
 
-Retargetable ISA Foundry es un generador para crear ensambladores, empaquetadores y linkers usando paquetes `.pack` y plugins.
+RIF es un framework para crear ensambladores, linkers, compiladores, packs de arquitectura y herramientas de editor sin amarrar el nucleo a una CPU concreta. La idea central es simple: describes una ISA con tablas `.pack`, conectas plugins cuando necesitas semantica especial, y RIF genera binarios, documentacion y tooling alrededor de esa definicion.
 
-El objetivo principal es que el core no este hardcodeado para una arquitectura. RIF debe saber leer, validar, ejecutar flujo comun, resolver placeholders, organizar secciones y dejar que las reglas especificas de cada ISA vivan en plugins.
+## Capacidades principales
 
-Estado actual: **0.0.1 Beta**.
+- **ISA retargetable**: define instrucciones, registros, tipos, secciones, memoria, headers y reglas de emision por medio de archivos `.pack`.
+- **Lexer y parser configurables**: permite cambiar comentarios, separadores, bloques, encoding y estructura de tablas desde la propia especificacion.
+- **Compilacion de instrucciones**: `rif compile <pack> <instruccion...>` compila una instruccion aislada y muestra los bytes/bits resultantes.
+- **Construccion de binarios**: `rif build` enlaza, compila secciones y escribe ROMs o binarios finales con extension de salida configurable.
+- **Packer y linker integrados**: `rif pack` y `rif link` unen proyectos repartidos en varios archivos, resuelven secciones requeridas/opcionales y generan fuentes temporales consolidadas.
+- **Sistema de fragmentos por extension**: los packs pueden declarar `ext`, `outext`, prefijos de seccion y archivos fuente por seccion, por ejemplo `.gbasm` para GBA.
+- **Etiquetas, placeholders y relocaciones**: el linker resuelve simbolos, offsets, referencias entre secciones y valores diferidos durante la construccion final.
+- **Memoria y headers declarativos**: permite modelar regiones ROM/RAM, padding, offsets fisicos, bloques de header y datos estaticos antes de emitir el binario.
+- **Data definition**: soporta datos tipados como `u8`, `u16`, `u32`, arreglos y bloques binarios dentro del codigo fuente.
+- **Fillables**: los plugins pueden exponer funciones `fill_*` para generar codigo o datos en build time, como headers, logos, imagenes, texto bitmap o audio.
+- **Plugins Python**: los packs pueden importar plugins de compilacion, precompilacion, fillables, CLI y helpers propios.
+- **Carga segura de plugins**: `rif plugins load`, `rif plug` e `rif install --package` validan estructura, manifiestos y rutas antes de instalar plugins locales o externos.
+- **CLI por plugin**: `rif -pcli <plugin> ...` permite que cada plugin agregue comandos propios sin inflar el nucleo.
+- **Gestion de plugins**: lista, inspecciona, documenta, abre propositos y elimina plugins con `rif plugins`.
+- **Cache por plugin/proyecto**: plugins como imagenes, audio y fuentes pueden cachear resultados para evitar reprocesar assets pesados.
+- **Comandos de limpieza**: `rif clear cache` y `rif clear table hashing` limpian cache y bitacoras auxiliares.
+- **Editor de tablas desde CLI**: `rif table modify`, `format`, `undo`, `redo` y `hashing-table` modifican `.pack` de forma controlada, con previews e historial.
+- **Documentacion local**: `rif help` abre el portal HTML local y mezcla automaticamente paginas del nucleo y de plugins instalados.
+- **VS Code / VSIX generado**: `rif compile --vscode` construye una extension VS Code con sintaxis TextMate, snippets, completions, hovers, diagnosticos, quick fixes, simbolos y docs embebidas.
+- **Extension de lenguaje configurable**: el constructor VSIX puede forzar la extension de archivo desde CLI con `--ext`, por ejemplo `.gbasm`.
+- **Icono de VSIX configurable**: el constructor VSIX acepta `-icon` o `--icon` y empaqueta el icono dentro de la extension.
+- **Compilador dedicado**: `rif compile -p <plugin>` genera un launcher dedicado para un plugin/pack, y puede crear un ejecutable con PyInstaller cuando esta disponible.
+- **Instalacion de VSIX**: `rif install --vscode <archivo.vsix>` instala la extension generada usando el comando `code`.
+- **Empaquetado del proyecto RIF**: `rif zip` comprime el paquete RIF ignorando `__pycache__`.
+- **Packs incluidos**: hay soporte base para GBA, Atari 2600, AMD64 y utilidades generales.
+- **Plugins oficiales incluidos**: `basics`, `gba`, `atari2600`, `image`, `sound`, `fonts`, `color` y `amd64`.
 
-## Que incluye
+## Plugins incluidos
 
-- Lexer y parser para archivos `.pack`.
-- AST declarativo para secciones, tablas, tipos, headers, memoria y reglas.
-- Separacion entre parser puro, collector de IR y runtime de compilacion.
-- Compiler runtime con `need`, `emit`, `call`, `ON/OFF`, `switch/case`, `end_instruction`, relocaciones y placeholders.
-- Linker con secciones, headers, data, stacks, heaps, `nobits`, alineacion y referencias `link:*`.
-- Plugin base `basics`.
-- Plugin `fonts` con fuente bitmap 5x7x1.
-- Fillables `@...` definidos por plugins.
-- Generacion de VSIX minimo con docs, resaltado, prediccion y diagnosticos.
-- CLI local.
-- Examples y tests limpios.
-- Help local en HTML y Markdown.
+### basics
 
-## Instalacion
+Incluye operaciones base para expresiones y reglas de emision: `emit`, `call`, `need`, comparaciones, `fits`, `bitfit`, `bitcat`, `bitsize`, `trunc`, `zext`, `sext`, `align`, `pad`, `reloc`, `reldis`, `fillid`, `vfillid`, errores controlados y helpers para VSIX.
 
-Desde el repo:
+### gba
+
+Incluye pack de Game Boy Advance, instrucciones Thumb y ARM, registros ARM7TDMI, helpers de header ROM, logo Nintendo, checksum, entradas ARM/Thumb, padding de ROM, frame/screen helpers, paginas de documentacion, tooling VS Code y CLI para ejecutar ROMs con emuladores.
+
+### atari2600
+
+Incluye pack y ejemplos para Atari 2600, macros/vectores, padding especializado y CLI para ejecutar ROMs con Stella u otro emulador configurado.
+
+### image
+
+Convierte imagenes a bytes utiles para ROMs y demos, con cache de resultados y soporte de assets desde fillables.
+
+### sound
+
+Convierte audio a formatos simples de bytes PCM para consolas o demos retro. Incluye CLI de conversion y fillables para inyectar datos de sonido.
+
+### fonts
+
+Maneja fuentes bitmap `.f`, genera texto bitmap 5x7x1, expone fillables para texto como datos binarios y trae CLI para listar, editar, abrir, modificar, agregar y borrar glifos.
+
+### amd64
+
+Incluye soporte experimental de pack/compiler para instrucciones AMD64 dentro del modelo retargetable.
+
+## Uso rapido
+
+Instala el proyecto en modo editable:
 
 ```bash
 python -m pip install -e .
 ```
 
-Con dependencias de test:
+Compila el ejemplo de GBA:
 
 ```bash
-python -m pip install -e ".[test]"
+python -m rif build examples/gba --plugin gba --name example
 ```
 
-Tambien puede ejecutarse sin instalar:
+Ejecuta una ROM de GBA con el CLI del plugin:
 
 ```bash
-python -m rif help
+python -m rif -pcli gba run examples/gba/gba.gba -nd
 ```
 
-## Uso rapido
-
-Compilar una instruccion:
+Abre la documentacion local:
 
 ```bash
-python -m rif compile examples/minimal.pack byte 0xf
-```
-
-Salida esperada:
-
-```text
-rule=byte
-bits=00001111
-hex=0f
-```
-
-Construir bytes desde texto:
-
-```bash
-python -m rif build examples/minimal.pack --source-text "byte 0x2a"
-```
-
-Leer ayuda local:
-
-```bash
-python -m rif help
-python -m rif help version_actual
 python -m rif help --open
 ```
 
-Crear la ROM de ejemplo GBA:
+## Construir una extension VS Code
+
+El constructor VSIX puede unir varios bundles `vscode/` de plugins y forzar la extension del lenguaje:
 
 ```bash
-python -m rif build gba
-python -m rif -pcli gba install mGBA --add-path
-python -m rif -pcli gba run gba/hello.gba -nd
-python -m rif -pcli basics build-doc proyectos/gba
+python -m rif compile --vscode --ext .gbasm -icon example/ico.png --p gba sound fonts basics
 ```
 
-## CLI
-
-Comandos disponibles:
+Tambien funciona la forma antigua, pasando los plugins justo despues de `--vscode`:
 
 ```bash
-python -m rif lex archivo.pack
-python -m rif parse archivo.pack
-python -m rif pack archivo.pack
-python -m rif link archivo.pack
-python -m rif compile archivo.pack instruccion
-python -m rif build archivo.pack
-python -m rif build archivo.pack --source-file programa.rif
-python -m rif build carpeta_proyecto
-python -m rif -pcli plugin comando
-python -m rif -pcli basics build-doc carpeta_proyecto
-python -m rif help [tema]
+python -m rif compile --vscode gba sound fonts basics --ext .gbasm --icon example/ico.png
 ```
 
-Si se instala el paquete, tambien queda disponible:
+El icono debe existir y ser `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` o `.svg`. El VSIX se escribe por defecto en `build/vscode/`, salvo que uses `-o`.
+
+Para instalarlo:
 
 ```bash
-rif help
+python -m rif install --vscode build/vscode/rif-gba-sound-fonts-basics-0.2.0.vsix
 ```
 
-## Estructura del repo
+## Estructura importante
 
-```text
-rif/                 core del sistema
-plugins/basics/      plugin base generico
-plugins/gba/         ejemplo de plugin con CLI propia
-examples/            paquetes y programas de ejemplo
-tests/               tests unitarios
-help/                documentacion local HTML/Markdown
-```
-
-El plugin de Atari no forma parte del core ni de los tests limpios.
-
-## Ejemplo minimo
-
-`examples/minimal.pack` define una ISA pequena para probar el core:
-
-- `.pack`
-- `.world`
-- `.sections`
-- `.regs`
-- `.vars`
-- `.types`
-- `.DATA_DEFINITION`
-- `.stacks`
-- `.heaps`
-- `.rules`
-
-Incluye reglas para `VALUE`, registros, bit transforms, `ON/OFF`, `call call`, `end_instruction`, `reldis` y `reloc`.
-
-## Modelo de fases
-
-RIF separa las fases principales:
-
-1. `Parser.parse_ast()` construye AST declarativo sin ejecutar plugins.
-2. `collect_codegen(program)` ejecuta plugins para recolectar IR.
-3. `Compiler` compila instrucciones y datos.
-4. `Linker` organiza secciones, headers, memoria y placeholders.
-
-`Parser.parse()` mantiene el flujo completo por compatibilidad.
-
-## Lector de fuente
-
-El codigo fuente que se compila no usa reglas fijas del core. El lector toma su comportamiento desde `.pack`:
-
-```rif
-.pack
-reader:
-    comment "#"
-    blocks ":"
-    section ".section"
-    sources ".rif"
-    requiresect true
-    validatesect true
-```
-
-Opciones:
-
-- `comment`: caracter de comentario del codigo fuente.
-- `blocks`: caracter usado para labels y cabeceras con bloque.
-- `separator`: separador opcional para lectura lexica.
-- `section`: directiva para declarar seccion en fuente.
-- `sources`: extensiones que se leen al compilar una carpeta de proyecto.
-- `requiresect`: exige que cada instruccion caiga dentro de una seccion.
-- `validatesect`: valida las secciones contra `.sections`.
-
-Si el argumento de `build` es una carpeta, RIF busca su `.pack`, lee las fuentes configuradas por `reader.sources` y escribe la salida con `packer.output` o, si no existe, con `packer.ext`.
-
-## Plugins
-
-Los plugins se declaran en `.pack`:
-
-```rif
-.pack
-plugext ".py"
-plugin "basics"
-```
-
-Estructura:
-
-```text
-plugins/NOMBRE/plugins/instruccion.py
-```
-
-Cada archivo expone una instruccion con el nombre del archivo.
-
-Plugin minimo:
-
-```python
-from rif import Expr, Line
-
-def main():
-    Line.Advance()
-    return Expr(["op"])
-
-def _start():
-    return main()
-```
-
-Los plugins deben devolver `Expr`, lista de `Expr`, `Err` o `None`.
-
-## Basics
-
-`basics` contiene piezas genericas:
-
-- `need`
-- `emit`
-- `call`
-- `exists`
-- `fits`
-- `eq`, `neq`
-- `bitcat`
-- `bitsize`
-- `bitfit`
-- `trunc`
-- `zext`
-- `sext`
-- `lt`, `lte`, `gt`, `gte`
-- `align`
-- `pad`
-- `reldis`
-- `reloc`
-- `emitadress`
-- `error`, `raise`
-
-No define una arquitectura.
-
-## Tests
-
-Ejecutar tests:
-
-```bash
-python -m unittest discover -s tests
-```
-
-Compilar modulos:
-
-```bash
-python -m compileall rif plugins tests
-```
-
-Con pytest instalado:
-
-```bash
-python -m pytest -q
-```
+- `rif/cli.py`: entrada principal de comandos.
+- `rif/parser.py`, `rif/lexer.py`, `rif/compiler.py`, `rif/linker.py`, `rif/packer.py`: nucleo de lectura, parseo, compilacion y enlace.
+- `rif/plugins/`: plugins oficiales.
+- `rif/plugins/*/vscode/`: metadata para generar VSIX.
+- `rif/help/`: documentacion local HTML/Markdown.
+- `examples/`: proyectos de ejemplo.
 
 ## Documentacion
 
-La documentacion local esta en:
+La documentacion completa vive en [`rif/help/README.md`](./rif/help/README.md) y puede abrirse como portal local con:
 
-```text
-help/index.html
-help/resources/
+```bash
+python -m rif help --open
 ```
-
-Temas principales:
-
-- Home
-- Instrucciones
-- Plugins
-- Empaquetadores
-- CLI
-- Futuros
-
-## Roadmap
-
-Trabajo futuro previsto:
-
-- MIR.
-- Optimizadores.
-- Mas flujos e instrucciones internas.
-- Mejoras del linker.
-- Compiladores integrados con CLI autodefinida y manual.
-- Soporte inicial para extensiones VSIX semi automaticas con resaltado, prediccion, hover, snippets y diagnosticos simples.
-
-## Licencia
-
-MIT.
-
-## Seguridad
-
-> **Advertencia**: Los plugins de RIF ejecutan código Python real en tu máquina.
-> No ejecutes packs o plugins de fuentes no confiables.
-> RIF no es un sandbox de seguridad.

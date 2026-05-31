@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rif-foundry"
-version = "0.0.2b0"
+version = "0.0.3"
 description = "Retargetable ISA Foundry"
 requires-python = ">=3.10"
 readme = "README.md"

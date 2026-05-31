@@ -11,6 +11,21 @@ class RIFError(Exception):
     """Excepción base para todos los errores dentro del compilador RIF."""
 
 
+def format_os_error(exc: OSError) -> str:
+    """Devuelve un mensaje corto y estable para errores del sistema operativo."""
+    parts: list[str] = []
+    if getattr(exc, "filename", None):
+        parts.append(f"ruta={exc.filename!r}")
+    if getattr(exc, "filename2", None):
+        parts.append(f"ruta2={exc.filename2!r}")
+    if exc.errno is not None:
+        parts.append(f"errno={exc.errno}")
+    detail = exc.strerror or str(exc)
+    if parts:
+        return f"{detail} ({', '.join(parts)})"
+    return detail
+
+
 class LexError(RIFError):
     """Excepción lanzada cuando ocurre un error en el analizador léxico (Lexer)."""
 
@@ -91,5 +106,4 @@ class Errors:
 def end(code: int = 1) -> None:
     """Detiene inmediatamente el flujo de ejecución lanzando la señal EndSignal."""
     raise EndSignal(code)
-
 

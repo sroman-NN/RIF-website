@@ -64,12 +64,33 @@ _SHIFT = {
 
 
 def _int(value: Any, *, name: str = "valor") -> int:
-    text = str(value).strip().replace("_", "")
-    if text.startswith(("0x", "0X")):
-        return int(text, 16)
-    if text.startswith(("0b", "0B")):
-        return int(text[2:], 2)
-    return int(text, 10)
+    text = str(value).strip().upper()
+    
+    # 1. Buscar en registros del programa
+    ctx = globals().get("CONTEXT")
+    if ctx is not None and ctx.program is not None:
+        reg_obj = next((r for r in ctx.program.regs.registers if r.name.upper() == text or (r.alias and r.alias.upper() == text)), None)
+        if reg_obj is not None:
+            hex_val = reg_obj.values.get("hex") or reg_obj.values.get("code")
+            if hex_val:
+                return _int(hex_val, name=name)
+
+    # 2. Buscar en objetos globales del programa
+    if ctx is not None and ctx.program is not None and hasattr(ctx.program, "objects"):
+        obj = ctx.program.objects.get(str(value).strip())
+        if obj is not None:
+            val = obj.values.get("VALUE") or obj.values.get("addrs") or obj.values.get("hex")
+            if val is not None:
+                return _int(val, name=name)
+
+    text_clean = text.replace("_", "")
+    if not text_clean:
+        raise ValueError(f"{name} vacio")
+    if text_clean.startswith(("0X", "0x")):
+        return int(text_clean, 16)
+    if text_clean.startswith(("0B", "0b")):
+        return int(text_clean[2:], 2)
+    return int(text_clean, 10)
 
 
 def _range(value: int, bits: int, *, name: str) -> int:
@@ -140,6 +161,22 @@ def _reglist_mask(value: Any) -> int:
     return mask
 
 
+def _is_gpr(value: Any) -> bool:
+    val = str(value).strip().upper()
+    if val in _REG_ALIAS:
+        return True
+    if re.fullmatch(r"R(?:[0-9]|1[0-5])", val):
+        return True
+    
+    ctx = globals().get("CONTEXT")
+    if ctx is not None and ctx.program is not None:
+        reg_obj = next((r for r in ctx.program.regs.registers if r.name.upper() == val or (r.alias and r.alias.upper() == val)), None)
+        if reg_obj is not None:
+            is_gpr = reg_obj.values.get("GNP") == "yes" or str(reg_obj.values.get("type")) == "0"
+            return is_gpr
+    return False
+
+
 def _current_byte() -> int:
     ctx = globals().get("CONTEXT")
     rt = getattr(ctx, "runtime", None)
@@ -180,6 +217,20 @@ def _branch(target: Any, *, link: bool, cond: int) -> int:
         if not -(1 << 23) <= offset < (1 << 23):
             raise ValueError(f"branch ARM hacia {target!r} fuera de rango")
     return (cond << 28) | (0x0B000000 if link else 0x0A000000) | (offset & 0x00FFFFFF)
+
+
+def _ldr_label(rd: int, target: Any, *, cond: int) -> int:
+    destination = _label_offset(str(target).strip())
+    if destination is None:
+        offset = 0
+        up = True
+    else:
+        delta = destination - (_current_byte() + 8)
+        up = delta >= 0
+        offset = abs(delta)
+        if offset > 0xFFF:
+            raise ValueError(f"literal ARM hacia {target!r} fuera de rango")
+    return (cond << 28) | 0x051F0000 | (int(up) << 23) | (rd << 12) | offset
 
 
 def _dp_reg(ins: str, rd: int, rn: int, rm: int, *, cond: int, s: bool = False) -> int:
@@ -336,19 +387,33 @@ def main():
             if ins in {"mov", "mvn"}:
                 if len(pack) != 3:
                     return Err(f"arm {ins} requiere rd, rm")
-                return _emit32(_dp_reg(ins, _reg(pack[1], name="rd"), 0, _reg(pack[2], name="rm"), cond=cond))
+                if _is_gpr(pack[2]):
+                    return _emit32(_dp_reg(ins, _reg(pack[1], name="rd"), 0, _reg(pack[2], name="rm"), cond=cond))
+                else:
+                    return _emit32(_dp_imm(ins, _reg(pack[1], name="rd"), 0, pack[2], cond=cond))
             if ins in {"cmp", "cmn", "tst", "teq"}:
                 if len(pack) != 3:
                     return Err(f"arm {ins} requiere rn, rm")
-                return _emit32(_dp_reg(ins, 0, _reg(pack[1], name="rn"), _reg(pack[2], name="rm"), cond=cond))
+                if _is_gpr(pack[2]):
+                    return _emit32(_dp_reg(ins, 0, _reg(pack[1], name="rn"), _reg(pack[2], name="rm"), cond=cond))
+                else:
+                    return _emit32(_dp_imm(ins, 0, _reg(pack[1], name="rn"), pack[2], cond=cond))
             if len(pack) != 4:
                 return Err(f"arm {ins} requiere rd, rn, rm")
-            return _emit32(_dp_reg(ins, _reg(pack[1], name="rd"), _reg(pack[2], name="rn"), _reg(pack[3], name="rm"), cond=cond))
+            if _is_gpr(pack[3]):
+                return _emit32(_dp_reg(ins, _reg(pack[1], name="rd"), _reg(pack[2], name="rn"), _reg(pack[3], name="rm"), cond=cond))
+            else:
+                return _emit32(_dp_imm(ins, _reg(pack[1], name="rd"), _reg(pack[2], name="rn"), pack[3], cond=cond))
 
         if ins in {"ldr", "str", "ldrb", "strb"}:
             if len(pack) != 4:
                 return Err(f"arm {ins} requiere rd, rn, imm")
             return _emit32(_single_transfer(ins, _reg(pack[1], name="rd"), _reg(pack[2], name="rn"), pack[3], cond=cond))
+
+        if ins == "ldr_label":
+            if len(pack) != 3:
+                return Err("arm ldr_label requiere rd, etiqueta")
+            return _emit32(_ldr_label(_reg(pack[1], name="rd"), pack[2], cond=cond))
 
         if ins in {"ldrh", "strh", "ldrsb", "ldrsh"}:
             if len(pack) != 4:

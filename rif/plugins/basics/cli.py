@@ -17,6 +17,9 @@ def main(argv: list[str] | None = None) -> int:
     p_build_doc = sub.add_parser("build-doc", help="build a VSIX documentation bundle")
     p_build_doc.add_argument("project")
     p_build_doc.add_argument("-o", "--output")
+    p_build_doc.add_argument("--plugins", nargs="*", help="extra plugin vscode bundles to merge")
+    p_build_doc.add_argument("--ext", "--extension", dest="extensions", action="append", help="source file extension for the generated VS Code language")
+    p_build_doc.add_argument("-icon", "--icon", dest="icon", help="icon file for the generated VSIX package")
 
     args = parser.parse_args(argv)
     command = _load_command(args.cmd.replace("-", "_"))

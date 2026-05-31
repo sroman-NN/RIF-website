@@ -1,0 +1,143 @@
+{
+  "registers": [
+    "R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
+    "R8", "R9", "R10", "R11", "R12", "SP", "LR", "PC"
+  ],
+  "directives": [
+    ".rom",
+    ".header",
+    ".text",
+    ".rodata",
+    ".data",
+    ".bss",
+    "set_headers",
+    "set_logo",
+    "set_checksum",
+    "set_entry",
+    "set_entry_thumb",
+    "set_frame",
+    "set_rompad",
+    "rompad"
+  ],
+  "keywords": [
+    "db", "u8", "byte", "dh", "u16", "half", "halfword", "dw", "u32", "word",
+    "imm", "store", "mov_imm", "cmp_imm", "add_imm", "sub_imm", "move", "mov",
+    "add", "sub", "add3_imm", "sub3_imm", "add_hi", "cmp_hi",
+    "and", "xor", "eor", "lsl", "lsr", "asr", "adc", "sbc", "ror", "tst",
+    "neg", "cmp", "cmn", "or", "orr", "mul", "bic", "not", "mvn",
+    "ldr", "ldrb", "ldrh", "ldsb", "ldsh", "str", "strb", "strh",
+    "str_imm", "ldr_imm", "strb_imm", "ldrb_imm", "strh_imm", "ldrh_imm",
+    "ldr_pc", "ldr_pc_label", "str_sp", "ldr_sp", "adr", "adr_label",
+    "add_sp", "add_sp_imm", "sub_sp_imm", "bx",
+    "push", "push_mask", "push_list", "pop", "pop_mask", "pop_list",
+    "stmia", "stmia_list", "ldmia", "ldmia_list",
+    "b", "jump", "bcond", "beq", "bne", "bcs", "bhs", "bcc", "blo",
+    "bmi", "bpl", "bvs", "bvc", "bhi", "bls", "blt", "bgt", "ble", "bge",
+    "call", "bl", "swi", "thumb",
+    "arm_bx", "arm_b", "arm_bl", "arm_bcond", "arm_blcond", "arm_swi", "arm_raw",
+    "arm_mov", "arm_mov_imm", "arm_mvn", "arm_mvn_imm",
+    "arm_add", "arm_add_imm", "arm_sub", "arm_sub_imm", "arm_rsb",
+    "arm_cmp", "arm_cmp_imm", "arm_cmn", "arm_and", "arm_orr", "arm_eor",
+    "arm_bic", "arm_tst", "arm_teq", "arm_mul", "arm_mla",
+    "arm_umull", "arm_umlal", "arm_smull", "arm_smlal",
+    "arm_dp_shift", "arm_dp_shift_reg",
+    "arm_ldr", "arm_ldr_label", "arm_str", "arm_ldrb", "arm_strb",
+    "arm_ldrh", "arm_strh", "arm_ldrsb", "arm_ldrsh",
+    "arm_ldmia", "arm_stmia", "arm_ldmia_w", "arm_stmia_w", "arm_stmfd", "arm_ldmfd",
+    "arm_mrs", "apply_reloc"
+  ],
+  "types": [
+    "REG",
+    "u8",
+    "u16",
+    "u32",
+    "s8",
+    "b8",
+    "b16",
+    "b32"
+  ],
+  "completions": [
+    {
+      "label": "gba_rom_skeleton",
+      "insertText": ".header\n    set_headers\n    set_logo\n    set_checksum \"${1:RIF GBA}\"\n    set_entry_thumb\n\n.text\nmain:\n    ${2:store R0 = 0}\n    ${3:b main}\n\n.rodata\n\n    rompad",
+      "detail": "GBA project",
+      "documentation": "Plantilla minima de ROM GBA con header, entry Thumb y loop principal.",
+      "kind": "Snippet",
+      "sortText": "000-gba-rom-skeleton"
+    },
+    {
+      "label": "store",
+      "insertText": "store ${1:R0} = ${2:0}",
+      "detail": "GBA Thumb",
+      "documentation": "MOV inmediato de 8 bits."
+    },
+    {
+      "label": "strh",
+      "insertText": "strh ${1:R0}, ${2:R1}, ${3:0}",
+      "detail": "GBA Thumb",
+      "documentation": "Guarda 16 bits en memoria."
+    },
+    {
+      "label": "arm_ldr_label",
+      "insertText": "arm_ldr_label ${1:R0}, ${2:label}",
+      "detail": "GBA ARM",
+      "documentation": "Carga la direccion de una etiqueta."
+    },
+    {
+      "label": "apply_reloc",
+      "insertText": "apply_reloc ${1:abs}, ${2:label}, ${3:32}",
+      "detail": "GBA linker",
+      "documentation": "Emite una relocacion."
+    },
+    {
+      "label": "vram_base",
+      "insertText": "arm_mov_imm ${1:R0}, 0x06000000",
+      "detail": "GBA memory",
+      "documentation": "Carga la base de VRAM en un registro ARM.",
+      "kind": "Snippet"
+    },
+    {
+      "label": "wait_vblank",
+      "insertText": "wait_vblank:\n    arm_mov_imm R0, 0x04000000\n    arm_add_imm R0, R0, 0x06\nwait_vblank_loop:\n    arm_ldrh R1, R0, 0\n    arm_cmp_imm R1, 160\n    arm_bcond lt, wait_vblank_loop",
+      "detail": "GBA video",
+      "documentation": "Snippet de espera de VBlank leyendo VCOUNT.",
+      "kind": "Snippet"
+    }
+  ],
+  "patterns": [
+    {
+      "name": "constant.numeric.address.gba",
+      "match": "\\b0x0(?:2|3|4|5|6|7|8)[0-9A-Fa-f]{6}\\b"
+    },
+    {
+      "name": "support.constant.gba.io",
+      "match": "\\b(?:DISPCNT|VCOUNT|KEYINPUT|SOUNDCNT_H|SOUNDCNT_X|FIFO_A)\\b"
+    }
+  ],
+  "errors": [
+    {
+      "match": "\\b(?:add|sub|and|or|xor|mul)\\s+PC\\b",
+      "message": "GBA: modificar PC aritmeticamente en Thumb suele romper el flujo. Usa b, jump, bl o bx.",
+      "severity": "error"
+    },
+    {
+      "match": "\\bstrb\\b.*0x060[0-9A-Fa-f]{5}",
+      "message": "GBA: evita escrituras de 8 bits a VRAM; usa strh para colores/pixeles de 16 bits.",
+      "severity": "warning",
+      "code": "gba-vram-byte-write",
+      "suggest": "Cambiar a strh cuando escribas pixeles o colores en VRAM."
+    },
+    {
+      "match": "\\b(?:arm_mov_imm|mov_imm|store)\\s+R(?:8|9|10|11|12)\\b",
+      "message": "GBA Thumb: las formas inmediatas simples normalmente solo aceptan registros bajos R0-R7.",
+      "severity": "warning",
+      "code": "gba-thumb-low-register"
+    },
+    {
+      "match": "\\b0x060[0-9A-Fa-f]{5}\\b",
+      "message": "GBA: direccion en VRAM detectada; recuerda escribir halfwords alineados.",
+      "severity": "hint",
+      "code": "gba-vram-address"
+    }
+  ]
+}

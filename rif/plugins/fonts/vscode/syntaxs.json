@@ -1,0 +1,48 @@
+{
+  "builtins": [
+    "@fonts_fill_5x7x1",
+    "@bitmap_array_logo"
+  ],
+  "types": [
+    "font",
+    "glyph",
+    "bitmap-text"
+  ],
+  "completions": [
+    {
+      "label": "centered_title_text",
+      "insertText": "@\"${1:Esto es una prueba de GBA}\"@fonts_fill_5x7x1",
+      "detail": "fonts",
+      "documentation": "Texto bitmap listo para centrar desde el proyecto.",
+      "kind": "Snippet",
+      "sortText": "000-centered-title-text"
+    },
+    {
+      "label": "fonts_fill_5x7x1",
+      "insertText": "@\"${1:Texto}\"@fonts_fill_5x7x1",
+      "detail": "fillable",
+      "documentation": "Convierte texto a filas bitmap 5x7x1 en forma inversa."
+    },
+    {
+      "label": "bitmap_array_logo",
+      "insertText": "@bitmap_array_logo \"${1:RIF}\" ${2:logo_bitmap}",
+      "detail": "fillable",
+      "documentation": "Genera un arreglo u8 desde texto bitmap."
+    }
+  ],
+  "errors": [
+    {
+      "match": "@\\s*fonts_fill_5x7x1\\b",
+      "message": "Fonts: usa la forma inversa para texto: @\"Texto\"@fonts_fill_5x7x1.",
+      "severity": "warning",
+      "code": "fonts-reverse-fillable",
+      "suggest": "Escribe primero el texto: @\"Texto\"@fonts_fill_5x7x1."
+    },
+    {
+      "match": "@\"\"@fonts_fill_5x7x1",
+      "message": "Fonts: el texto vacio genera un asset sin glyphs visibles.",
+      "severity": "hint",
+      "code": "fonts-empty-text"
+    }
+  ]
+}

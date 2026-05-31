@@ -1,0 +1,7 @@
+{
+  "name": "sound",
+  "version": "0.1.0",
+  "author": "RIF Contributors",
+  "license": "MIT",
+  "purpose": "El plugin sound permite convertir archivos locales de audio (WAV, MP3, etc.) a formatos de audio compatibles con consolas clasicas como GBA (PCM firmado de 8 bits) y Atari 2600 (registros TIA) usando ffmpeg de forma no hardcodeada. Provee fillables y herramientas de CLI para simplificar la integracion de audio en los proyectos de RIF."
+}

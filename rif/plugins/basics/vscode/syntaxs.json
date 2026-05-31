@@ -1,0 +1,102 @@
+{
+  "directives": [
+    ".pack",
+    ".world",
+    ".sections",
+    ".rules",
+    ".types",
+    ".regs",
+    ".headers",
+    ".memory",
+    ".DATA_DEFINITION"
+  ],
+  "builtins": [
+    "need",
+    "emit",
+    "align",
+    "pad",
+    "reloc",
+    "reldis",
+    "emitaddress",
+    "emitadress",
+    "fillid",
+    "vfillid",
+    "exists",
+    "bitcat",
+    "bitsize",
+    "bitfit",
+    "fits",
+    "trunc",
+    "zext",
+    "sext",
+    "eq",
+    "neq",
+    "lt",
+    "lte",
+    "gt",
+    "gte",
+    "error",
+    "raise"
+  ],
+  "keywords": [
+    "call",
+    "ON",
+    "OFF",
+    "switch",
+    "case",
+    "end_instruction"
+  ],
+  "completions": [
+    {
+      "label": "pack_with_plugins",
+      "insertText": ".pack\nplugin \"${1:basics}\"\nplugin \"${2:gba}\"\n\n.world\n\n.sections\n\n.rules\n${3:rule_name}:\n    need ${4:VALUE}, ${5:imm}\n    emit ${5:imm}.binary",
+      "detail": "RIF basics",
+      "documentation": "Estructura inicial de pack RIF con plugins y regla.",
+      "kind": "Snippet",
+      "sortText": "000-pack-with-plugins"
+    },
+    {
+      "label": "need",
+      "insertText": "need ${1:VALUE}, ${2:imm}",
+      "detail": "RIF basics",
+      "documentation": "Consume y valida operandos."
+    },
+    {
+      "label": "emit",
+      "insertText": "emit ${1:bits}",
+      "detail": "RIF basics",
+      "documentation": "Emite bits o placeholders."
+    },
+    {
+      "label": "reloc",
+      "insertText": "reloc ${1:abs}, ${2:target}, ${3:32}",
+      "detail": "RIF basics",
+      "documentation": "Registra una relocacion para el linker."
+    }
+  ],
+  "patterns": [
+    {
+      "name": "keyword.operator.rif",
+      "match": "\\b(?:=|,|:)\\b"
+    },
+    {
+      "name": "constant.language.boolean.rif",
+      "match": "\\b(?:true|false|on|off)\\b"
+    }
+  ],
+  "errors": [
+    {
+      "match": "^\\s*plugin\\s+[A-Za-z_][A-Za-z0-9_-]*\\s*$",
+      "message": "RIF: recomienda declarar plugins entre comillas: plugin \"basics\".",
+      "severity": "hint",
+      "code": "rif-plugin-quotes",
+      "suggest": "Usa plugin \"nombre\" para evitar ambiguedad."
+    },
+    {
+      "match": "^\\s*emit\\s*$",
+      "message": "RIF: emit requiere bits, un placeholder o una variable.",
+      "severity": "error",
+      "code": "rif-empty-emit"
+    }
+  ]
+}

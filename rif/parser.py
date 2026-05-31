@@ -8,6 +8,7 @@ las tablas de registros, los bloques de reglas (.rules) y las directivas de
 configuración general.
 """
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -709,6 +710,8 @@ def load_plugins(program: Program, config: PackerConfig) -> dict[str, Any]:
 
         for path in sorted(plugin_dir.rglob(f"*{ext}")):
             if path.is_file():
+                if path.stem == "__init__":
+                    continue
                 relative_name = "_".join(path.relative_to(plugin_dir).with_suffix("").parts)
                 module_name = f"rif.loaded_plugins.{_module_safe(plugin_name)}.{_module_safe(relative_name)}"
                 spec = importlib.util.spec_from_file_location(module_name, path)
@@ -777,6 +780,13 @@ def _plugin_roots(base_dir: Path) -> list[Path]:
     """Busca y resuelve las carpetas de origen donde se pueden localizar los plugins de RIF."""
     roots: list[Path] = []
     for candidate in (base_dir / "plugins", Path.cwd() / "plugins"):
+        resolved = candidate.resolve()
+        if candidate.exists() and resolved not in roots:
+            roots.append(resolved)
+
+    frozen_root = getattr(sys, "_MEIPASS", None)
+    if frozen_root:
+        candidate = Path(frozen_root) / "rif" / "plugins"
         resolved = candidate.resolve()
         if candidate.exists() and resolved not in roots:
             roots.append(resolved)

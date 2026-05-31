@@ -1,0 +1,11 @@
+{
+  "displayName": "RIF Image Tooling",
+  "description": "VS Code documentation and snippets for RIF image conversion fillables.",
+  "author": {
+    "name": "RIF Contributors",
+    "url": "https://github.com"
+  },
+  "version": "0.2.0",
+  "license": "MIT",
+  "keywords": ["rif", "image", "bitmap", "assets", "converter"]
+}

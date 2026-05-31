@@ -57,9 +57,18 @@ def main(argv: list[str] | None = None) -> int:
     p_link.add_argument("source")
     p_link.add_argument("-o", "--output")
 
-    p_compile = sub.add_parser("compile", help="compile one instruction using a RIF rule file")
-    p_compile.add_argument("source", help="RIF rule file, for example store.amd64.pack")
-    p_compile.add_argument("instruction", nargs="+", help="instruction to compile, for example: copy rax = rbx")
+    p_compile = sub.add_parser("compile", help="compile one instruction or build generated tooling")
+    p_compile.add_argument("source", nargs="?", help="RIF rule file, for example store.amd64.pack")
+    p_compile.add_argument("instruction", nargs="*", help="instruction to compile, for example: copy rax = rbx")
+    p_compile.add_argument("-vscode", "--vscode", nargs="*", metavar="PLUGIN", help="create an all-in-one VSIX from plugin vscode bundles")
+    p_compile.add_argument("--p", dest="vscode_plugins", nargs="*", metavar="PLUGIN", help="plugins to include when building a VSIX with --vscode")
+    p_compile.add_argument("--ext", "--extension", dest="extensions", action="append", help="source file extension for the generated VS Code language, for example .gbasm")
+    p_compile.add_argument("-icon", "--icon", dest="icon", help="icon file for the generated VSIX package")
+    p_compile.add_argument("-p", "--plugin", help="create a dedicated compiler for this plugin")
+    p_compile.add_argument("--link", nargs="*", default=[], help="plugins to include in the dedicated compiler")
+    p_compile.add_argument("--name", help="pack name inside the plugin")
+    p_compile.add_argument("-o", "--output", help="output path for generated tooling")
+    p_compile.add_argument("--no-exe", action="store_true", help="only generate the dedicated Python launcher")
 
     p_build = sub.add_parser("build", help="build a linked binary from a RIF file")
     p_build.add_argument("source", help="RIF rule/link file")
@@ -74,8 +83,10 @@ def main(argv: list[str] | None = None) -> int:
     p_help.add_argument("topic", nargs="?", help="markdown topic name")
     p_help.add_argument("--open", action="store_true", help="open help/index.html")
 
-    p_install = sub.add_parser("install", help="install a RIF plugin package")
-    p_install.add_argument("--package", required=True, help="GitHub URL or local plugin folder")
+    p_install = sub.add_parser("install", help="install a RIF plugin package or VS Code extension")
+    group_install = p_install.add_mutually_exclusive_group(required=True)
+    group_install.add_argument("--package", help="GitHub URL or local plugin folder")
+    group_install.add_argument("--vscode", help="Install a .vsix extension into VS Code")
 
     p_plugins = sub.add_parser("plugins", help="manage RIF plugins")
     p_plugins.add_argument("-list", action="store_true", dest="list_plugins", help="list installed plugins")
@@ -145,6 +156,22 @@ def main(argv: list[str] | None = None) -> int:
             return _run_help(args.topic, args.open)
 
         if args.cmd == "install":
+            if args.vscode:
+                import subprocess
+                import shutil
+                code_cmd = shutil.which("code")
+                if not code_cmd:
+                    raise RIFError("El ejecutable 'code' no se encuentra en el PATH. Instala VS Code y asegurate de que este en el PATH.")
+                vsix_path = Path(args.vscode).resolve()
+                if not vsix_path.exists():
+                    raise RIFError(f"No se encontro el archivo VSIX: {vsix_path}")
+                print(f"Instalando extension VS Code: {vsix_path.name}...")
+                res = subprocess.run([code_cmd, "--install-extension", str(vsix_path)], check=False)
+                if res.returncode != 0:
+                    raise RIFError("Ocurrio un error al instalar la extension en VS Code.")
+                print("Extension instalada exitosamente en Visual Studio Code.")
+                return 0
+
             from .plugin_security import install_plugin_package
             dest = install_plugin_package(args.package, _rif_plugins_dir())
             print(f"plugin instalado: {dest}")
@@ -344,6 +371,54 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.cmd == "compile":
+            if args.vscode is not None:
+                vscode_plugins = [*(args.vscode or []), *(args.vscode_plugins or [])]
+                if not vscode_plugins:
+                    raise RIFError("usa: rif compile --vscode <plugin...> o rif compile --vscode --p <plugin...>")
+                from .plugins.basics.cli.build_doc import build_vsix
+
+                result = build_vsix(output=args.output, plugins=vscode_plugins, extensions=args.extensions, icon=args.icon)
+                print("vscode_vsix=ok")
+                print(f"vsix={result.output}")
+                print(f"name={result.name}")
+                print(f"version={result.version}")
+                print("plugins=" + ",".join(result.plugins))
+                print("extensions=" + ",".join(result.extensions))
+                print(f"docs={result.docs}")
+                print(f"syntax={result.syntax}")
+                return 0
+
+            if args.vscode_plugins:
+                raise RIFError("usa --p junto con --vscode para construir una extension VSIX")
+
+            if args.plugin:
+                from .dedicated import create_dedicated_compiler
+
+                result = create_dedicated_compiler(
+                    args.plugin,
+                    linked_plugins=args.link,
+                    pack_name=args.name,
+                    output=args.output,
+                    make_exe=not args.no_exe,
+                )
+                print("dedicated_compiler=ok")
+                print(f"plugin={result.plugin}")
+                print("linked=" + ",".join(result.linked_plugins))
+                print(f"root={result.root}")
+                print(f"pack={result.pack_dir}")
+                print(f"launcher={result.script_path}")
+                if result.exe_path is not None:
+                    print(f"exe={result.exe_path}")
+                else:
+                    print("exe=<no generado; instala PyInstaller o usa --no-exe>")
+                return 0
+
+            if not args.source or not args.instruction:
+                raise RIFError(
+                    "usa: rif compile <pack> <instruccion...>, "
+                    "rif compile -p <plugin> [--link plugin ...] o "
+                    "rif compile --vscode [--ext .rif] [--icon icon.png] --p <plugin...>"
+                )
             instruction = " ".join(args.instruction)
             compiler = Compiler.from_file(args.source)
             result = compiler.compile_line(instruction)
@@ -474,13 +549,13 @@ def _run_plugins_command(args: argparse.Namespace) -> int:
             
         from .plugin_security import load_manifest, validate_plugin_root, install_plugin_folder
         
-        # 1. Cargar y validar manifiesto
+                                        
         manifest = load_manifest(src)
         
-        # 2. Realizar verificación del sandbox de seguridad
+                                                           
         validate_plugin_root(src)
         
-        # 3. Comprobar si el plugin ya existe
+                                             
         dest = _rif_plugins_dir() / manifest.name
         if dest.exists():
             ans = input(
@@ -490,11 +565,11 @@ def _run_plugins_command(args: argparse.Namespace) -> int:
             if ans not in {"s", "y", "si", "yes"}:
                 print("Carga de plugin cancelada.")
                 return 0
-            # Si se confirma, eliminar el anterior de forma segura
+                                                                  
             import shutil
             shutil.rmtree(dest)
             
-        # 4. Copiar e instalar el nuevo plugin
+                                              
         install_plugin_folder(src, _rif_plugins_dir())
         print(f"plugin '{manifest.name}' cargado e instalado exitosamente en: {dest}")
         return 0

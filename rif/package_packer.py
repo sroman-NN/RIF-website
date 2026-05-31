@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .errors import PackError
+from .errors import PackError, format_os_error
 from .lexer import Lexer
 from .models import PackedResult, PackerConfig, Program
 from .parser import Parser, parse_packer_config
@@ -28,7 +28,13 @@ class PackagePacker:
             linked_source = self._merge(source, config, fragments)
 
         if write:
-            output.write_text(linked_source, encoding="utf-8")
+            try:
+                output.write_text(linked_source, encoding="utf-8")
+            except OSError as exc:
+                raise PackError(
+                    f"no se pudo escribir el archivo empaquetado en {output}: {format_os_error(exc)}. "
+                    "Revisa que la ruta de salida sea valida, que su carpeta exista y que el archivo no este abierto o bloqueado."
+                ) from exc
 
         linked_program = Parser(linked_source, output).parse()
         final_config = parse_packer_config(linked_program)

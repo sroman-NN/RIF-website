@@ -43,7 +43,7 @@ def expand_fillable_line(
     phase: str,
     fills: "FillCollector | None" = None,
 ) -> str:
-    parts = shlex.split(stripped[1:], posix=True)
+    parts = _parse_fillable_call(stripped)
     if not parts:
         raise PackError("fillable vacio despues de @")
 
@@ -75,6 +75,42 @@ def expand_fillable_line(
     if isinstance(result, (list, tuple)):
         return "\n".join(str(item) for item in result)
     return str(result)
+
+
+def _parse_fillable_call(stripped: str) -> list[str]:
+    """Parsea @func args y la forma inversa @args@func."""
+    if len(stripped) > 1 and stripped[0] == "@":
+        split_at = _reverse_fillable_separator(stripped)
+        if split_at is not None:
+            arg_text = stripped[1:split_at].strip()
+            call_text = stripped[split_at + 1:].strip()
+            call_parts = shlex.split(call_text, posix=True)
+            if not call_parts:
+                raise PackError("fillable inverso sin funcion despues de @")
+            return [call_parts[0], *shlex.split(arg_text, posix=True), *call_parts[1:]]
+    return shlex.split(stripped[1:], posix=True)
+
+
+def _reverse_fillable_separator(text: str) -> int | None:
+    quote: str | None = None
+    escape = False
+    for index, char in enumerate(text[1:], start=1):
+        if escape:
+            escape = False
+            continue
+        if char == "\\":
+            escape = True
+            continue
+        if quote is not None:
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            continue
+        if char == "@":
+            return index
+    return None
 
 
 def load_fillables(program: Program, config: Any | None = None) -> dict[str, Any]:

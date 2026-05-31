@@ -1,48 +1,61 @@
-# Plugin GBA
+# Visión General: Arquitectura GBA
 
-El plugin `gba` provee soporte para compilar ROMs de Game Boy Advance con RIF.
+El plugin `gba` proporciona el soporte integral para compilar ROMs comerciales y homebrew de **Game Boy Advance** utilizando el ecosistema de cero-acoplamiento de RIF.
 
-## Estructura
+A diferencia de los ensambladores convencionales, este plugin enseña al compilador de RIF cómo estructurar la cabecera exigida por el hardware de Nintendo, cómo validar los sumatorios (checksums), y le inyecta la semántica de la **CPU ARM7TDMI**.
 
-```
+## 🧠 Arquitectura y CPU
+
+El corazón del GBA es un procesador ARM7TDMI que puede operar en dos modos:
+- **Estado ARM (32 bits)**: Reservado principalmente para el arranque o rutinas de alto rendimiento en IWRAM.
+- **Estado Thumb (16 bits)**: El modo principal usado para ejecutar código desde el cartucho (ROM) debido a su mayor densidad y las limitaciones del bus de 16-bits.
+
+El plugin **GBA de RIF emite código Thumb** nativo, en formato *Little Endian*, lo que garantiza lecturas óptimas desde el cartucho hacia el bus de la memoria sin necesidad de preprocesadores de terceros.
+
+---
+
+## 🗺️ Mapa Físico de Memoria (MMIO)
+
+El plugin ya tiene pre-mapeadas las direcciones de estas secciones en su archivo `.pack`, permitiendo usar referencias directas como `r0, 0x06000000` (VRAM) o apoyarte en sus correspondientes tablas para relocaciones automáticas.
+
+| Sección (Hardware) | Dirección  | Tamaño | Rol Principal                                   |
+|--------------------|------------|--------|-------------------------------------------------|
+| `.rom` / ROM       | 0x08000000 | 32 MB  | Memoria flash del cartucho (Instrucciones)      |
+| `.ewram` / EWRAM   | 0x02000000 | 256 KB | Memoria de trabajo externa (Carga general)      |
+| `.iwram` / IWRAM   | 0x03000000 | 32 KB  | Memoria interna (Altísima velocidad para bucles)|
+| `.io` / IO         | 0x04000000 | 1 KB   | Registros MMIO (Control de Video, Sonido, DMA)  |
+| `.palette`         | 0x05000000 | 1 KB   | Memoria CRAM (Paletas BGR555)                   |
+| `.vram` / VRAM     | 0x06000000 | 96 KB  | Video RAM (Pixeles, Tiles y Mapas)              |
+| `.oam` / OAM       | 0x07000000 | 1 KB   | Memoria de Atributos de Sprites (Objetos)       |
+
+---
+
+## 📁 Estructura del Ecosistema
+
+Todo el soporte arquitectónico de GBA vive dentro del directorio `rif/plugins/gba/`. Sus responsabilidades están estrictamente divididas:
+
+```text
 plugins/gba/
-├── cli.py                    ← subcomandos rif -pcli gba
+├── cli.py                    # 💻 Interfaz de subcomandos `rif -pcli gba`
 ├── cli/
-│   ├── install.py            ← instala mGBA
-│   └── run.py                ← ejecuta el .gba en mGBA
-├── fillables.py              ← @fill_screen / @fill_screen_text
-├── packs/
-│   └── example/
-│       ├── gba.pack          ← pack raíz (fsystem 1)
-│       ├── gba.regs.pack     ← registros ARM7TDMI
-│       ├── gba.types.pack    ← tipos de dato
-│       ├── gba.sections.pack ← layout de memoria
-│       ├── gba.words.pack    ← instrucciones y macros
-│       └── gba.rules.pack    ← reglas de compilación Thumb
+│   ├── install.py            # Script que descarga mGBA automáticamente
+│   └── run.py                # Wrapper para inyectar la ROM al emulador
+├── fillables.py              # 🎨 Directivas @fill_screen / @fill_screen_text
+├── packs/example/
+│   ├── gba.pack              # ⚙️ Punto de entrada: Importa el universo GBA
+│   ├── gba.regs.pack         # 🗄️ Tabla de los 16 Registros (R0-R15)
+│   ├── gba.sections.pack     # 🗺️ Inicialización de los VOff y bloques
+│   └── gba.rules.pack        # 📐 Expresiones regulares y reglas Thumb
 └── plugins/
-    ├── gba_common.py         ← utilidades y constantes
-    ├── gba_headers.py        ← cabecera ROM (0x00-0xBF)
-    ├── gba_logo.py           ← logo Nintendo (0x04-0x9F)
-    ├── gba_checksum.py       ← checksum de cabecera
-    ├── gba_entry.py          ← código de entrada ARM
-    ├── gba_frame.py          ← framebuffer inicial
-    └── gba_rompad.py         ← padding hasta 512 KB
+    ├── thumb_ins.py          # 🤖 Intérprete aritmético del Set de Instrucciones
+    ├── gba_headers.py        # 🧱 Constructor binario de la Cabecera 0x00-0xBF
+    ├── gba_logo.py           # 🍄 Inyección estricta del Logo de Nintendo
+    ├── gba_checksum.py       # 🧮 Cómputo matemático de validación
+    └── gba_entry.py          # 🚪 Inyector del salto ARM -> Thumb (bx)
 ```
 
-## Mapa de memoria GBA
+## 🤝 Sinergia con otros Plugins
 
-| Sección  | Dirección  | Tamaño | Descripción                  |
-|----------|------------|--------|------------------------------|
-| rom      | 0x08000000 | 32 MB  | Cartucho ROM (emitida al .gba)|
-| ewram    | 0x02000000 | 256 KB | Work RAM externa (lenta)      |
-| iwram    | 0x03000000 | 32 KB  | Work RAM interna (rápida)     |
-| io       | 0x04000000 | 1 KB   | Registros de hardware MMIO    |
-| palette  | 0x05000000 | 1 KB   | Paletas de color (BGR555)     |
-| vram     | 0x06000000 | 96 KB  | Video RAM                     |
-| oam      | 0x07000000 | 1 KB   | Atributos de sprites          |
-| sram     | 0x0E000000 | 64 KB  | Save RAM del cartucho         |
-
-## Arquitectura
-
-El GBA corre un **ARM7TDMI** en modo **Thumb** (instrucciones de 16 bits, little endian).
-El pack emite código Thumb directamente sin necesitar un ensamblador externo.
+Gracias al diseño agnóstico de RIF, el plugin GBA se beneficia automáticamente de:
+- **Plugin Image**: Si compilas tu proyecto GBA incluyendo `--plugin image`, ganarás acceso a `@fill_image_bitmap` para insertar PNGs/BMPs comprimidos a formato VRAM de GBA.
+- **Plugin Sound**: Usando `--plugin sound`, puedes inyectar archivos `.wav` de 8-bits e invocar el DMA del GBA para hacer streaming de audio nativo hacia el altavoz de la consola.

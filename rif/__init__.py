@@ -1,6 +1,6 @@
 
 
-__version__ = "0.0.2 Beta"
+__version__ = "0.0.3 Semi Stable"
 
 from .errors import RIFError, LexError, ParseError, PackError, Errors, EndSignal, end
 from .lexer import Lexer

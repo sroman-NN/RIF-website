@@ -9,6 +9,7 @@ plugin "basics"
 plugin "gba"
 plugin "image"
 plugin "fonts"
+plugin "sound"
 pluginsymbolorder 0
 
 types:

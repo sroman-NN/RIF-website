@@ -1,6 +1,6 @@
 | NAME   | type   | perms | align | fill | emit | order | voffset    |
 | header | code   | r     | 1     | 00   | yes  | 0     | 0x08000000 |
 | rom    | code   | rx    | 4     | 00   | yes  | 1     | 0x080000C0 |
-| data   | data   | rw    | 4     | 00   | yes  | 2     | 0x02000000 |
-| rodata | data   | r     | 4     | 00   | yes  | 3     | 0x08020000 |
+| rodata | data   | r     | 4     | 00   | yes  | 2     |            |
+| data   | data   | rw    | 4     | 00   | yes  | 3     | 0x02000000 |
 | bss    | nobits | rw    | 4     | 00   | no   | 4     | 0x02030000 |

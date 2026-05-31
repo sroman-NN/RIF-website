@@ -1,0 +1,50 @@
+{
+  "words": {
+    "image_overview": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "El plugin image transforma assets visuales a datos RIF. No sabe que significan en tu juego: solo prepara bytes."
+        },
+        {
+          "type": "image",
+          "src": "assets/image/bitmap-pipeline.svg",
+          "alt": "Image bitmap pipeline",
+          "caption": "Imagen fuente a bitmap 1bpp y arreglo u8 listo para el ensamblador."
+        }
+      ]
+    },
+    "image_bitmap": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Convierte una imagen PNG, JPG o BMP a un arreglo bitmap 1bpp en tiempo de build."
+        },
+        {
+          "type": "code",
+          "content": "@image_bitmap \"assets/sprite.png\" sprite_bitmap 128 false"
+        },
+        {
+          "type": "text",
+          "content": "Argumentos: archivo, simbolo, umbral opcional e invertir opcional. El plugin solo transforma assets; el proyecto decide como dibujarlos."
+        },
+        {
+          "type": "note",
+          "content": "Las rutas relativas se resuelven contra el proyecto cuando RIF compila una carpeta."
+        }
+      ]
+    },
+    "fill_image_bitmap": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Alias compatible de image_bitmap para convertir imagenes a datos RIF."
+        },
+        {
+          "type": "code",
+          "content": "@fill_image_bitmap \"assets/sprite.png\" sprite_bitmap"
+        }
+      ]
+    }
+  }
+}
