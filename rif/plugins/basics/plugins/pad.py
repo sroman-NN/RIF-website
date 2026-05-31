@@ -1,4 +1,4 @@
-"""Emite padding derecho automatico de n bytes."""
+
 
 from __future__ import annotations
 

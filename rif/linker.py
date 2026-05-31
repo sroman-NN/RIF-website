@@ -82,13 +82,15 @@ class Linker:
         Returns:
             Lista de rutas de archivos de fragmentos candidatos válidos.
         """
-        if config.fsystem != 1 or config.subpre is None:
+        if config.fsystem != 1 or config.subpre is None or not config.ext:
             return []
 
         base = self.source_path.stem
         root = self.source_path.parent
-        pattern = f"{base}.*{config.ext}"
-        candidates = sorted(root.rglob(pattern))
+        fragment_exts = [config.ext]
+        candidates = []
+        for ext in fragment_exts:
+            candidates.extend(sorted(root.rglob(f"{base}.*{ext}")))
 
         out: list[Path] = []
         for path in candidates:
@@ -96,10 +98,10 @@ class Linker:
                 continue
             if path.name == self.source_path.name + ".temp":
                 continue
-            if path.suffix != config.ext:
+            if path.suffix not in fragment_exts:
                 continue
 
-            subprefix = self._subprefix(path, base, config.ext)
+            subprefix = self._subprefix(path, base, path.suffix)
             if subprefix is None:
                 continue
             if config.subpre != "*" and subprefix != config.subpre:
@@ -249,9 +251,12 @@ class Linker:
         write: bool = True,
     ) -> BinaryLinkResult:
         """Construye el proyecto enlazado leyendo las fuentes del proyecto y compilándolas."""
+        from .package_packer import PackagePacker
         from .source_reader import SourceReader
 
-        linked = self.link(write=False)
+        linked = PackagePacker(self.source_path).pack(write=False)
+        setattr(linked.program, "project_path", Path(project_path).resolve())
+        setattr(linked.program, "cache_project_path", Path(project_path).resolve())
         config = parse_packer_config(linked.program)
         source = SourceReader(linked.program, config).read_project_source(project_path)
         output = Path(output_path) if output_path is not None else _project_output_path(Path(project_path), self.source_path, config)
@@ -354,9 +359,12 @@ class BinaryLinker:
         plugins_root = base_dir / "plugins"
 
         for plugin_name in dict.fromkeys([*self.config.plugins, *self.config.precompilers]):
-            path = plugins_root / plugin_name / "compiler.py"
+            plugin_root = plugins_root / plugin_name
+            path = plugin_root / "compiler.py"
             if not path.exists():
                 continue
+            from .plugin_security import validate_plugin_root
+            validate_plugin_root(plugin_root)
             module_name = f"rif.linker.{plugin_name}.compiler"
             spec = importlib.util.spec_from_file_location(module_name, path)
             if spec is None or spec.loader is None:
@@ -443,28 +451,38 @@ class BinaryLinker:
 
         code_section = self._payload_section("code")
         data_section = self._payload_section("data")
-        sections: dict[str, bytearray] = {}
+        sections: dict[str, list[str]] = {}
         data_offsets: dict[str, int] = {}
         for result in results:
-            payload = result.data or b""
+            payload_bits = result.bits
             if result.rule_name in {"stack", "heap"}:
                 continue
 
             sec_name = result.section or code_section
             normalized_sec = sec_name.lstrip(".")
 
-            sections.setdefault(normalized_sec, bytearray())
+            sections.setdefault(normalized_sec, [])
 
             if result.rule_name == "data":
                 name = _source_symbol_name(result.source)
                 if name is not None:
                     offset = data_offsets.setdefault(normalized_sec, 0)
                     self._update_source_data_offsets(name, normalized_sec, offset)
-                data_offsets[normalized_sec] = data_offsets.get(normalized_sec, 0) + len(payload)
+                if len(payload_bits) % 8 != 0:
+                    raise PackError(f'data definition "{result.source}" no está alineada a byte')
+                data_offsets[normalized_sec] = data_offsets.get(normalized_sec, 0) + (len(payload_bits) // 8)
 
-            sections[normalized_sec].extend(payload)
+            sections[normalized_sec].append(payload_bits)
 
-        return {name: bytes(data) for name, data in sections.items() if data}
+        out: dict[str, bytes] = {}
+        for name, chunks in sections.items():
+            bits = "".join(chunks)
+            if len(bits) % 8 != 0:
+                raise PackError(f'sección "{name}" no está alineada a byte: {len(bits)} bits')
+            data = _bits_to_bytes(bits)
+            if data:
+                out[name] = data
+        return out
 
     def _section_payload(self, row: TableRow, source_sections: dict[str, bytes], kind: str, emit_physical: bool) -> tuple[bytes, int]:
         """Calcula el payload (datos físicos y tamaño virtual) perteneciente a una sección.
@@ -713,6 +731,7 @@ class BinaryLinker:
                 continue
             section_offset = _intish(row.values.get("SECTION_OFFSET", row.values.get("addrs", 0)), 0)
             row.values["addrs"] = data_block.virtual_offset + section_offset
+            row.values["paddrs"] = data_block.physical_offset + section_offset
 
     def _relocate_memory_regions(self, blocks: list[LinkBlock]) -> None:
         """Relocaliza direcciones de pila, montón y buffers de memoria en base a sus offsets de bloque asignados.
@@ -746,18 +765,23 @@ class BinaryLinker:
 
             block_data = bytearray(block.data)
 
-            target_addr = 0
-            if reloc.target in self.labels:
-                lbl = self.labels[reloc.target]
-                target_sec = lbl.get("section") or ".text"
-                target_block = next((b for b in blocks if b.name == target_sec or b.name == "." + target_sec or "." + b.name == target_sec), None)
-                target_addr = lbl["offset"]
-                if target_block is not None:
-                    target_addr += target_block.virtual_offset
-            elif reloc.target in self.program.objects:
-                obj = self.program.objects[reloc.target]
-                target_addr = _intish(obj.values.get("addrs", 0), 0)
-            else:
+            def resolve_target(name: str, physical: bool = False) -> int:
+                if name in self.labels:
+                    lbl = self.labels[name]
+                    target_sec = lbl.get("section") or ".text"
+                    target_block = next((b for b in blocks if b.name == target_sec or b.name == "." + target_sec or "." + b.name == target_sec), None)
+                    addr = lbl["offset"]
+                    if target_block is not None:
+                        addr += target_block.physical_offset if physical else target_block.virtual_offset
+                    return addr
+                if name in self.program.objects:
+                    obj = self.program.objects[name]
+                    return _intish(obj.values.get("paddrs" if physical else "addrs", 0), 0)
+                raise UnresolvedExpression(name)
+
+            try:
+                target_addr = eval_int_expr(reloc.target, lambda n: resolve_target(n, physical=False))
+            except Exception:
                 target_addr = _intish(reloc.target, 0)
 
             value = 0
@@ -767,6 +791,11 @@ class BinaryLinker:
                 value = target_addr - origin_next
             elif reloc.kind in ("abs", "absolute"):
                 value = target_addr + reloc.addend
+            elif reloc.kind == "physical":
+                try:
+                    value = eval_int_expr(reloc.target, lambda n: resolve_target(n, physical=True))
+                except Exception:
+                    value = _intish(reloc.target, 0)
             else:
                 value = target_addr
 
@@ -1252,6 +1281,8 @@ def _find_project_pack(root: Path, use_packs_path: str | Path | None = None) -> 
 
     if use_packs_path is not None:
         packs_dir = Path(use_packs_path)
+        if packs_dir.is_file():
+            return packs_dir
     else:
         packs_dir = root / "pack"
         if not packs_dir.exists() or not packs_dir.is_dir():
@@ -1260,9 +1291,15 @@ def _find_project_pack(root: Path, use_packs_path: str | Path | None = None) -> 
     if not packs_dir.exists():
         raise PackError(f"directorio de packs no existe: {packs_dir}")
 
-    preferred = packs_dir / f"{root.name}.pack"
-    if preferred.exists():
-        return preferred
+    preferred_names = [f"{root.name}.pack"]
+    if use_packs_path is not None and packs_dir.parent.name in {"pack", "packs"}:
+        preferred_names.append(f"{packs_dir.parent.parent.name}.pack")
+    preferred_names.extend(["main.pack", "pack.pack"])
+
+    for preferred_name in dict.fromkeys(preferred_names):
+        preferred = packs_dir / preferred_name
+        if preferred.exists():
+            return preferred
 
     packs = sorted(path for path in packs_dir.glob("*.pack") if path.is_file())
     if not packs:
@@ -1279,7 +1316,10 @@ def _project_output_path(root: Path, pack_path: Path, config: PackerConfig) -> P
         output = Path(config.output)
         return output if output.is_absolute() else root / output
     name = root.name
-    return root / f"{name}{config.ext}"
+    out_ext = config.outext or ".bin"
+    if not out_ext.startswith("."):
+        out_ext = "." + out_ext
+    return root / f"{name}{out_ext}"
 
 
 def _contains_section_header(text: str) -> bool:
@@ -1508,6 +1548,12 @@ def _bytes_from_fill(value: Any) -> bytes:
     """
     raw = _bytes_from_hexish(value)
     return raw or b"\x00"
+
+
+def _bits_to_bytes(bits: str) -> bytes:
+    if len(bits) % 8 != 0:
+        raise PackError(f"bits no alineados a byte: {len(bits)}")
+    return bytes(int(bits[index:index + 8], 2) for index in range(0, len(bits), 8))
 
 
 def _raw_bytes(value: str, width: int) -> bytes:

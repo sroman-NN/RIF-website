@@ -27,14 +27,14 @@ def find_emulator(name: str) -> str | None:
     candidates = [name]
     if name.lower() == "mgba":
         candidates.extend(["mGBA", "mgba", "mgba-qt", "mGBA.exe", "mgba-qt.exe"])
-    
-    # 1. Check in PATH
+
+
     for candidate in dict.fromkeys(candidates):
         found = shutil.which(candidate)
         if found:
             return found
-            
-    # 2. Check standard Windows install locations
+
+
     if name.lower() == "mgba":
         program_files = [
             Path("C:/Program Files/mGBA"),
@@ -47,7 +47,7 @@ def find_emulator(name: str) -> str | None:
                 if exe_path.exists():
                     return str(exe_path)
 
-    # 3. Check if name is already an absolute path
+
     path = Path(name)
     if path.exists():
         return str(path)
@@ -59,21 +59,21 @@ def add_to_system_path(directory: str) -> bool:
     import sys
     if sys.platform != "win32":
         return False
-        
+
     try:
         import winreg
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_ALL_ACCESS)
         path, _ = winreg.QueryValueEx(key, "Path")
-        
-        # Check if directory is already in PATH
+
+
         path_list = [p.strip().rstrip("\\") for p in path.split(";")]
         clean_dir = directory.strip().rstrip("\\")
-        
+
         if clean_dir not in path_list:
             new_path = path + ";" + directory if path else directory
             winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
-            
-            # Notificar al sistema del cambio
+
+
             import ctypes
             HWND_BROADCAST = 0xFFFF
             WM_SETTINGCHANGE = 0x001A
@@ -84,5 +84,5 @@ def add_to_system_path(directory: str) -> bool:
             return True
     except Exception as e:
         print(f"Advertencia: No se pudo modificar el PATH automáticamente ({e})")
-    
+
     return False

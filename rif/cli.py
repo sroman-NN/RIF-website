@@ -1,10 +1,4 @@
-"""Interfaz de Línea de Comandos (CLI) de RIF.
 
-Este módulo expone la CLI oficial de RIF, permitiendo realizar tareas de
-análisis léxico, parseo de reglas, empaquetado preliminar, enlace (linking),
-compilación de instrucciones individuales y construcción de imágenes binarias
-directamente desde la terminal.
-"""
 
 from __future__ import annotations
 
@@ -80,6 +74,26 @@ def main(argv: list[str] | None = None) -> int:
     p_help.add_argument("topic", nargs="?", help="markdown topic name")
     p_help.add_argument("--open", action="store_true", help="open help/index.html")
 
+    p_install = sub.add_parser("install", help="install a RIF plugin package")
+    p_install.add_argument("--package", required=True, help="GitHub URL or local plugin folder")
+
+    p_plugins = sub.add_parser("plugins", help="manage RIF plugins")
+    p_plugins.add_argument("-list", action="store_true", dest="list_plugins", help="list installed plugins")
+    p_plugins.add_argument("-delete", metavar="NAME", help="delete an installed plugin")
+    p_plugins.add_argument("-doc", metavar="NAME", help="open plugin documentation")
+    p_plugins.add_argument("-info", metavar="NAME", help="show plugin pack.json without purpose")
+    p_plugins.add_argument("-openp", metavar="NAME", help="open plugin purpose in rif purpose.txt")
+    
+    p_plugins_sub = p_plugins.add_subparsers(dest="plugins_cmd")
+    p_pl_load = p_plugins_sub.add_parser("load", help="load a local plugin folder")
+    p_pl_load.add_argument("path", help="path to the local plugin folder")
+
+    p_pl_init = p_plugins_sub.add_parser("init", help="initialize a new local plugin structure")
+    p_pl_init.add_argument("name", help="name of the new plugin")
+
+    p_pip = sub.add_parser("pip", help="run pip inside the current RIF Python environment")
+    p_pip.add_argument("pip_args", nargs=argparse.REMAINDER)
+
     p_plug = sub.add_parser("plug", help="install a plugin folder into RIF")
     p_plug.add_argument("path", help="path to the plugin folder to install")
 
@@ -90,10 +104,39 @@ def main(argv: list[str] | None = None) -> int:
     p_packs.add_argument("--plugin", required=True, help="name of the plugin to query")
 
     p_clear = sub.add_parser("clear", help="clear items")
-    p_clear.add_argument("item", choices=["cache"], help="what to clear")
+    p_clear.add_argument("item", choices=["cache", "table"], help="what to clear")
+    p_clear.add_argument("subitem", nargs="?", help="optional sub-item to clear (e.g. hashing for table)")
+    p_clear.add_argument("-p", "--plugin", help="plugin name to clear its specific cache")
 
     p_zip = sub.add_parser("zip", help="compress rif into a zip file ignoring __pycache__")
     p_zip.add_argument("-o", "--output", default="rif.zip", help="output zip file name")
+
+    p_table = sub.add_parser("table", help="programmatically modify RIF tables")
+    p_table.add_argument("--from", dest="from_path", help="path to pack file or directory")
+    p_table.add_argument("-p", "--plugin", help="plugin name")
+    p_table.add_argument("-use", "--use", help="pack name to use from plugin")
+    p_table.add_argument("--file", help="specific file name inside the directory")
+    p_table.add_argument("--section", help="target section (e.g. .regs)")
+    p_table.add_argument("--dry-run", action="store_true", help="simulate changes without writing")
+    p_table.add_argument("--no-backup", action="store_true", help="do not create a backup file")
+    p_table.add_argument("--case-sensitive", action="store_true", help="enable case-sensitive matching")
+
+    p_table_sub = p_table.add_subparsers(dest="table_cmd", required=True)
+
+    p_t_modify = p_table_sub.add_parser("modify", help="modify a table row, column, cell or table")
+    p_t_modify.add_argument("operation", help='operation string like "regs add row ax 000 16"')
+
+    p_t_format = p_table_sub.add_parser("format", help="format tables in RIF pack files")
+    p_t_format.add_argument("--table", help="restrict formatting to a specific table name")
+
+    p_t_undo = p_table_sub.add_parser("undo", help="undo the last table modification")
+    p_t_undo.add_argument("hash", nargs="?", help="optional hash to restore a specific state")
+
+    p_t_redo = p_table_sub.add_parser("redo", help="redo the last undone table modification")
+    p_t_redo.add_argument("hash", nargs="?", help="optional hash to redo a specific state")
+
+    p_t_hashing = p_table_sub.add_parser("hashing-table", help="view history with hashes")
+    p_t_hashing.add_argument("--open", action="store_true", help="open history log file")
 
     args = parser.parse_args(raw_args)
 
@@ -101,39 +144,31 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "help":
             return _run_help(args.topic, args.open)
 
+        if args.cmd == "install":
+            from .plugin_security import install_plugin_package
+            dest = install_plugin_package(args.package, _rif_plugins_dir())
+            print(f"plugin instalado: {dest}")
+            return 0
+
+        if args.cmd == "plugins":
+            return _run_plugins_command(args)
+
+        if args.cmd == "pip":
+            if not args.pip_args:
+                raise RIFError("usa: rif pip install package")
+            import subprocess
+            result = subprocess.run([sys.executable, "-m", "pip", *args.pip_args], check=False)
+            return int(result.returncode)
+
         if args.cmd == "list":
             if args.item == "plugins":
-                from rif.parser import _plugin_roots
-                roots = _plugin_roots(Path.cwd())
-                print("Installed plugins:")
-                count = 0
-                for root in roots:
-                    if root.exists():
-                        for item in root.iterdir():
-                            if item.is_dir() and item.name != "__pycache__":
-                                print(f"  - {item.name}")
-                                count += 1
-                if count == 0:
-                    print("  (no plugins installed)")
+                _print_plugins()
             return 0
 
         if args.cmd == "plug":
-            src = Path(args.path)
-            if not src.exists() or not src.is_dir():
-                raise RIFError(f"ruta de plugin no válida o no es un directorio: {src}")
-            plugin_name = src.name
-            
-            import rif
-            plugins_dir = Path(rif.__file__).parent / "plugins"
-            plugins_dir.mkdir(parents=True, exist_ok=True)
-            
-            dest = plugins_dir / plugin_name
-            if dest.exists():
-                raise RIFError(f"plugin '{plugin_name}' ya existe en {dest}")
-                
-            import shutil
-            shutil.copytree(src, dest)
-            print(f"plugin '{plugin_name}' instalado exitosamente en RIF.")
+            from .plugin_security import install_plugin_folder
+            dest = install_plugin_folder(Path(args.path), _rif_plugins_dir())
+            print(f"plugin instalado: {dest}")
             return 0
 
         if args.cmd == "packs":
@@ -160,16 +195,44 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.cmd == "clear":
+            if args.item == "table":
+                if args.subitem == "hashing":
+                    from .table_modify import clear_table_hashing
+                    clear_table_hashing()
+                    return 0
+                else:
+                    print("Error: sub-item no soportado para clear table. Usa 'hashing'.", file=sys.stderr)
+                    return 1
+
             if args.item == "cache":
                 import shutil
                 import rif as _rif
                 rif_dir = Path(_rif.__file__).parent
                 count = 0
-                for p in rif_dir.rglob("__pycache__"):
-                    if p.is_dir():
-                        shutil.rmtree(p)
+                if getattr(args, "plugin", None):
+                    plugin_dir = rif_dir / "plugins" / args.plugin
+                    if not plugin_dir.exists():
+                        print(f"Error: el plugin '{args.plugin}' no existe")
+                        return 1
+                    cache_dir = plugin_dir / ".cache"
+                    if cache_dir.exists() and cache_dir.is_dir():
+                        shutil.rmtree(cache_dir)
                         count += 1
-                print(f"Borrados {count} directorios __pycache__ de {rif_dir}")
+                        print(f"Borrado directorio de cache .cache de {plugin_dir.name}")
+                    for p in plugin_dir.rglob("__pycache__"):
+                        if p.is_dir():
+                            shutil.rmtree(p)
+                            count += 1
+                    if count == 0:
+                        print(f"no habia cache para limpiar en el plugin '{args.plugin}'")
+                    else:
+                        print(f"limpieza del plugin '{args.plugin}' completada")
+                else:
+                    for p in rif_dir.rglob("__pycache__"):
+                        if p.is_dir():
+                            shutil.rmtree(p)
+                            count += 1
+                    print(f"Borrados {count} directorios __pycache__ de {rif_dir}")
             return 0
 
         if args.cmd == "zip":
@@ -177,14 +240,14 @@ def main(argv: list[str] | None = None) -> int:
             import rif as _rif
             rif_dir = Path(_rif.__file__).parent
             output_zip = Path(args.output).resolve()
-            
+
             count = 0
             with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for file_path in rif_dir.rglob("*"):
                     if "__pycache__" in file_path.parts:
                         continue
                     if file_path.is_file():
-                        # Preserve relative path inside the zip, starting with 'rif/'
+
                         arcname = file_path.relative_to(rif_dir.parent)
                         zf.write(file_path, arcname)
                         count += 1
@@ -304,7 +367,7 @@ def main(argv: list[str] | None = None) -> int:
             source_path = Path(args.source)
             if source_path.is_dir() and source_text:
                 raise PackError("build de carpeta no acepta --source-text ni --source-file")
-            
+
             use_packs_path = args.use
             if args.plugin and args.name:
                 import rif as _rif
@@ -336,11 +399,215 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"placeholder={placeholder.name}:{placeholder.kind}:{placeholder.reason or ''}")
             return 0
 
+        if args.cmd == "table":
+            from .table_modify import modify_table, format_tables, undo_table, redo_table, show_hashing_table
+
+            backup = not args.no_backup
+
+            if args.table_cmd == "modify":
+                res = modify_table(
+                    source=args.from_path,
+                    plugin=args.plugin,
+                    use=args.use,
+                    file_name=args.file,
+                    section=args.section,
+                    operation_text=args.operation,
+                    dry_run=args.dry_run,
+                    backup=backup,
+                    case_sensitive=args.case_sensitive,
+                )
+                print(res.summary)
+                if res.preview:
+                    print("Preview of changes:")
+                    print(res.preview)
+                return 0
+
+            elif args.table_cmd == "format":
+                results = format_tables(
+                    source=args.from_path,
+                    plugin=args.plugin,
+                    use=args.use,
+                    file_name=args.file,
+                    table=args.table,
+                    dry_run=args.dry_run,
+                    backup=backup,
+                    case_sensitive=args.case_sensitive,
+                )
+                for res in results:
+                    print(res.summary)
+                    if res.preview:
+                        print(f"Format preview for {res.path}:")
+                        print(res.preview)
+                return 0
+
+            elif args.table_cmd == "undo":
+                res = undo_table(hash_str=args.hash)
+                print(res.summary)
+                if res.preview:
+                    print("Restored state preview:")
+                    print(res.preview)
+                return 0
+
+            elif args.table_cmd == "redo":
+                res = redo_table(hash_str=args.hash)
+                print(res.summary)
+                if res.preview:
+                    print("Reapplied state preview:")
+                    print(res.preview)
+                return 0
+
+            elif args.table_cmd == "hashing-table":
+                return show_hashing_table(open_file=args.open)
+
     except RIFError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
     return 2
+
+
+def _run_plugins_command(args: argparse.Namespace) -> int:
+    if getattr(args, "plugins_cmd", None) == "load":
+        src = Path(args.path)
+        if not src.exists() or not src.is_dir():
+            raise RIFError(f"ruta de plugin no valida o no es un directorio: {src}")
+            
+        from .plugin_security import load_manifest, validate_plugin_root, install_plugin_folder
+        
+        # 1. Cargar y validar manifiesto
+        manifest = load_manifest(src)
+        
+        # 2. Realizar verificación del sandbox de seguridad
+        validate_plugin_root(src)
+        
+        # 3. Comprobar si el plugin ya existe
+        dest = _rif_plugins_dir() / manifest.name
+        if dest.exists():
+            ans = input(
+                f"Este plugin ya existe, ¿Seguro que quieres reemplazar? "
+                f"Reemplazarlo podría romper proyectos que usen este plugin. (s/n): "
+            ).strip().lower()
+            if ans not in {"s", "y", "si", "yes"}:
+                print("Carga de plugin cancelada.")
+                return 0
+            # Si se confirma, eliminar el anterior de forma segura
+            import shutil
+            shutil.rmtree(dest)
+            
+        # 4. Copiar e instalar el nuevo plugin
+        install_plugin_folder(src, _rif_plugins_dir())
+        print(f"plugin '{manifest.name}' cargado e instalado exitosamente en: {dest}")
+        return 0
+
+    if getattr(args, "plugins_cmd", None) == "init":
+        import json
+        name = args.name
+        dest = Path.cwd() / name
+        if dest.exists():
+            raise RIFError(f"el directorio '{name}' ya existe en el directorio actual")
+        dest.mkdir(parents=True)
+        purpose = (
+            "Este es un plugin generado por 'rif plugins init'. Se ha creado con el fin de proporcionar un "
+            "punto de partida rapido para desarrollar nuevas funcionalidades, compiladores, componentes CLI y "
+            "extensiones para el ecosistema Retargetable ISA Foundry (RIF). El proposito debe tener mas de doscientos "
+            "caracteres para superar las validaciones de seguridad del entorno local y cumplir con las normas de sandboxing. "
+            "¡Disfruta codificando!"
+        )
+        (dest / "pack.json").write_text(json.dumps({
+            "name": name,
+            "version": "0.1.0",
+            "author": "Your Name",
+            "purpose": purpose
+        }, indent=4), encoding="utf-8")
+        (dest / "fillables.py").write_text("# Registra tus fillables aqui\n", encoding="utf-8")
+        (dest / "compiler.py").write_text("# Implementa logica del compilador aqui\n", encoding="utf-8")
+        (dest / "cli.py").write_text("# Implementa comandos CLI aqui\n", encoding="utf-8")
+        tests_dir = dest / "tests"
+        tests_dir.mkdir()
+        (tests_dir / f"test_{name}.py").write_text(f"def test_{name}():\n    assert True\n", encoding="utf-8")
+        print(f"Estructura del plugin '{name}' creada exitosamente en: {dest}")
+        return 0
+
+    selected = [bool(args.list_plugins), args.delete is not None, args.doc is not None, args.info is not None, args.openp is not None]
+    if sum(1 for item in selected if item) != 1:
+        raise RIFError("usa una accion: rif plugins -list|-delete name|-doc name|-info name|-openp name")
+
+    if args.list_plugins:
+        _print_plugins()
+        return 0
+
+    if args.delete:
+        import shutil
+        root = _find_plugin_dir(args.delete)
+        shutil.rmtree(root)
+        print(f"plugin eliminado: {root}")
+        return 0
+
+    if args.doc:
+        _find_plugin_dir(args.doc)
+        return _run_help(f"plugin_{args.doc}", True)
+
+    from .plugin_security import load_manifest, open_text_file, write_global_purpose
+
+    name = args.info or args.openp
+    root = _find_plugin_dir(name)
+    manifest = load_manifest(root)
+
+    if args.info:
+        import json
+        print(json.dumps(manifest.public_info, indent=2, ensure_ascii=False))
+        print(f'purpose: usa "rif plugins -openp {manifest.name}" para abrirlo')
+        return 0
+
+    purpose_path = write_global_purpose(manifest)
+    open_text_file(purpose_path)
+    print(f"purpose escrito en: {purpose_path}")
+    return 0
+
+
+def _print_plugins() -> None:
+    from .plugin_security import load_manifest
+
+    print("Installed plugins:")
+    count = 0
+    for root in _plugin_dirs():
+        try:
+            manifest = load_manifest(root)
+            print(f"  - {manifest.name} {manifest.version}")
+        except RIFError as exc:
+            print(f"  - {root.name} (invalido: {exc})")
+        count += 1
+    if count == 0:
+        print("  (no plugins installed)")
+
+
+def _plugin_dirs() -> list[Path]:
+    from .parser import _plugin_roots
+
+    out: list[Path] = []
+    for root in _plugin_roots(Path.cwd()):
+        if not root.exists():
+            continue
+        for item in sorted(root.iterdir()):
+            if item.is_dir() and item.name != "__pycache__" and item not in out:
+                out.append(item)
+    return out
+
+
+def _find_plugin_dir(name: str) -> Path:
+    text = str(name).strip()
+    if not text or any(sep in text for sep in ("/", "\\")) or text in {".", ".."}:
+        raise RIFError(f"nombre de plugin inseguro: {name}")
+    for root in _plugin_dirs():
+        if root.name == text:
+            return root
+    raise RIFError(f"plugin no encontrado: {name}")
+
+
+def _rif_plugins_dir() -> Path:
+    import rif
+
+    return Path(rif.__file__).parent / "plugins"
 
 
 def _run_plugin_cli(args: list[str]) -> int:
@@ -420,7 +687,7 @@ def _help_topics() -> dict[str, Path]:
     topics = {}
     if root.exists():
         topics.update({path.stem: path for path in sorted((root / "resources").rglob("*.md"))})
-    
+
     from .parser import _plugin_roots
     plugin_roots = _plugin_roots(Path.cwd())
     for pr in plugin_roots:
@@ -429,9 +696,9 @@ def _help_topics() -> dict[str, Path]:
             if item.is_dir() and item.name != "__pycache__":
                 mds = list(item.glob("*.md"))
                 if mds:
-                    # Usamos el nombre de la carpeta
+
                     topics[f"plugin_{item.name}"] = mds[0]
-                    topics[item.name] = mds[0] # Para acceso rápido via cli
+                    topics[item.name] = mds[0] 
     return topics
 
 def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
@@ -440,10 +707,10 @@ def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
     if not index.exists():
         return index
     html = index.read_text(encoding="utf-8")
-    
+
     menu_html = '<div class="menu-group" data-category="paquetes">\n<div class="menu-category">Paquetes Instalados</div>\n<ul>\n'
     docs_json = []
-    
+
     plugin_keys = [k for k in topics.keys() if k.startswith("plugin_")]
     if not plugin_keys:
         menu_html += '<li><span class="menu-link" style="opacity:0.5; cursor:default; padding-left:20px;">Ninguno</span></li>\n'
@@ -459,26 +726,26 @@ def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
               </a>
             </li>\n'''
             docs_json.append(f'      "{k}": {json.dumps(content)}')
-            
+
     menu_html += '</ul>\n</div>'
-    
+
     import re
     html = re.sub(
         r'<!-- DYNAMIC_PLUGINS_MENU_START -->.*?<!-- DYNAMIC_PLUGINS_MENU_END -->',
         lambda m: f'<!-- DYNAMIC_PLUGINS_MENU_START -->\n{menu_html}\n<!-- DYNAMIC_PLUGINS_MENU_END -->',
         html, flags=re.DOTALL
     )
-    
+
     docs_str = ",\n".join(docs_json)
     if docs_str:
         docs_str = ",\n" + docs_str
-        
+
     html = re.sub(
         r'// DYNAMIC_PLUGINS_DOCS_START.*?// DYNAMIC_PLUGINS_DOCS_END',
         lambda m: f'// DYNAMIC_PLUGINS_DOCS_START\n{docs_str}\n// DYNAMIC_PLUGINS_DOCS_END',
         html, flags=re.DOTALL
     )
-    
+
     try:
         index.write_text(html, encoding="utf-8")
         return index
@@ -645,19 +912,19 @@ def _run_help(topic: str | None, open_index: bool) -> int:
     root = _help_root()
     index = root / "index.html"
     topics = _help_topics()
-    
+
     resolved_index = _inject_dynamic_help(index, topics)
 
-    # Si no hay un topic específico, o si el usuario puso explícitamente --open, abrimos el navegador
+
     if open_index or not topic:
         import webbrowser
-        # Convertir a cadena absoluta para mayor compatibilidad con Windows en vez de as_uri() si as_uri() falla
+
         path_str = str(resolved_index.resolve())
         webbrowser.open(f"file:///{path_str.replace(chr(92), '/')}")
         print(f"Abriendo documentación en: {resolved_index}")
-        if topic:  # Si pidieron un topic Y --open
+        if topic:  
             return 0
-        # Si no pidieron topic, imprimimos los topics además
+
         _print_help_topics(topics)
         return 0
 

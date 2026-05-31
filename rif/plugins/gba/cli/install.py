@@ -17,7 +17,7 @@ def main(args) -> int:
         path = find_emulator(emulator) or ""
 
     save_config({"emulator": emulator, "path": path})
-    
+
     if path:
         print(f"{emulator} registrado: {path}")
         if requested_path:

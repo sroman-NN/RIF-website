@@ -1,44 +1,3 @@
-comment ;
-
-; ============================================================
-; GBA — Reglas de compilación: macros de ROM + instrucciones Thumb
-; Fragmento enlazado en: .rules
-; ============================================================
-; Las instrucciones Thumb son de 16 bits, little endian (ARM7TDMI).
-; Formato general: se emite el BYTE BAJO primero, luego el BYTE ALTO.
-;
-; Referencias al manual ARM7TDMI-S (DDI 0029G):
-;   Sección 5 — Formato de instrucciones THUMB
-;   5.1  Format 1:  Move shifted register (LSL/LSR/ASR)
-;   5.2  Format 2:  Add/subtract  (ADD/SUB 3 regs)
-;   5.3  Format 3:  Move/compare/add/subtract immediate  (STORE/CMP/etc.)
-;   5.4  Format 4:  ALU operations  (AND/OR/XOR/NEG/MUL/etc.)
-;   5.6  Format 6:  PC-relative load
-;   5.7  Format 7:  Load/store with register offset
-;   5.11 Format 11: SP-relative load/store
-;   5.12 Format 12: Load address
-;   5.13 Format 13: Add offset to SP
-;   5.14 Format 14: Push/pop (PUSH/POP)
-;   5.18 Format 18: Unconditional branch  (JUMP/B)
-;   5.17 Format 17: Software interrupt
-;   5.16 Format 16: Conditional branch  (BEQ/BNE/BLT/etc.)
-;   5.19 Format 19: Long branch with link (BL / CALL)
-;
-; NOTA SOBRE cbits:
-;   emit cbits A B ... concatena los fragmentos binarios A, B... en un solo byte (8 bits).
-;   Los campos de 3 bits (Rd, Rs, Rn) vienen de reg.code en la tabla .regs.
-;   Los campos fijos se escriben literalmente como cadenas de 0/1.
-;
-; NOTA SOBRE little endian:
-;   Toda instrucción de 16 bits → primero emit del byte [7:0], luego del byte [15:8].
-; ============================================================
-
-.rules
-
-; ============================================================
-; MACROS DE ROM — Delegadas al plugin gba
-; ============================================================
-
 set_headers:
     gba_headers
 
@@ -46,7 +5,7 @@ set_logo:
     gba_logo
 
 set_checksum:
-    gba_checksum "Hola mundo"
+    gba_checksum
 
 set_entry:
     gba_entry
@@ -55,98 +14,7 @@ set_entry_thumb:
     gba_entry_thumb
 
 set_frame:
-    gba_frame "Hola mundo", green, black
-
-press_start_frame:
-    gba_frame "PRESS START", black, green
-
-game_code:
-    emit 00000100
-    emit 00100001
-    emit 00001001
-    emit 00000110
-    emit 00000100
-    emit 00100010
-    emit 00010010
-    emit 00000010
-    emit 00000011
-    emit 00100011
-    emit 00011010
-    emit 01000011
-    emit 00000000
-    emit 00100100
-    emit 00001010
-    emit 01010011
-    emit 00001000
-    emit 00100001
-    emit 00001001
-    emit 00000110
-    emit 11100000
-    emit 00100010
-    emit 10001001
-    emit 00011000
-    emit 00000110
-    emit 00100010
-    emit 00010010
-    emit 00000110
-    emit 10000000
-    emit 00100011
-    emit 00011011
-    emit 00000110
-    emit 10010110
-    emit 00100100
-    emit 00100100
-    emit 00000010
-    emit 00011011
-    emit 00011001
-    emit 00000100
-    emit 00100101
-    emit 00101101
-    emit 00000110
-    emit 11010000
-    emit 00100100
-    emit 00101101
-    emit 00011001
-    emit 00000001
-    emit 00100100
-    emit 00101001
-    emit 01010001
-    emit 00000010
-    emit 00100100
-    emit 00101010
-    emit 01010001
-    emit 00000011
-    emit 00100100
-    emit 00101011
-    emit 01010001
-    emit 00000100
-    emit 00100101
-    emit 00101101
-    emit 00000110
-    emit 00000001
-    emit 00100100
-    emit 00100100
-    emit 00000010
-    emit 00110000
-    emit 00100011
-    emit 11100100
-    emit 00011000
-    emit 00101101
-    emit 00011001
-    emit 00000000
-    emit 00100100
-    emit 00101000
-    emit 01011011
-    emit 00001000
-    emit 00100001
-    emit 00001000
-    emit 01000000
-    emit 10001000
-    emit 01000010
-    emit 11111010
-    emit 11010000
-    emit 11111110
-    emit 11100111
+    gba_frame
 
 set_rompad:
     gba_rompad
@@ -154,546 +22,757 @@ set_rompad:
 rompad:
     gba_rompad
 
-
-; ============================================================
-; DATOS DIRECTOS — db/dh/dw (define byte/halfword/word)
-; ============================================================
-
-; db VALUE  — emite un byte u8 (8 bits)
 db:
     need VALUE, imm
-    emit imm.binary
+    zext out, imm.binary, 8
+    emit out
 
-; dh VALUE  — emite un halfword u16 en little endian (2 bytes)
+u8:
+    need VALUE, imm
+    zext out, imm.binary, 8
+    emit out
+
 dh:
     need VALUE, imm
-    emit cbits imm.binary        ; byte bajo  [7:0]
-    emit cbits imm.binary        ; byte alto  [15:8]  (el compilador desplazará automáticamente)
+    thumb_ins dh, imm
 
-; dw VALUE  — emite un word u32 en little endian (4 bytes)
+u16:
+    need VALUE, imm
+    thumb_ins u16, imm
+
 dw:
     need VALUE, imm
-    emit cbits imm.binary        ; byte 0  [7:0]
-    emit cbits imm.binary        ; byte 1  [15:8]
-    emit cbits imm.binary        ; byte 2  [23:16]
-    emit cbits imm.binary        ; byte 3  [31:24]
+    thumb_ins dw, imm
 
-; bitmap_text "texto"  — convierte cadena ASCII a bytes bitmap 5x7 y los emite
-bitmap_text:
-    need VALUE, text
-    bitmap text.value
+u32:
+    need VALUE, imm
+    thumb_ins u32, imm
 
+byte:
+    need VALUE, imm
+    thumb_ins u8, imm
 
-; ============================================================
-; INSTRUCCIÓN: store — Carga inmediato en registro
-; ============================================================
-; Manual Sección 5.3 — Format 3: Move/compare/add/subtract immediate
-; Opcode: 001_00_Rd_imm8
-; Bit[15:13] = 001   (Format 3 identifier)
-; Bit[12:11] = 00    (MOV operation: Op=00)
-; Bit[10:8]  = Rd    (destination register, 3 bits)
-; Bit[7:0]   = imm8  (8-bit unsigned immediate)
-;
-; 16 bits: 001_00_Rd[2:0]_imm8[7:0]
-; Byte bajo  [7:0]  = imm8
-; Byte alto  [15:8] = 00100_Rd[2:0]
-;
-; Sintaxis: store R0 = 42
-; ============================================================
+half:
+    need VALUE, imm
+    thumb_ins u16, imm
+
+halfword:
+    need VALUE, imm
+    thumb_ins u16, imm
+
+word:
+    need VALUE, imm
+    thumb_ins u32, imm
+
+imm:
+    need REG, rd
+    need =
+    need VALUE, imm
+    thumb_ins store, rd, imm
+
 store:
     need REG, rd
+    need =
     need VALUE, imm
-    thumb_ins "store", rd.value, imm.value
+    thumb_ins store, rd, imm
 
+mov_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins mov_imm, rd, imm
 
-; ============================================================
-; INSTRUCCIÓN: move — Copia de registro a registro
-; ============================================================
-; Manual Sección 5.2 — Format 2: Add/subtract
-; Opcode: 0001_110_000_Rs_Rd  (ADD Rd, Rs, #0)
-; Bit[15:11] = 00011  (Format 2)
-; Bit[10:9]  = 10     (I=1, Op=0 → immediate ADD)
-; Bit[8:6]   = 000    (Rn/offset3 = 0)
-; Bit[5:3]   = Rs     (source register)
-; Bit[2:0]   = Rd     (destination register)
-;
-; 16 bits: 00011_10_000_Rs_Rd
-; Byte bajo  [7:0]  = 0_Rs[2:0]_Rd[2:0]   → 0 + 3 bits Rs + 3 bits Rd
-; Byte alto  [15:8] = 00011100
-;
-; Sintaxis: move R0, R1
-; ============================================================
+cmp_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins cmp_imm, rd, imm
+
+add_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins add_imm, rd, imm
+
+sub_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins sub_imm, rd, imm
+
 move:
     need REG, rd
     need REG, rs
-    emit cbits 0 rs.code rd.code ; byte bajo [7:0]
-    emit 00011100                ; byte alto [15:8] fijo
+    thumb_ins move, rd, rs
 
+mov:
+    need REG, rd
+    need REG, rs
+    thumb_ins mov, rd, rs
 
-; ============================================================
-; INSTRUCCIÓN: add — Suma tres registros
-; ============================================================
-; Manual Sección 5.2 — Format 2: Add/subtract
-; Opcode: 0001_100_Rn_Rs_Rd
-; Bit[15:11] = 00011  (Format 2)
-; Bit[10:9]  = 00     (I=0, Op=0 → register ADD)
-; Bit[8:6]   = Rn     (second source)
-; Bit[5:3]   = Rs     (first source)
-; Bit[2:0]   = Rd     (destination)
-;
-; 16 bits: 00011_00_Rn[2:0]_Rs[2:0]_Rd[2:0]
-; La secuencia de 16 bits: 0 0 0 1 1 0 0 | Rn[2] Rn[1] | Rn[0] Rs[2] Rs[1] Rs[0] Rd[2] Rd[1] Rd[0]
-; Byte alto [15:8] = 0001_1_0_0_Rn[2]       = 00011 00 Rn[2]
-; Byte bajo [7:0]  = Rn[1:0] Rs[2:0] Rd[2:0]
-;
-; RIF: los 3 bits de Rn, Rs, Rd se concatenan mediante cbits en dos emits de 8 bits:
-; Sintaxis: add R0, R1, R2
-; ============================================================
 add:
     need REG, rd
     need REG, rs
     need REG, rn
-    thumb_ins "add", rd.value, rs.value, rn.value
+    thumb_ins add, rd, rs, rn
 
-
-; ============================================================
-; INSTRUCCIÓN: sub — Resta tres registros
-; ============================================================
-; Manual Sección 5.2 — Format 2: Add/subtract
-; Idéntico a add pero Op=1:
-; Bit[9] = Op = 1  → 0001_1_0_1_Rn_Rs_Rd
-; Byte alto [15:8] = 00011 01 Rn[2]
-; Byte bajo [7:0]  = Rn[1:0] Rs[2:0] Rd[2:0]
-;
-; Sintaxis: sub R0, R1, R2
-; ============================================================
 sub:
     need REG, rd
     need REG, rs
     need REG, rn
-    emit cbits rn.code rs.code rd.code ; byte bajo
-    emit cbits 0001101                 ; byte alto — opcode sub
+    thumb_ins sub, rd, rs, rn
 
+add3_imm:
+    need REG, rd
+    need REG, rs
+    need VALUE, imm
+    thumb_ins add3_imm, rd, rs, imm
 
-; ============================================================
-; INSTRUCCIÓN: and — AND lógico bit a bit
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_0000_Rs_Rd  (AND)
-; Bit[15:10] = 010000  (Format 4)
-; Bit[9:6]   = 0000    (AND operation)
-; Bit[5:3]   = Rs
-; Bit[2:0]   = Rd
-;
-; 16 bits: 010000_0000_Rs[2:0]_Rd[2:0]
-; Byte bajo  [7:0]  = 00_Rs[2:0]_Rd[2:0]
-; Byte alto  [15:8] = 01000000
-;
-; Sintaxis: and R0, R1
-; ============================================================
+sub3_imm:
+    need REG, rd
+    need REG, rs
+    need VALUE, imm
+    thumb_ins sub3_imm, rd, rs, imm
+
+add_hi:
+    need REG, rd
+    need REG, rs
+    thumb_ins add_hi, rd, rs
+
+cmp_hi:
+    need REG, rd
+    need REG, rs
+    thumb_ins cmp_hi, rd, rs
+
 and:
     need REG, rd
     need REG, rs
-    thumb_ins "and", rd.value, rs.value
+    thumb_ins and, rd, rs
 
-
-; ============================================================
-; INSTRUCCIÓN: or — OR lógico bit a bit (ORR)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_1100_Rs_Rd  (ORR)
-; Byte bajo  [7:0]  = 00_Rs[2:0]_Rd[2:0]
-; Byte alto  [15:8] = 01000011
-;
-; Sintaxis: or R0, R1
-; ============================================================
-or:
-    need REG, rd
-    need REG, rs
-    thumb_ins "or", rd.value, rs.value
-
-
-; ============================================================
-; INSTRUCCIÓN: xor — XOR lógico bit a bit (EOR)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_0001_Rs_Rd  (EOR)
-; Byte alto [15:8] = 01000000
-; Byte bajo  [7:0] = 01_Rs[2:0]_Rd[2:0]   (ALU op EOR = 0001, bits [7:6]=01)
-;
-; Sintaxis: xor R0, R1
-; ============================================================
 xor:
     need REG, rd
     need REG, rs
-    emit cbits 01 rs.code rd.code  ; byte bajo  (ALU op EOR campo)
-    emit 01000000                  ; byte alto fijo
+    thumb_ins xor, rd, rs
 
-
-; ============================================================
-; INSTRUCCIÓN: not — NOT lógico (MVN)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_1111_Rs_Rd  (MVN)
-; Byte alto [15:8] = 01000011
-; Byte bajo  [7:0] = 11_Rs[2:0]_Rd[2:0]   (MVN = 1111, bits [7:6]=11)
-;
-; Sintaxis: not R0, R1
-; ============================================================
-not:
+eor:
     need REG, rd
     need REG, rs
-    emit cbits 11 rs.code rd.code  ; byte bajo
-    emit 01000011                  ; byte alto fijo (MVN campo alto)
+    thumb_ins eor, rd, rs
 
-
-; ============================================================
-; INSTRUCCIÓN: neg — Negación (NEG / RSB Rd, Rs, #0)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_1001_Rs_Rd  (NEG)
-; Byte alto [15:8] = 01000010
-; Byte bajo  [7:0] = 01_Rs[2:0]_Rd[2:0]   (NEG = 1001, bits [7:6] de op)
-;
-; Sintaxis: neg R0, R1
-; ============================================================
-neg:
-    need REG, rd
-    need REG, rs
-    emit cbits 01 rs.code rd.code  ; byte bajo
-    emit 01000010                  ; byte alto (NEG)
-
-
-; ============================================================
-; INSTRUCCIÓN: mul — Multiplicación (MUL Rd, Rs)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_1101_Rs_Rd  (MUL)
-; Byte bajo  [7:0]  = 01_Rs[2:0]_Rd[2:0]   (MUL = 1101, bits altos del campo op)
-; Byte alto  [15:8] = 01000011  (coincide con ORR en byte alto, op campo diferencia)
-;
-; Sintaxis: mul R0, R1
-; ============================================================
-mul:
-    need REG, rd
-    need REG, rs
-    emit cbits 01 rs.code rd.code  ; byte bajo
-    emit 01000011                  ; byte alto (MUL)
-
-
-; ============================================================
-; INSTRUCCIÓN: cmp — Compara registros (CMP Rd, Rs)
-; ============================================================
-; Manual Sección 5.4 — Format 4: ALU operations
-; Opcode: 010000_1010_Rs_Rd  (CMP)
-; Byte bajo  [7:0]  = 10_Rs[2:0]_Rd[2:0]   (CMP = 1010)
-; Byte alto  [15:8] = 01000010
-;
-; Sintaxis: cmp R0, R1
-; ============================================================
-cmp:
-    need REG, rd
-    need REG, rs
-    emit cbits 10 rs.code rd.code  ; byte bajo
-    emit 01000010                  ; byte alto
-
-
-; ============================================================
-; INSTRUCCIÓN: lsl — Desplazamiento lógico izquierda inmediato
-; ============================================================
-; Manual Sección 5.1 — Format 1: Move shifted register
-; Opcode: 00000_imm5_Rs_Rd  (LSL)
-; Bit[15:11] = 00000  (LSL, Op=00)
-; Bit[10:6]  = imm5   (shift amount 0-31)
-; Bit[5:3]   = Rs
-; Bit[2:0]   = Rd
-;
-; 16 bits: 000_00_imm5[4:0]_Rs[2:0]_Rd[2:0]
-; Byte bajo  [7:0]  = Rs[2:0]_Rd[2:0]  + bit0 de imm5 → se incluye en cbits
-; Byte alto  [15:8] = 000_00_imm5[4:1]
-;
-; Sintaxis: lsl R0, R1, 3
-; ============================================================
 lsl:
     need REG, rd
     need REG, rs
     need VALUE, imm
-    lsl_pack rd.value, rs.value, imm.value
+    thumb_ins lsl, rd, rs, imm
 
-
-; ============================================================
-; INSTRUCCIÓN: lsr — Desplazamiento lógico derecha inmediato
-; ============================================================
-; Manual Sección 5.1 — Format 1: Move shifted register
-; Opcode: 00001_imm5_Rs_Rd  (LSR)
-; Op=01 en bits[12:11]
-;
-; Sintaxis: lsr R0, R1, 3
-; ============================================================
 lsr:
     need REG, rd
     need REG, rs
     need VALUE, imm
-    emit cbits rs.code rd.code     ; byte bajo
-    emit cbits 00001 imm.binary    ; byte alto — opcode LSR + imm5
+    thumb_ins lsr, rd, rs, imm
 
-
-; ============================================================
-; INSTRUCCIÓN: asr — Desplazamiento aritmético derecha inmediato
-; ============================================================
-; Manual Sección 5.1 — Format 1: Move shifted register
-; Opcode: 00010_imm5_Rs_Rd  (ASR)
-; Op=10 en bits[12:11]
-;
-; Sintaxis: asr R0, R1, 3
-; ============================================================
 asr:
     need REG, rd
     need REG, rs
     need VALUE, imm
-    emit cbits rs.code rd.code     ; byte bajo
-    emit cbits 00010 imm.binary    ; byte alto — opcode ASR + imm5
+    thumb_ins asr, rd, rs, imm
 
-
-; ============================================================
-; INSTRUCCIÓN: ldr — Carga 32 bits con offset de registro
-; ============================================================
-; Manual Sección 5.7 — Format 7: Load/store with register offset
-; Opcode: 0101_100_Ro_Rb_Rd  (LDR — load word)
-; Bit[15:12] = 0101  (Format 7)
-; Bit[11]    = L=1   (load)
-; Bit[10]    = B=0   (word, no byte)
-; Bit[9]     = 0
-; Bit[8:6]   = Ro    (offset register)
-; Bit[5:3]   = Rb    (base register)
-; Bit[2:0]   = Rd    (destination)
-;
-; 16 bits: 0101_1_0_0_Ro[2:0]_Rb[2:0]_Rd[2:0]
-; Byte bajo  [7:0]  = Ro[0]_Rb[2:0]_Rd[2:0]  (el bit LSB de Ro va en byte bajo)
-; Byte alto  [15:8] = 0101_1_0_0_Ro[2:1]
-;
-; Sintaxis: ldr R0, R1, R2  (R0 = mem[R1 + R2])
-; ============================================================
-ldr:
+adc:
     need REG, rd
-    need REG, rb
-    need REG, ro
-    emit cbits ro.code rb.code rd.code   ; byte bajo (9 bits → los 8 bajos)
-    emit cbits 0101100                   ; byte alto — opcode LDR
+    need REG, rs
+    thumb_ins adc, rd, rs
 
-
-; ============================================================
-; INSTRUCCIÓN: ldrb — Carga 8 bits con offset de registro
-; ============================================================
-; Manual Sección 5.7 — Format 7: Load/store with register offset
-; Opcode: 0101_110_Ro_Rb_Rd  (LDRB)  L=1, B=1
-;
-; Sintaxis: ldrb R0, R1, R2
-; ============================================================
-ldrb:
+sbc:
     need REG, rd
-    need REG, rb
-    need REG, ro
-    emit cbits ro.code rb.code rd.code   ; byte bajo
-    emit cbits 0101110                   ; byte alto — opcode LDRB
+    need REG, rs
+    thumb_ins sbc, rd, rs
 
-
-; ============================================================
-; INSTRUCCIÓN: ldrh — Carga 16 bits con offset de registro
-; ============================================================
-; Manual Sección 5.8 — Format 8: Load/store sign-extended
-; Opcode: 0101_101_Ro_Rb_Rd  (LDRH)
-;
-; Sintaxis: ldrh R0, R1, R2
-; ============================================================
-ldrh:
+ror:
     need REG, rd
-    need REG, rb
-    need REG, ro
-    thumb_ins "ldrh", rd.value, rb.value, ro.value
+    need REG, rs
+    thumb_ins ror, rd, rs
 
+tst:
+    need REG, rd
+    need REG, rs
+    thumb_ins tst, rd, rs
 
-; ============================================================
-; INSTRUCCIÓN: str — Guarda 32 bits con offset de registro
-; ============================================================
-; Manual Sección 5.7 — Format 7: Load/store with register offset
-; Opcode: 0101_000_Ro_Rb_Rd  (STR)  L=0, B=0
-;
-; Sintaxis: str R0, R1, R2  (mem[R1 + R2] = R0)
-; ============================================================
+neg:
+    need REG, rd
+    need REG, rs
+    thumb_ins neg, rd, rs
+
+cmp:
+    need REG, rd
+    need REG, rs
+    thumb_ins cmp, rd, rs
+
+cmn:
+    need REG, rd
+    need REG, rs
+    thumb_ins cmn, rd, rs
+
+or:
+    need REG, rd
+    need REG, rs
+    thumb_ins or, rd, rs
+
+orr:
+    need REG, rd
+    need REG, rs
+    thumb_ins orr, rd, rs
+
+mul:
+    need REG, rd
+    need REG, rs
+    thumb_ins mul, rd, rs
+
+bic:
+    need REG, rd
+    need REG, rs
+    thumb_ins bic, rd, rs
+
+not:
+    need REG, rd
+    need REG, rs
+    thumb_ins not, rd, rs
+
+mvn:
+    need REG, rd
+    need REG, rs
+    thumb_ins mvn, rd, rs
+
 str:
     need REG, rd
     need REG, rb
     need REG, ro
-    thumb_ins "str", rd.value, rb.value, ro.value
+    thumb_ins str, rd, rb, ro
 
-
-; ============================================================
-; INSTRUCCIÓN: strb — Guarda 8 bits con offset de registro
-; ============================================================
-; Manual Sección 5.7 — Format 7: Load/store with register offset
-; Opcode: 0101_010_Ro_Rb_Rd  (STRB)  L=0, B=1
-;
-; Sintaxis: strb R0, R1, R2
-; ============================================================
-strb:
-    need REG, rd
-    need REG, rb
-    need REG, ro
-    emit cbits ro.code rb.code rd.code   ; byte bajo
-    emit cbits 0101010                   ; byte alto — opcode STRB
-
-
-; ============================================================
-; INSTRUCCIÓN: strh — Guarda 16 bits con offset de registro
-; ============================================================
-; Manual Sección 5.8 — Format 8:
-; Opcode: 0101_001_Ro_Rb_Rd  (STRH)
-;
-; Sintaxis: strh R0, R1, R2
-; ============================================================
 strh:
     need REG, rd
     need REG, rb
     need REG, ro
-    thumb_ins "strh", rd.value, rb.value, ro.value
+    thumb_ins strh, rd, rb, ro
 
+strb:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins strb, rd, rb, ro
 
-; ============================================================
-; INSTRUCCIÓN: jump — Salto incondicional (B label)
-; ============================================================
-; Manual Sección 5.18 — Format 18: Unconditional branch
-; Opcode: 11100_offset11[10:0]
-; Bit[15:11] = 11100  (unconditional branch)
-; Bit[10:0]  = offset11  (signed, relativo al PC+4 en halfwords)
-;
-; 16 bits: 11100_offset[10:0]
-; Byte bajo  [7:0]  = offset[7:0]
-; Byte alto  [15:8] = 11100_offset[10:8]
-;
-; Sintaxis: jump etiqueta
-; ============================================================
-jump:
-    need SYMBOL, target
-    reldis ., target, 16
-    emit cbits 11100
+ldr:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins ldr, rd, rb, ro
 
+ldrh:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins ldrh, rd, rb, ro
 
-; ============================================================
-; INSTRUCCIÓN: bx — Branch and Exchange
-; ============================================================
-; Manual Sección 5.5 — Format 5: Hi register operations / BX
-; Opcode: 01000111_0_H1_H2_Rm[2:0]_000
-; BX: bits[15:8] = 01000111
-;     bits[7:6] = 0, H2 (pero H1=0 si se omite, asumiremos Rm de 4 bits en total con ID)
-;     bits[6:3] = Rm  -> bits[6] es H2, bits[5:3] es Rm[2:0]
-;     bits[2:0] = 000
-; Byte bajo [7:0] = 0_Rm[3:0]_000  (Rm << 3)
-; Byte alto [15:8] = 01000111 (0x47)
-;
-; Sintaxis: bx R0 / bx LR
-; ============================================================
+ldrb:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins ldrb, rd, rb, ro
+
+ldsb:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins ldsb, rd, rb, ro
+
+ldsh:
+    need REG, rd
+    need REG, rb
+    need REG, ro
+    thumb_ins ldsh, rd, rb, ro
+
+str_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins str_imm, rd, rb, imm
+
+ldr_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins ldr_imm, rd, rb, imm
+
+strb_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins strb_imm, rd, rb, imm
+
+ldrb_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins ldrb_imm, rd, rb, imm
+
+strh_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins strh_imm, rd, rb, imm
+
+ldrh_imm:
+    need REG, rd
+    need REG, rb
+    need VALUE, imm
+    thumb_ins ldrh_imm, rd, rb, imm
+
+ldr_pc:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins ldr_pc, rd, imm
+
+ldr_pc_label:
+    need REG, rd
+    need LABEL, target
+    thumb_ins ldr_pc_label, rd, target
+
+str_sp:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins str_sp, rd, imm
+
+ldr_sp:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins ldr_sp, rd, imm
+
+adr:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins adr, rd, imm
+
+adr_label:
+    need REG, rd
+    need LABEL, target
+    thumb_ins adr_label, rd, target
+
+add_sp:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins add_sp, rd, imm
+
+add_sp_imm:
+    need VALUE, imm
+    thumb_ins add_sp_imm, imm
+
+sub_sp_imm:
+    need VALUE, imm
+    thumb_ins sub_sp_imm, imm
+
 bx:
     need REG, rm
-    emit cbits 0 rm.id 000        ; byte bajo (rm.id es de 4 bits, ocupa bits [6:3])
-    emit 01000111                 ; byte alto (BX)
+    thumb_ins bx, rm
 
-
-; ============================================================
-; INSTRUCCIÓN: call — Salto con retorno (BL label)
-; ============================================================
-; Manual Sección 5.19 — Format 19: Long branch with link
-; BL se emite como DOS instrucciones Thumb de 16 bits:
-;   1ª instrucción: 11110_offset[22:12]  (prefijo, bits altos del offset)
-;   2ª instrucción: 11111_offset[11:1]   (sufijo, bits bajos del offset)
-;
-; RIF no tiene soporte nativo de BL de dos halfwords todavía.
-; Esta implementación emite solo la primera mitad como placeholder.
-; TODO: implementar BL completo con plugin de relocation de 2 halfwords.
-;
-; Sintaxis: call etiqueta
-; ============================================================
-call:
-    need SYMBOL, target
-    reldis ., target, 11
-
-
-; ============================================================
-; INSTRUCCIONES: saltos condicionales (BEQ/BNE/BLT/BGT/BLE/BGE)
-; ============================================================
-; Manual Sección 5.16 — Format 16: Conditional branch
-; Opcode: 1101_cond[3:0]_offset8[7:0]
-; Bit[15:12] = 1101
-; Bit[11:8]  = cond (condition code de 4 bits)
-; Bit[7:0]   = offset8 (signed, relativo al PC+4 en bytes)
-;
-; Tabla de condiciones:
-;   0000 = EQ (Z=1)    0001 = NE (Z=0)
-;   0010 = CS (C=1)    0011 = CC (C=0)
-;   0100 = MI (N=1)    0101 = PL (N=0)
-;   0110 = VS (V=1)    0111 = VC (V=0)
-;   1000 = HI (C&!Z)   1001 = LS (!C|Z)
-;   1010 = GE (N=V)    1011 = LT (N!=V)
-;   1100 = GT (!Z&N=V) 1101 = LE (Z|N!=V)
-;   1110 = always      1111 = SWI (no usar aquí)
-;
-; Cada instrucción de salto condicional rellena el campo cond apropiado.
-; Sintaxis: beq etiqueta  /  bne etiqueta  / etc.
-; ============================================================
-
-beq:
-    need SYMBOL, target
-    reldis OUT_BEQ, target, 8
-    emit 11010000
-
-bne:
-    need SYMBOL, target
-    reldis OUT_BNE, target, 8
-    emit 11010001
-
-blt:
-    need SYMBOL, target
-    reldis ., target, 8
-
-bgt:
-    need SYMBOL, target
-    reldis ., target, 8
-
-ble:
-    need SYMBOL, target
-    reldis ., target, 8
-
-bge:
-    need SYMBOL, target
-    reldis ., target, 8
-
-
-; ============================================================
-; INSTRUCCIONES: push y pop
-; ============================================================
-; Manual Sección 5.14 — Format 14: Push/pop registers
-; PUSH: 1011_0_10_rlist[7:0]  (con LR opcional en bit[8])
-; POP:  1011_1_10_rlist[7:0]  (con PC opcional en bit[8])
-;
-; Estas instrucciones requieren una lista de registros.
-; La implementación simplificada acepta un solo registro.
-; TODO: añadir soporte de lista de registros {R0-R7, LR/PC}
-;
-byte:
-    need VALUE, imm
-    zext out_imm, imm.binary, 8
-    emit out_imm
-
-word:
-    need VALUE, imm
-    zext out_imm, imm.binary, 16
-    emit out_imm
 push:
     need REG, rd
-    emit cbits rd.code 00000000   ; byte bajo — registro en lista (bit rd en rlist)
-    emit 10110100                 ; byte alto fijo PUSH (sin LR)
+    thumb_ins push, rd
+
+push_mask:
+    need VALUE, mask
+    thumb_ins push_mask, mask
+
+push_list:
+    need SYMBOL, regs
+    thumb_ins push_list, regs
 
 pop:
     need REG, rd
-    emit cbits rd.code 00000000   ; byte bajo — registro en lista
-    emit 10111100                 ; byte alto fijo POP (con PC implícito en retorno)
+    thumb_ins pop, rd
+
+pop_mask:
+    need VALUE, mask
+    thumb_ins pop_mask, mask
+
+pop_list:
+    need SYMBOL, regs
+    thumb_ins pop_list, regs
+
+stmia:
+    need REG, rb
+    need VALUE, mask
+    thumb_ins stmia, rb, mask
+
+stmia_list:
+    need REG, rb
+    need SYMBOL, regs
+    thumb_ins stmia_list, rb, regs
+
+ldmia:
+    need REG, rb
+    need VALUE, mask
+    thumb_ins ldmia, rb, mask
+
+ldmia_list:
+    need REG, rb
+    need SYMBOL, regs
+    thumb_ins ldmia_list, rb, regs
+
+b:
+    need LABEL, target
+    thumb_ins b, target
+
+jump:
+    need LABEL, target
+    thumb_ins jump, target
+
+bcond:
+    need SYMBOL, cond
+    need LABEL, target
+    thumb_ins bcond, cond, target
+
+beq:
+    need LABEL, target
+    thumb_ins beq, target
+
+bne:
+    need LABEL, target
+    thumb_ins bne, target
+
+bcs:
+    need LABEL, target
+    thumb_ins bcs, target
+
+bhs:
+    need LABEL, target
+    thumb_ins bhs, target
+
+bcc:
+    need LABEL, target
+    thumb_ins bcc, target
+
+blo:
+    need LABEL, target
+    thumb_ins blo, target
+
+bmi:
+    need LABEL, target
+    thumb_ins bmi, target
+
+bpl:
+    need LABEL, target
+    thumb_ins bpl, target
+
+bvs:
+    need LABEL, target
+    thumb_ins bvs, target
+
+bvc:
+    need LABEL, target
+    thumb_ins bvc, target
+
+bhi:
+    need LABEL, target
+    thumb_ins bhi, target
+
+bls:
+    need LABEL, target
+    thumb_ins bls, target
+
+blt:
+    need LABEL, target
+    thumb_ins blt, target
+
+bgt:
+    need LABEL, target
+    thumb_ins bgt, target
+
+ble:
+    need LABEL, target
+    thumb_ins ble, target
+
+bge:
+    need LABEL, target
+    thumb_ins bge, target
+
+call:
+    need LABEL, target
+    thumb_ins call, target
+
+bl:
+    need LABEL, target
+    thumb_ins bl, target
+
+swi:
+    need VALUE, imm
+    thumb_ins swi, imm
+
+arm_bx:
+    need REG, rm
+    arm_ins bx, rm
+
+thumb:
+    need REG, rm
+    arm_ins thumb, rm
+
+arm_b:
+    need LABEL, target
+    arm_ins b, target
+
+arm_bl:
+    need LABEL, target
+    arm_ins bl, target
+
+arm_bcond:
+    need SYMBOL, cond
+    need LABEL, target
+    arm_ins b, target, cond
+
+arm_blcond:
+    need SYMBOL, cond
+    need LABEL, target
+    arm_ins bl, target, cond
+
+arm_swi:
+    need VALUE, imm
+    arm_ins swi, imm
+
+arm_raw:
+    need VALUE, word
+    arm_ins raw, word
+
+arm_mov:
+    need REG, rd
+    need REG, rm
+    arm_ins mov, rd, rm
+
+arm_mov_imm:
+    need REG, rd
+    need VALUE, imm
+    arm_ins mov_imm, rd, imm
+
+arm_mvn:
+    need REG, rd
+    need REG, rm
+    arm_ins mvn, rd, rm
+
+arm_mvn_imm:
+    need REG, rd
+    need VALUE, imm
+    arm_ins mvn_imm, rd, imm
+
+arm_add:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins add, rd, rn, rm
+
+arm_add_imm:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins add_imm, rd, rn, imm
+
+arm_sub:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins sub, rd, rn, rm
+
+arm_sub_imm:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins sub_imm, rd, rn, imm
+
+arm_rsb:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins rsb, rd, rn, rm
+
+arm_cmp:
+    need REG, rn
+    need REG, rm
+    arm_ins cmp, rn, rm
+
+arm_cmp_imm:
+    need REG, rn
+    need VALUE, imm
+    arm_ins cmp_imm, rn, imm
+
+arm_cmn:
+    need REG, rn
+    need REG, rm
+    arm_ins cmn, rn, rm
+
+arm_and:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins and, rd, rn, rm
+
+arm_orr:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins orr, rd, rn, rm
+
+arm_eor:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins eor, rd, rn, rm
+
+arm_bic:
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    arm_ins bic, rd, rn, rm
+
+arm_tst:
+    need REG, rn
+    need REG, rm
+    arm_ins tst, rn, rm
+
+arm_teq:
+    need REG, rn
+    need REG, rm
+    arm_ins teq, rn, rm
+
+arm_mul:
+    need REG, rd
+    need REG, rm
+    need REG, rs
+    arm_ins mul, rd, rm, rs
+
+arm_mla:
+    need REG, rd
+    need REG, rm
+    need REG, rs
+    need REG, rn
+    arm_ins mla, rd, rm, rs, rn
+
+arm_umull:
+    need REG, rdlo
+    need REG, rdhi
+    need REG, rm
+    need REG, rs
+    arm_ins umull, rdlo, rdhi, rm, rs
+
+arm_umlal:
+    need REG, rdlo
+    need REG, rdhi
+    need REG, rm
+    need REG, rs
+    arm_ins umlal, rdlo, rdhi, rm, rs
+
+arm_smull:
+    need REG, rdlo
+    need REG, rdhi
+    need REG, rm
+    need REG, rs
+    arm_ins smull, rdlo, rdhi, rm, rs
+
+arm_smlal:
+    need REG, rdlo
+    need REG, rdhi
+    need REG, rm
+    need REG, rs
+    arm_ins smlal, rdlo, rdhi, rm, rs
+
+arm_dp_shift:
+    need SYMBOL, op
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    need SYMBOL, shift
+    need VALUE, imm
+    arm_ins dp_shift, op, rd, rn, rm, shift, imm
+
+arm_dp_shift_reg:
+    need SYMBOL, op
+    need REG, rd
+    need REG, rn
+    need REG, rm
+    need SYMBOL, shift
+    need REG, rs
+    arm_ins dp_shift_reg, op, rd, rn, rm, shift, rs
+
+arm_ldr:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins ldr, rd, rn, imm
+
+arm_str:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins str, rd, rn, imm
+
+arm_ldrb:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins ldrb, rd, rn, imm
+
+arm_strb:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins strb, rd, rn, imm
+
+arm_ldrh:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins ldrh, rd, rn, imm
+
+arm_strh:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins strh, rd, rn, imm
+
+arm_ldrsb:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins ldrsb, rd, rn, imm
+
+arm_ldrsh:
+    need REG, rd
+    need REG, rn
+    need VALUE, imm
+    arm_ins ldrsh, rd, rn, imm
+
+arm_ldmia:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins ldmia, rn, regs
+
+arm_stmia:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins stmia, rn, regs
+
+arm_ldmia_w:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins ldmia_w, rn, regs
+
+arm_stmia_w:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins stmia_w, rn, regs
+
+arm_stmfd:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins stmfd, rn, regs
+
+arm_ldmfd:
+    need REG, rn
+    need SYMBOL, regs
+    arm_ins ldmfd, rn, regs
+
+arm_mrs:
+    need REG, rd
+    need SYMBOL, psr
+    arm_ins mrs, rd, psr

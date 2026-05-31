@@ -1,19 +1,4 @@
-"""Construye IR de emisión de bits exactos para el codegen.
 
-Sintaxis soportada:
-
-    emit 0000 0100
-    emit bits 0000 0100
-    emit cbits 000 0 op2.code
-
-`emit`/`emit bits` emite exactamente un byte cuando todo es estático. Si
-encuentra 8 bits estáticos los compacta a un chunk `byte` para que el codegen
-pueda escribirlo directamente.
-
-`emit cbits` conserva los chunks como bits/placeholders crudos. Sirve para
-plantillas que se completan más tarde con campos de operandos, por ejemplo
-`op2.code`.
-"""
 
 from __future__ import annotations
 
@@ -35,8 +20,14 @@ from rif import (
 _BITS_RE = re.compile(r"^[01]+$")
 _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_:-]*$")
 _PLACEHOLDER_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_:-]*)\.([A-Za-z_][A-Za-z0-9_]*)$")
-_MODES = {"bits", "cbits"}
-_MAX_BITS_PER_EMIT = 8
+_FIXED_WIDTHS = {
+    "cmbit": 4,
+    "cbit": 8,
+    "ccbit": 16,
+    "cdbit": 32,
+    "cebit": 64,
+}
+_MODES = {"bits", "cbits", *_FIXED_WIDTHS}
 
 
 def _clean(value: Any) -> str:
@@ -49,11 +40,11 @@ def _section_for_type(type_ref: Any) -> str | None:
     """Convierte una referencia de tipo en sección verificable, si aplica."""
     name = _clean(type_ref)
 
-    # Tipos especiales que no necesariamente tienen tabla durante parse.
+
     if name == "SYMBOL":
         return None
 
-    # SREG se deriva de la tabla .regs.
+
     if name == ".regs.subs":
         return ".regs"
 
@@ -92,7 +83,7 @@ def _validate_placeholder(target: str, field: str) -> Err | None:
 
         table = program.tables.get(section_name)
         if table is None:
-            # La sección puede ser un tipo derivado o builtin que resolverá el codegen.
+
             continue
         if field not in table.fields:
             missing.append(section_name)
@@ -106,8 +97,6 @@ def _validate_placeholder(target: str, field: str) -> Err | None:
 
 def _parse_chunk(token: str) -> EmitChunk | Err:
     if _BITS_RE.match(token):
-        if len(token) > _MAX_BITS_PER_EMIT:
-            return Err("Un fragmento literal de emit no puede superar 8 bits")
         return EmitChunk(kind="bits", value=token, width=len(token))
 
     program = Operators.program
@@ -150,7 +139,7 @@ def main():
     if Line.elements <= 1:
         return Err("Se esperaba al menos un fragmento de bits")
 
-    Line.Advance()  # consumir "emit"
+    Line.Advance()  
 
     mode = "bits"
     first = Line.Peek()
@@ -165,8 +154,8 @@ def main():
         return Err("Se esperaba al menos un fragmento de bits")
 
     chunks: list[EmitChunk] = []
-    static_width = 0
-    has_placeholder = False
+    known_width = 0
+    has_dynamic = False
 
     for token in raw_chunks:
         if not token:
@@ -178,19 +167,16 @@ def main():
 
         chunks.append(chunk)
         if chunk.kind == "bits":
-            static_width += chunk.width or 0
+            known_width += chunk.width or 0
         else:
-            has_placeholder = True
+            has_dynamic = True
 
-    if static_width > _MAX_BITS_PER_EMIT:
-        return Err("Cada emit solamente permite hasta 8 bits estáticos")
+    fixed_width = _FIXED_WIDTHS.get(mode)
 
-    requires_byte = mode != "cbits"
+    if fixed_width is not None and not has_dynamic and known_width != fixed_width:
+        return Err(f"emit {mode} requiere exactamente {fixed_width} bits; recibió {known_width}")
 
-    if requires_byte and not has_placeholder and static_width != 8:
-        return Err("emit bits requiere exactamente 8 bits cuando no hay placeholders")
-
-    if requires_byte:
+    if fixed_width == 8:
         chunks = _compact_static_byte(chunks)
 
     instruction = EmitInstruction(
@@ -198,7 +184,7 @@ def main():
         chunks=tuple(chunks),
         rule_name=RuleIndicator.current,
         line=getattr(Line, "line", None),
-        requires_byte=requires_byte,
+        requires_byte=False,
     )
 
     return Expr(["emit_bits_exact", instruction])

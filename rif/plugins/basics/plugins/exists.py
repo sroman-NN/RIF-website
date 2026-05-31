@@ -1,13 +1,4 @@
-"""Verifica si un valor existe o crea placeholder si debe resolverse después.
 
-Sintaxis:
-
-    exists op1
-
-Regla importante: los símbolos no se buscan inmediatamente; generan una
-expresión placeholder. Cualquier valor desconocido también genera placeholder.
-Solo los registros/subregistros concretos se validan en el momento.
-"""
 
 from __future__ import annotations
 
@@ -26,7 +17,7 @@ def main():
     if Line.elements != 2:
         return Err("Error, se esperaba un elemento extra")
 
-    Line.Advance()  # consumir "exists"
+    Line.Advance()  
     target = _clean(Line.Advance())
     Line.expects(" ", "\n")
 
@@ -37,8 +28,8 @@ def main():
     privtype = getattr(op.type, "PRIVTYPE", op.type.get("PRIVTYPE", "unknown"))
     name = op.type.get("NAME", getattr(op, "name", target))
 
-    # Las capturas de regla, símbolos y desconocidos se resuelven después.
-    # No deben bloquear el parseo ni consultar DATA inmediatamente.
+
+
     if not getattr(op, "resolved", False):
         return Expr([
             "exists",

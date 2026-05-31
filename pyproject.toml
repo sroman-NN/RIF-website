@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rif-foundry"
-version = "0.0.1b0"
+version = "0.0.2b0"
 description = "Retargetable ISA Foundry"
 requires-python = ">=3.10"
 readme = "README.md"
@@ -36,8 +36,8 @@ test = ["pytest>=8"]
 include = ["rif*"]
 
 [tool.setuptools.package-data]
-"rif.plugins" = ["**/*.py"]
-"rif" = ["plugins/**/*.py"]
+"rif.plugins" = ["**/*.py", "**/*.json", "**/*.pack", "**/*.md", "**/*.f", "**/*.pbm"]
+"rif" = ["plugins/**/*.py", "plugins/**/*.json", "plugins/**/*.pack", "plugins/**/*.md", "plugins/**/*.f", "purpose.txt"]
 
 [tool.setuptools.data-files]
 "share/rif/help" = ["help/index.html"]

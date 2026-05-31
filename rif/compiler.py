@@ -1,10 +1,4 @@
-"""Módulo de compilación y codificación del framework RIF.
 
-Este módulo implementa el motor de compilación que procesa las reglas del
-Instruction Set Architecture (ISA), evalúa las expresiones DSL de los plugins,
-realiza la resolución de operandos, gestiona el diseño de memoria de datos, y
-emite la representación binaria empaquetada final.
-"""
 
 from __future__ import annotations
 
@@ -39,9 +33,19 @@ from .models import (
     TypeDefinition,
     TypeInfo,
 )
+from .bitbuffer import BitBuffer
 from .memory import memory_region_from_values
 from .parser import Parser, load_plugins, parse_packer_config, run_precompilers
 from .resolver import PlaceholderResolver
+
+
+_FIXED_EMIT_WIDTHS = {
+    "cmbit": 4,
+    "cbit": 8,
+    "ccbit": 16,
+    "cdbit": 32,
+    "cebit": 64,
+}
 
 
 @dataclass
@@ -54,7 +58,7 @@ class _Runtime:
     rule_name: str
     source: str
     bindings: dict[str, OperandValue]
-    bits: str = ""
+    bits: BitBuffer | None = None
     bit_values: dict[str, str] | None = None
     placeholders: list[Placeholder] | None = None
     relocations: list[Relocation] | None = None
@@ -65,6 +69,8 @@ class _Runtime:
     section: str | None = None
 
     def __post_init__(self) -> None:
+        if self.bits is None:
+            self.bits = BitBuffer()
         if self.bit_values is None:
             self.bit_values = {}
         if self.placeholders is None:
@@ -130,7 +136,11 @@ class Compiler:
             Una instancia configurada del Compilador.
         """
         path = Path(source_path)
-        program = Parser(path.read_text(encoding="utf-8"), path).parse()
+        if path.suffix == ".pack":
+            from .package_packer import PackagePacker
+            program = PackagePacker(path).pack(write=False).program
+        else:
+            program = Parser(path.read_text(encoding="utf-8"), path).parse()
         return cls(program)
 
     def compile_line(self, source: str) -> CompileResult:
@@ -166,6 +176,55 @@ class Compiler:
         if data_result is not None:
             return data_result
 
+        # Directivas internas para emision de direcciones fisicas y virtuales
+        if tokens and tokens[0] in {"dw_phys", "dw_virt"}:
+            if len(tokens) < 2:
+                raise PackError(f"{tokens[0]} requiere un identificador de destino")
+            target = tokens[1]
+            kind = "physical" if tokens[0] == "dw_phys" else "abs"
+            runtime = _Runtime(
+                rule_name=tokens[0],
+                source=source,
+                bindings={},
+                base_offset_bits=base_offset_bits,
+                labels=labels,
+                section=section,
+            )
+            runtime.placeholders.append(
+                Placeholder(
+                    target=target,
+                    kind="address" if kind == "abs" else "physical",
+                    reason=f"direccion {'fisica' if kind == 'physical' else 'virtual'} diferida",
+                    rule_name=tokens[0],
+                    line=0,
+                    width=32,
+                )
+            )
+            runtime.relocations.append(
+                Relocation(
+                    kind=kind,
+                    target=target,
+                    offset_bits=base_offset_bits,
+                    width=32,
+                    section=section,
+                    signed=False,
+                    byteorder=self._byteorder(),
+                    rule_name=tokens[0],
+                    source=source,
+                )
+            )
+            runtime.bits.append_zeros(32)
+            return CompileResult(
+                rule_name=tokens[0],
+                source=source,
+                data=None,
+                bits=runtime.bits.to_string(),
+                placeholders=list(runtime.placeholders),
+                expressions=list(runtime.expressions),
+                resolved_placeholders=[],
+                relocations=list(runtime.relocations),
+            )
+
         rule_name = tokens[0]
         rule = self._rule(rule_name)
         if rule is None:
@@ -196,15 +255,14 @@ class Compiler:
 
         data = None
         if not runtime.placeholders:
-            if len(runtime.bits) % 8 != 0:
-                raise PackError(f"la emisión final no está alineada a byte: {len(runtime.bits)} bits")
-            data = bytes(int(runtime.bits[i:i + 8], 2) for i in range(0, len(runtime.bits), 8))
+            if len(runtime.bits) % 8 == 0:
+                data = runtime.bits.to_bytes()
 
         return CompileResult(
             rule_name=rule_name,
             source=source,
             data=data,
-            bits=runtime.bits,
+            bits=runtime.bits.to_string(),
             placeholders=list(runtime.placeholders),
             expressions=list(runtime.expressions),
             resolved_placeholders=list(resolution.resolved),
@@ -249,15 +307,15 @@ class Compiler:
 
         source = expand_fillables(self.program, source, phase="compile")
         read = self.source_reader.read(source)
-        
+
         labels = {}
         section_offsets = {}
-        
+
         for entry in read.entries:
             sec = entry.section or ".text"
             if sec not in section_offsets:
                 section_offsets[sec] = 0
-                
+
             if entry.kind == "label":
                 offset_bits = section_offsets[sec]
                 if offset_bits % 8 != 0:
@@ -279,17 +337,17 @@ class Compiler:
             e.name: {"section": e.section or ".text", "offset": labels[e.name]}
             for e in read.entries if e.kind == "label"
         }
-        
+
         out = []
         section_offsets = {}
         for entry in read.entries:
             sec = entry.section or ".text"
             if sec not in section_offsets:
                 section_offsets[sec] = 0
-                
+
             if entry.kind in ("label", "section"):
                 continue
-                
+
             line = entry.text
             data_result = self._compile_data_definition(line, section_offsets[sec])
             if data_result is not None:
@@ -297,18 +355,18 @@ class Compiler:
                 out.append(data_result)
                 section_offsets[sec] += len(data_result.bits)
                 continue
-                
+
             memory_result = self._compile_memory_definition(line)
             if memory_result is not None:
                 memory_result.section = sec
                 out.append(memory_result)
                 continue
-                
+
             result = self._compile_line_at(line, section_offsets[sec], labels, sec)
             result.section = sec
             out.append(result)
             section_offsets[sec] += len(result.bits)
-            
+
         return out
 
     def compile_bytes(self, source: str) -> bytes:
@@ -326,7 +384,10 @@ class Compiler:
         missing = [ph.name for result in results for ph in result.placeholders]
         if missing:
             raise PackError("no se puede emitir bytes finales con placeholders: " + ", ".join(missing))
-        return b"".join(result.data or b"" for result in results)
+        bits = "".join(result.bits for result in results if result.rule_name not in {"stack", "heap"})
+        if len(bits) % 8 != 0:
+            raise PackError(f"la emisión final no está alineada a byte: {len(bits)} bits")
+        return _bits_to_bytes(bits)
 
     def _compile_memory_definition(self, source: str) -> CompileResult | None:
         """Procesa y compila definiciones de regiones de memoria como pila (stack) o montón (heap).
@@ -379,7 +440,7 @@ class Compiler:
         Returns:
             CompileResult de la definición de datos si matchea el formato, o None en caso contrario.
         """
-        if not self.program.data_definition.pattern:
+        if not self.program.data_definition.pattern and not self.program.data_definition.options:
             return None
 
         tokens = _split_instruction(source)
@@ -544,6 +605,8 @@ class Compiler:
         bindings: dict[str, OperandValue] = {}
         index = 0
 
+        optional_separators = {",", "="}
+
         for expr in exprs:
             if not expr.elements:
                 continue
@@ -560,6 +623,8 @@ class Compiler:
                 continue
 
             if kind == "need":
+                while index < len(tokens) and tokens[index] in optional_separators:
+                    index += 1
                 if index >= len(tokens):
                     raise PackError("faltan operandos para la regla")
                 valid_types = list(expr.elements[1])
@@ -568,6 +633,8 @@ class Compiler:
                 index += 1
                 continue
 
+        while index < len(tokens) and tokens[index] in optional_separators:
+            index += 1
         return bindings, index
 
     def _resolve_operand(self, token: str, valid_types: list[Any], rule_name: str) -> OperandValue:
@@ -784,7 +851,7 @@ class Compiler:
 
             if stmt.name in self.plugins:
                 under_call = len(runtime.stack) > 1
-                res = self._run_plugin(stmt, rule_name, under_call=under_call)
+                res = self._run_plugin(stmt, runtime, rule_name, under_call=under_call)
                 self._execute_result(res, runtime, rule_name)
                 index += 1
                 continue
@@ -999,7 +1066,7 @@ class Compiler:
 
         return
 
-    def _run_plugin(self, stmt: Statement, rule_name: str, under_call: bool = False) -> Any:
+    def _run_plugin(self, stmt: Statement, runtime: _Runtime, rule_name: str, under_call: bool = False) -> Any:
         """Invoca dinámicamente el plugin especificado por la sentencia.
 
         Controla si se realiza bajo el flujo de una llamada `call` de regla o la entrada
@@ -1014,7 +1081,7 @@ class Compiler:
             El resultado retornado por la ejecución del plugin (generalmente objetos de tipo Expr).
         """
         mod = self.plugins[stmt.name]
-        tokens = [stmt.name] + stmt.arg_values()
+        tokens = [stmt.name] + [self._plugin_arg_value(token.value, runtime) for token in stmt.args]
         Line.set_tokens(tokens)
         Line.line = stmt.line
         RuleIndicator.current = rule_name
@@ -1027,6 +1094,7 @@ class Compiler:
             compiler=self,
             line=stmt.line,
         )
+        setattr(context, "runtime", runtime)
         try:
             if hasattr(mod, "set_context"):
                 mod.set_context(context)
@@ -1043,6 +1111,19 @@ class Compiler:
         finally:
             RuleIndicator.current = None
             Line.clear()
+
+    def _plugin_arg_value(self, token: str, runtime: _Runtime) -> str:
+        raw = str(token).strip()
+        if raw in {",", ""}:
+            return raw
+        if raw in runtime.bindings or ("." in raw and raw != "."):
+            value = self._eval_value(raw, runtime)
+            if isinstance(value, Placeholder):
+                return raw
+            if isinstance(value, OperandValue):
+                return str(value.name)
+            return str(value)
+        return raw
 
     def _execute_result(self, result: Any, runtime: _Runtime, rule_name: str) -> None:
         """Procesa y ejecuta de manera recursiva el resultado producido por un plugin.
@@ -1446,6 +1527,8 @@ class Compiler:
             if value in (None, ""):
                 return Placeholder(target=target, field=field, kind=operand.type.get("PRIVTYPE", "unknown"), reason="campo diferido", rule_name=runtime.rule_name)
             try:
+                if field == "binary":
+                    return int(str(value).replace("_", ""), 2)
                 return int(str(value).replace("_", ""), 0)
             except ValueError:
                 return int(_value_to_bits(value), 2)
@@ -1467,7 +1550,10 @@ class Compiler:
             Valor numérico entero o un Placeholder.
         """
         try:
-            return int(name.strip().replace("_", ""), 0)
+            token = name.strip()
+            if all(ch in "01" for ch in token):
+                return int(token, 2)
+            return int(token.replace("_", ""), 0)
         except ValueError:
             pass
 
@@ -1572,7 +1658,7 @@ class Compiler:
                 source=runtime.source,
             )
         )
-        runtime.bits += "0" * width_int
+        runtime.bits.append_zeros(width_int)
         return
 
     def _reloc(self, expr: Expr, runtime: _Runtime) -> None:
@@ -1607,7 +1693,7 @@ class Compiler:
                 source=runtime.source,
             )
         )
-        runtime.bits += "0" * width
+        runtime.bits.append_zeros(width)
 
     def _reldis(self, source: str, target: str, runtime: _Runtime, rule_name: str, width: Any = None) -> None:
         """Calcula y emite el desplazamiento de dirección relativo entre un origen y un destino.
@@ -1666,7 +1752,7 @@ class Compiler:
                         source=runtime.source,
                     )
                 )
-                runtime.bits += "0" * width_int
+                runtime.bits.append_zeros(width_int)
             return
         if isinstance(end, Placeholder):
             relocation_offset = runtime.base_offset_bits + len(runtime.bits)
@@ -1697,7 +1783,7 @@ class Compiler:
                         source=runtime.source,
                     )
                 )
-                runtime.bits += "0" * width_int
+                runtime.bits.append_zeros(width_int)
             return
 
         origin = start
@@ -1706,7 +1792,7 @@ class Compiler:
         distance = end - origin
         runtime.expressions.append(Expr(["reldis_value", source, target, distance, width_int]))
         if width_int is not None:
-            runtime.bits += _signed_int_to_bits(distance, width_int, self._byteorder())
+            runtime.bits.append_string(_signed_int_to_bits(distance, width_int, self._byteorder()))
 
     def _byteorder(self) -> str:
         """Determina la ordenación de bytes (endianness) configurada en el diseño del ISA.
@@ -1787,7 +1873,7 @@ class Compiler:
         current_byte = current_bits // 8
         missing = (-current_byte) % n
         if missing:
-            runtime.bits += "0" * (missing * 8)
+            runtime.bits.append_zeros(missing * 8)
 
     def _pad(self, n: int, runtime: _Runtime) -> None:
         """Introduce un relleno físico de 'n' bytes con ceros en la instrucción actual.
@@ -1799,7 +1885,7 @@ class Compiler:
         if n < 0:
             raise PackError("pad no acepta números negativos")
         if n:
-            runtime.bits += "0" * (n * 8)
+            runtime.bits.append_zeros(n * 8)
 
     def _pad_to(self, n: int, runtime: _Runtime) -> None:
         if n < 0:
@@ -1836,18 +1922,28 @@ class Compiler:
             runtime: Estado de compilación dinámico.
         """
         bits = ""
+        unresolved = False
         for chunk in instruction.chunks:
             resolved = self._resolve_chunk(chunk, runtime, instruction)
             if isinstance(resolved, Placeholder):
+                unresolved = True
                 runtime.placeholders.append(resolved)
                 runtime.expressions.append(Expr(["placeholder", resolved]))
                 continue
             bits += resolved
 
-        if instruction.requires_byte and len(bits) % 8 != 0:
+        fixed_width = _FIXED_EMIT_WIDTHS.get(instruction.mode)
+        if fixed_width is not None:
+            if len(bits) > fixed_width:
+                raise PackError(f"emit {instruction.mode} produjo {len(bits)} bits; se esperaban {fixed_width}")
+            if unresolved:
+                bits += "0" * (fixed_width - len(bits))
+            elif len(bits) != fixed_width:
+                raise PackError(f"emit {instruction.mode} produjo {len(bits)} bits; se esperaban {fixed_width}")
+        elif instruction.requires_byte and len(bits) % 8 != 0:
             raise PackError(f"emit produjo {len(bits)} bits; se esperaba múltiplo de 8")
 
-        runtime.bits += bits
+        runtime.bits.append_string(bits)
 
     def _resolve_chunk(self, chunk: EmitChunk, runtime: _Runtime, instruction: EmitInstruction) -> str | Placeholder:
         """Resuelve un único fragmento (EmitChunk) de bits o valor del operando mapeado.
@@ -1944,6 +2040,7 @@ def _split_instruction(source: str) -> list[str]:
     quote = False
     escaped = False
     bracket_level = 0
+    brace_level = 0
 
     def push() -> None:
         if current:
@@ -1973,14 +2070,23 @@ def _split_instruction(source: str) -> list[str]:
                 bracket_level -= 1
             current.append(ch)
             continue
+        if ch == "{":
+            brace_level += 1
+            current.append(ch)
+            continue
+        if ch == "}":
+            if brace_level > 0:
+                brace_level -= 1
+            current.append(ch)
+            continue
         if ch.isspace():
-            if bracket_level > 0:
+            if bracket_level > 0 or brace_level > 0:
                 current.append(ch)
             else:
                 push()
             continue
         if ch in {",", "=", ":"}:
-            if bracket_level > 0:
+            if bracket_level > 0 or brace_level > 0:
                 current.append(ch)
             else:
                 push()
@@ -2302,3 +2408,9 @@ def _value_to_bits(value: Any) -> str:
         width = max(4, ((value_int.bit_length() + 3) // 4) * 4)
         return format(value_int, f"0{width}b")
     raise PackError(f'campo "{text}" no es binario')
+
+
+def _bits_to_bytes(bits: str) -> bytes:
+    if len(bits) % 8 != 0:
+        raise PackError(f"la emisión final no está alineada a byte: {len(bits)} bits")
+    return bytes(int(bits[index:index + 8], 2) for index in range(0, len(bits), 8))

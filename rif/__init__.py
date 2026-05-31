@@ -1,10 +1,6 @@
-"""Módulo principal del compilador RIF.
 
-Expone la interfaz pública para el Lexer, Parser, Linker, Packer, Compiler
-y los modelos de datos esenciales que estructuran el flujo del framework.
-"""
 
-__version__ = "0.0.1 Beta"
+__version__ = "0.0.2 Beta"
 
 from .errors import RIFError, LexError, ParseError, PackError, Errors, EndSignal, end
 from .lexer import Lexer

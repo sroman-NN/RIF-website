@@ -1,4 +1,4 @@
-"""Emite padding automatico hasta alinear a n bytes."""
+
 
 from __future__ import annotations
 

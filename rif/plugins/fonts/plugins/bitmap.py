@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from rif import EmitChunk, EmitInstruction, Err, Expr, Line, RuleIndicator
-from bitmap.api import DEFAULT_FONT, text_bitmap_bytes
+from rif.plugins.fonts.bitmap.api import DEFAULT_FONT, cached_text_bitmap_bytes
+
+
+CONTEXT = None
 
 
 def _clean(value) -> str:
@@ -41,7 +44,7 @@ def _emit_bytes(data: bytes):
 def main():
     font, text = _args()
     try:
-        return _emit_bytes(text_bitmap_bytes(text, font=font))
+        return _emit_bytes(cached_text_bitmap_bytes(text, font=font, context=globals().get("CONTEXT")))
     except Exception as exc:
         return Err(str(exc))
 

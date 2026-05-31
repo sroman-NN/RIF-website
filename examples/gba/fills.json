@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "project": "C:\\Users\\Kentucky\\Desktop\\AMST\\Retargetable-ISA-Foundry-RIF-\\examples\\gba",
+    "phase": "link"
+  },
+  "gba": {
+    "gba_header": {
+      "name": "gba_header",
+      "align": 1,
+      "padding": 0,
+      "size": 192,
+      "bits": 1536,
+      "type": "gba-header",
+      "title": "MY GAME"
+    }
+  }
+}

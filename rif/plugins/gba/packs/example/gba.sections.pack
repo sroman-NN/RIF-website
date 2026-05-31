@@ -1,21 +1,6 @@
-comment ;
-
-; ============================================================
-; GBA — Layout de secciones de memoria
-; Fragmento enlazado en: .sections
-; ============================================================
-; Mapa de memoria oficial del GBA.
-; La ROM es lo único que se emite físicamente al archivo .gba.
-; El resto son regiones de memoria virtual del hardware.
-
-.sections
-
-| NAME    | type   | perms | align | fill | emit | order |
-| rom     | code   | rx    | 4     | 00   | yes  | 0     | ; ROM del cartucho (0x08000000) — código y datos constantes
-| ewram   | memory | rw    | 4     | 00   | no   | 1     | ; External Work RAM (0x02000000) — 256 KB, memoria de trabajo externa
-| iwram   | memory | rwx   | 4     | 00   | no   | 2     | ; Internal Work RAM (0x03000000) — 32 KB, RAM interna rápida
-| io      | mmio   | rw    | 2     | 00   | no   | 3     | ; Registros MMIO (0x04000000) — hardware mapeado en memoria
-| palette | memory | rw    | 2     | 00   | no   | 4     | ; Memoria de paletas (0x05000000) — 1 KB
-| vram    | memory | rw    | 2     | 00   | no   | 5     | ; Video RAM (0x06000000) — 96 KB
-| oam     | memory | rw    | 4     | 00   | no   | 6     | ; Object Attribute Memory (0x07000000) — sprites
-| sram    | memory | rw    | 1     | FF   | no   | 7     | ; Save RAM (0x0E000000) — guardado de partida
+| NAME   | type   | perms | align | fill | emit | order | voffset    |
+| header | code   | r     | 1     | 00   | yes  | 0     | 0x08000000 |
+| rom    | code   | rx    | 4     | 00   | yes  | 1     | 0x080000C0 |
+| data   | data   | rw    | 4     | 00   | yes  | 2     | 0x02000000 |
+| rodata | data   | r     | 4     | 00   | yes  | 3     | 0x08020000 |
+| bss    | nobits | rw    | 4     | 00   | no   | 4     | 0x02030000 |

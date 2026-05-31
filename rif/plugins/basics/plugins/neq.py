@@ -1,4 +1,4 @@
-"""Compara que dos valores NO tengan exactamente los mismos bits."""
+
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ def _clean(value: Any) -> str:
 
 
 def main():
-    Line.Advance()  # consumir "neq"
+    Line.Advance()  
     pack = [_clean(item) for item in Line.Unpack(",")]
 
     if len(pack) != 2 or not all(pack):

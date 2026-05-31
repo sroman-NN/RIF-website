@@ -52,10 +52,10 @@ class Lexer:
             if name in ("commit", "comment"):
                 if args:
                     cfg.comment = args[0].value
-            elif name == "separator":
+            elif name in ("separator", "table-separator"):
                 if args:
                     cfg.separator = args[0].value
-            elif name == "blocks":
+            elif name in ("blocks", "block"):
                 if args:
                     cfg.block = args[0].value
             elif name == "encoding":

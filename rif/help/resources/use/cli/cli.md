@@ -11,6 +11,9 @@ python -m rif compile archivo.pack instruccion
 python -m rif build archivo.pack
 python -m rif build archivo.pack --source-file programa.rif
 python -m rif build carpeta_proyecto
+python -m rif table modify --from archivo.pack "regs set ax bits 32"
+python -m rif table format --from archivo.pack
+python -m rif table undo
 python -m rif -pcli plugin comando
 python -m rif -pcli basics build-doc carpeta_proyecto
 python -m rif help

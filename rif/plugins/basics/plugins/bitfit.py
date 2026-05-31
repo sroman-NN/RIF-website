@@ -1,4 +1,4 @@
-"""Verifica que un valor quepa en n bits."""
+
 
 from __future__ import annotations
 

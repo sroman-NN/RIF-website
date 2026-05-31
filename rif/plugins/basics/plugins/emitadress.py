@@ -1,7 +1,4 @@
-"""Emite una dirección de memoria como placeholder.
 
-Alias de compatibilidad heredado de 'emitadress'. Redirige la lógica al motor principal.
-"""
 
 from __future__ import annotations
 
@@ -22,7 +19,7 @@ def main():
     if Line.elements != 2:
         return Err("emitadress espera un operando")
 
-    Line.Advance()  # consumir "emitadress"
+    Line.Advance()  
     target = _clean(Line.Advance())
     Line.expects(" ", "\n")
 

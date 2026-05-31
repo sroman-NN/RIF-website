@@ -24,6 +24,8 @@ Convenciones principales:
 
 Las tablas se convierten en objetos consultables por el compiler, linker y plugins.
 
+> **Tip:** Puedes modificar y formatear tablas programáticamente usando la CLI `rif table` (por ejemplo, `rif table format --from archivo.pack` o `rif table modify --from archivo.pack "regs add row mi_reg 0x0"`). Para más detalles, consulta `rif help comando_table`.
+
 El comportamiento del lector de fuente se define en `.pack`:
 
 ```rif

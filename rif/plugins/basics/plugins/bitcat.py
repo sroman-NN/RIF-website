@@ -1,13 +1,4 @@
-"""Concatena varios valores de bits.
 
-Formas:
-
-    bitcat A, B
-    bitcat OUT, A, B
-
-Con destino, OUT queda disponible como valor temporal para `emit OUT` dentro
-de la misma ejecucion de regla.
-"""
 
 from __future__ import annotations
 

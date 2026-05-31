@@ -1,0 +1,7 @@
+{
+  "name": "image",
+  "version": "0.1.0",
+  "author": "RIF Contributors",
+  "license": "MIT",
+  "purpose": "El plugin image convierte imagenes locales en datos bitmap de un bit por pixel para que los proyectos RIF puedan incluir recursos graficos generados desde archivos PNG, BMP u otros formatos soportados por Pillow cuando esta disponible. Su proposito es cachear conversiones por proyecto y devolver definiciones de datos compilables, evitando reprocesar imagenes grandes en cada build."
+}

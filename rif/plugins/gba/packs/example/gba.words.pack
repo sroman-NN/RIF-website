@@ -1,71 +1,157 @@
-comment ;
-
-; ============================================================
-; GBA — Definiciones de palabras (macros y nombres de instrucciones)
-; Fragmento enlazado en: .words
-; ============================================================
-; Las words sin columna hex son instrucciones que tienen reglas en .rules.
-; Las words con hex son macros directas que insertan bytes sin reglas.
-; El parser las necesita para reconocer los nombres de instrucción
-; al leer el código fuente .rif del usuario.
-
-.words
-
-; ---- Macros ROM (delegadas al plugin gba) ----
-| NAME         | hex |
-| set_headers  |     |
-| set_logo     |     |
-| set_checksum |     |
-| set_entry    |     |
-| set_entry_thumb |     |
-| set_frame    |     |
-| set_rompad   |     |
-| rompad       |     |
-
-; ---- Instrucciones Thumb: transferencia de datos ----
-| store |  |  ; MOV Rd, #imm8   — carga inmediato de 8 bits en registro
-| move  |  |  ; ADD Rd, Rs, #0  — copia de registro a registro
-| lsl   |  |  ; LSL Rd, Rs, #imm5 — desplazamiento lógico izquierda
-| lsr   |  |  ; LSR Rd, Rs, #imm5 — desplazamiento lógico derecha
-| asr   |  |  ; ASR Rd, Rs, #imm5 — desplazamiento aritmético derecha
-
-; ---- Instrucciones Thumb: aritmética/lógica ----
-| add   |  |  ; ADD Rd, Rs, Rn  — suma tres registros
-| sub   |  |  ; SUB Rd, Rs, Rn  — resta tres registros
-| and   |  |  ; AND Rd, Rs      — AND lógico
-| or    |  |  ; ORR Rd, Rs      — OR lógico
-| xor   |  |  ; EOR Rd, Rs      — XOR lógico
-| not   |  |  ; MVN Rd, Rs      — NOT lógico
-| cmp   |  |  ; CMP Rd, Rs      — compara (establece flags)
-| neg   |  |  ; NEG Rd, Rs      — negación (0 - Rs)
-| mul   |  |  ; MUL Rd, Rs      — multiplicación
-
-; ---- Instrucciones Thumb: acceso a memoria ----
-| ldr   |  |  ; LDR Rd, [Rb, Ro]  — carga 32 bits desde memoria
-| ldrb  |  |  ; LDRB Rd, [Rb, Ro] — carga 8 bits desde memoria
-| ldrh  |  |  ; LDRH Rd, [Rb, Ro] — carga 16 bits desde memoria
-| str   |  |  ; STR Rd, [Rb, Ro]  — guarda 32 bits en memoria
-| strb  |  |  ; STRB Rd, [Rb, Ro] — guarda 8 bits en memoria
-| strh  |  |  ; STRH Rd, [Rb, Ro] — guarda 16 bits en memoria
-
-; ---- Instrucciones Thumb: control de flujo ----
-| jump  |  |  ; B  label   — salto incondicional
-| bx    |  |  ; BX Rm      — branch and exchange
-| call  |  |  ; BL label   — salto con retorno (call)
-| beq   |  |  ; BEQ label  — salto si igual (Z=1)
-| bne   |  |  ; BNE label  — salto si distinto (Z=0)
-| blt   |  |  ; BLT label  — salto si menor (N!=V)
-| bgt   |  |  ; BGT label  — salto si mayor (Z=0 y N=V)
-| ble   |  |  ; BLE label  — salto si menor o igual
-| bge   |  |  ; BGE label  — salto si mayor o igual
-
-; ---- Instrucciones Thumb: stack ----
-| push  |  |  ; PUSH {lista} — guarda registros en stack
-| pop   |  |  ; POP  {lista} — recupera registros del stack
-
-; ---- Datos y bitmaps ----
-| db    |  |  ; define byte — emite un byte u8 en la ROM
-| dh    |  |  ; define halfword — emite un u16 en la ROM
-| dw    |  |  ; define word — emite un u32 en la ROM
-| bitmap_text |  |  ; convierte texto a bitmap 5x7 y lo emite
-
+| NAME            | hex      |
+| db              |          |
+| u8              |          |
+| dh              |          |
+| u16             |          |
+| dw              |          |
+| u32             |          |
+| byte            |          |
+| half            |          |
+| halfword        |          |
+| word            |          |
+| imm             | 0x2000   |
+| store           | 0x2000   |
+| mov_imm         | 0x2000   |
+| cmp_imm         | 0x2800   |
+| add_imm         | 0x3000   |
+| sub_imm         | 0x3800   |
+| move            | 0x4600   |
+| mov             | 0x4600   |
+| add             | 0x1800   |
+| sub             | 0x1A00   |
+| add3_imm        | 0x1C00   |
+| sub3_imm        | 0x1E00   |
+| add_hi          | 0x4400   |
+| cmp_hi          | 0x4500   |
+| and             | 0x4000   |
+| xor             | 0x4040   |
+| eor             | 0x4040   |
+| lsl             | 0x0000   |
+| lsr             | 0x0800   |
+| asr             | 0x1000   |
+| adc             | 0x4140   |
+| sbc             | 0x4180   |
+| ror             | 0x41C0   |
+| tst             | 0x4200   |
+| neg             | 0x4240   |
+| cmp             | 0x4280   |
+| cmn             | 0x42C0   |
+| or              | 0x4300   |
+| orr             | 0x4300   |
+| mul             | 0x4340   |
+| bic             | 0x4380   |
+| not             | 0x43C0   |
+| mvn             | 0x43C0   |
+| str             | 0x5000   |
+| strh            | 0x5200   |
+| strb            | 0x5400   |
+| ldsb            | 0x5600   |
+| ldr             | 0x5800   |
+| ldrh            | 0x5A00   |
+| ldrb            | 0x5C00   |
+| ldsh            | 0x5E00   |
+| str_imm         | 0x6000   |
+| ldr_imm         | 0x6800   |
+| strb_imm        | 0x7000   |
+| ldrb_imm        | 0x7800   |
+| strh_imm        | 0x8000   |
+| ldrh_imm        | 0x8800   |
+| ldr_pc          | 0x4800   |
+| ldr_pc_label    | 0x4800   |
+| str_sp          | 0x9000   |
+| ldr_sp          | 0x9800   |
+| adr             | 0xA000   |
+| adr_label       | 0xA000   |
+| add_sp          | 0xA800   |
+| add_sp_imm      | 0xB000   |
+| sub_sp_imm      | 0xB080   |
+| bx              | 0x4700   |
+| push            | 0xB400   |
+| push_mask       | 0xB400   |
+| push_list       | 0xB400   |
+| pop             | 0xBC00   |
+| pop_mask        | 0xBC00   |
+| pop_list        | 0xBC00   |
+| stmia           | 0xC000   |
+| stmia_list      | 0xC000   |
+| ldmia           | 0xC800   |
+| ldmia_list      | 0xC800   |
+| b               | 0xE000   |
+| jump            | 0xE000   |
+| bcond           | 0xD000   |
+| beq             | 0xD000   |
+| bne             | 0xD100   |
+| bcs             | 0xD200   |
+| bhs             | 0xD200   |
+| bcc             | 0xD300   |
+| blo             | 0xD300   |
+| bmi             | 0xD400   |
+| bpl             | 0xD500   |
+| bvs             | 0xD600   |
+| bvc             | 0xD700   |
+| bhi             | 0xD800   |
+| bls             | 0xD900   |
+| blt             | 0xDB00   |
+| bgt             | 0xDC00   |
+| ble             | 0xDD00   |
+| bge             | 0xDA00   |
+| call            | 0xF000   |
+| bl              | 0xF000   |
+| swi             | 0xDF00   |
+| arm_bx          | 0xE12FFF10 |
+| thumb           | 0xE12FFF10 |
+| arm_b           | 0xEA000000 |
+| arm_bl          | 0xEB000000 |
+| arm_bcond       | 0x0A000000 |
+| arm_blcond      | 0x0B000000 |
+| arm_swi         | 0xEF000000 |
+| arm_raw         |          |
+| arm_mov         | 0xE1A00000 |
+| arm_mov_imm     | 0xE3A00000 |
+| arm_mvn         | 0xE1E00000 |
+| arm_mvn_imm     | 0xE3E00000 |
+| arm_add         | 0xE0800000 |
+| arm_add_imm     | 0xE2800000 |
+| arm_sub         | 0xE0400000 |
+| arm_sub_imm     | 0xE2400000 |
+| arm_rsb         | 0xE0600000 |
+| arm_cmp         | 0xE1500000 |
+| arm_cmp_imm     | 0xE3500000 |
+| arm_cmn         | 0xE1700000 |
+| arm_and         | 0xE0000000 |
+| arm_orr         | 0xE1800000 |
+| arm_eor         | 0xE0200000 |
+| arm_bic         | 0xE1C00000 |
+| arm_tst         | 0xE1100000 |
+| arm_teq         | 0xE1300000 |
+| arm_mul         | 0xE0000090 |
+| arm_mla         | 0xE0200090 |
+| arm_umull       | 0xE0800090 |
+| arm_umlal       | 0xE0A00090 |
+| arm_smull       | 0xE0C00090 |
+| arm_smlal       | 0xE0E00090 |
+| arm_dp_shift    | 0xE0000000 |
+| arm_dp_shift_reg | 0xE0000010 |
+| arm_ldr         | 0xE5900000 |
+| arm_str         | 0xE5800000 |
+| arm_ldrb        | 0xE5D00000 |
+| arm_strb        | 0xE5C00000 |
+| arm_ldrh        | 0xE1D000B0 |
+| arm_strh        | 0xE1C000B0 |
+| arm_ldrsb       | 0xE1D000D0 |
+| arm_ldrsh       | 0xE1D000F0 |
+| arm_ldmia       | 0xE8900000 |
+| arm_stmia       | 0xE8800000 |
+| arm_ldmia_w     | 0xE8B00000 |
+| arm_stmia_w     | 0xE8A00000 |
+| arm_stmfd       | 0xE9200000 |
+| arm_ldmfd       | 0xE8B00000 |
+| arm_mrs         | 0xE10F0000 |
+| set_headers     | 0xEA00   |
+| set_logo        |          |
+| set_checksum    |          |
+| set_entry       |          |
+| set_entry_thumb |          |
+| set_frame       |          |
+| set_rompad      |          |
+| rompad          |          |

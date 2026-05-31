@@ -1,0 +1,7 @@
+{
+  "name": "color",
+  "version": "0.1.0",
+  "author": "RIF Contributors",
+  "license": "MIT",
+  "purpose": "El plugin color reserva un espacio para utilidades de conversion y representacion de colores que puedan ser compartidas por packs graficos o de consolas retro. Su proposito es documentar la intencion del paquete, permitir que la administracion de plugins de RIF lo liste de forma uniforme y servir como base para funciones futuras relacionadas con formatos de color."
+}

@@ -1,75 +1,322 @@
-comment ;
-
-; ============================================================
-; GBA — Registros del procesador ARM7TDMI
-; Fragmento enlazado en: .regs
-; ============================================================
-; Los registros bajos R0-R7 usan código de 3 bits (formato Thumb).
-; Los registros altos R8-R12 usan 4 bits en ARM/Thumb2.
-; Registros especiales: SP, LR, PC son Rd en Thumb con 3 bits.
-; Los registros de hardware MMIO se identifican por su dirección física.
-
-.regs
-
-| NAME        | code       | gnp | thumb | id | ; code = bits que va en el campo Rd/Rs de la instrucción Thumb
-| R0          | 000        | yes | yes   | 0  | ; Registro bajo — Thumb 3 bits
-| R1          | 001        | yes | yes   | 0  |
-| R2          | 010        | yes | yes   | 0  |
-| R3          | 011        | yes | yes   | 0  |
-| R4          | 100        | yes | yes   | 0  |
-| R5          | 101        | yes | yes   | 0  |
-| R6          | 110        | yes | yes   | 0  |
-| R7          | 111        | yes | yes   | 0  |
-| R8          | 1000       | yes | no    | 0  | ; Registro alto — ARM only (4 bits)
-| R9          | 1001       | yes | no    | 0  |
-| R10         | 1010       | yes | no    | 0  |
-| R11         | 1011       | yes | no    | 0  |
-| R12         | 1100       | yes | no    | 0  |
-| SP          | 101        | no  | yes   | 3  | ; R13 — Stack Pointer (usa cód. especial en Thumb)
-| LR          | 110        | no  | yes   | 3  | ; R14 — Link Register
-| PC          | 111        | no  | yes   | 3  | ; R15 — Program Counter
-| CPSR        | 10000      | no  | no    | 3  | ; Estado actual del procesador
-| SPSR        | 10001      | no  | no    | 3  | ; Estado guardado del procesador
-| DISPCNT     | 0x04000000 | no  | yes   | 4  | ; Control de Pantalla LCD
-| DISPSTAT    | 0x04000004 | no  | yes   | 4  | ; Estado de Pantalla (V-Blank/H-Blank)
-| VCOUNT      | 0x04000006 | no  | yes   | 4  | ; Línea vertical actual
-| BG0CNT      | 0x04000008 | no  | yes   | 4  | ; Control de Fondo 0
-| BG1CNT      | 0x0400000A | no  | yes   | 4  | ; Control de Fondo 1
-| BG2CNT      | 0x0400000C | no  | yes   | 4  | ; Control de Fondo 2
-| BG3CNT      | 0x0400000E | no  | yes   | 4  | ; Control de Fondo 3
-| BG0HOFS     | 0x04000010 | no  | yes   | 4  |
-| BG0VOFS     | 0x04000012 | no  | yes   | 4  |
-| BG2PA       | 0x04000020 | no  | yes   | 4  |
-| BG2PB       | 0x04000022 | no  | yes   | 4  |
-| BG2PC       | 0x04000024 | no  | yes   | 4  |
-| BG2PD       | 0x04000026 | no  | yes   | 4  |
-| MOSAIC      | 0x0400004C | no  | yes   | 4  |
-| BLDCNT      | 0x04000050 | no  | yes   | 4  |
-| SOUND1CNT_L | 0x04000060 | no  | yes   | 1  |
-| SOUNDCNT_H  | 0x04000082 | no  | yes   | 1  |
-| SOUNDCNT_X  | 0x04000084 | no  | yes   | 1  |
-| DMA0SAD     | 0x040000B0 | no  | yes   | 5  |
-| DMA0DAD     | 0x040000B4 | no  | yes   | 5  |
-| DMA0CNT     | 0x040000B8 | no  | yes   | 5  |
-| DMA3SAD     | 0x040000D4 | no  | yes   | 5  |
-| DMA3DAD     | 0x040000D8 | no  | yes   | 5  |
-| DMA3CNT     | 0x040000DC | no  | yes   | 5  |
-| TM0CNT      | 0x04000100 | no  | yes   | 2  |
-| TM1CNT      | 0x04000104 | no  | yes   | 2  |
-| KEYINPUT    | 0x04000130 | no  | yes   | 6  |
-| KEYCNT      | 0x04000132 | no  | yes   | 6  |
-| IE          | 0x04000200 | no  | yes   | 7  |
-| IF          | 0x04000202 | no  | yes   | 7  |
-| IME         | 0x04000208 | no  | yes   | 7  |
-| HALTCNT     | 0x04000301 | no  | yes   | 9  |
-
-; ID / PROPÓSITO
-; 0 = GENERAL       ; Registros de propósito general ARM7TDMI
-; 1 = SOUND         ; Controlador de sonido
-; 2 = TIMER         ; Temporizadores de hardware
-; 3 = CPU_CONTROL   ; Registros especiales del procesador
-; 4 = VIDEO         ; Pantalla, fondos, efectos de color
-; 5 = DMA           ; Canales de Acceso Directo a Memoria
-; 6 = INPUT         ; Estado de botones y controles
-; 7 = SYSTEM        ; Interrupciones y control global
-; 9 = POWER         ; Control de energía
+| NAME        | bits      | code                             | hex        | fam         | type | GNP | ARM | THUMB | TLOW | THIGH | TSP | TLR | TPC | MMIO | REGION | BANKED | ALIAS | part |
+| R0          | 32        | 0000                             | 0x0        | R0          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R1          | 32        | 0001                             | 0x1        | R1          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R2          | 32        | 0010                             | 0x2        | R2          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R3          | 32        | 0011                             | 0x3        | R3          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R4          | 32        | 0100                             | 0x4        | R4          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R5          | 32        | 0101                             | 0x5        | R5          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R6          | 32        | 0110                             | 0x6        | R6          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R7          | 32        | 0111                             | 0x7        | R7          | 0    | yes | yes | yes   | yes  | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R8          | 32        | 1000                             | 0x8        | R8          | 0    | yes | yes | yes   | no   | yes   | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R9          | 32        | 1001                             | 0x9        | R9          | 0    | yes | yes | yes   | no   | yes   | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R10         | 32        | 1010                             | 0xA        | R10         | 0    | yes | yes | yes   | no   | yes   | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R11         | 32        | 1011                             | 0xB        | R11         | 0    | yes | yes | yes   | no   | yes   | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R12         | 32        | 1100                             | 0xC        | R12         | 0    | yes | yes | yes   | no   | yes   | no  | no  | no  | no   | no     | no     | no    | 0    |
+| R13         | 32        | 1101                             | 0xD        | R13         | 0    | no  | yes | yes   | no   | no    | yes | no  | no  | no   | no     | no     | no    | 0    |
+| R14         | 32        | 1110                             | 0xE        | R14         | 0    | no  | yes | yes   | no   | no    | no  | yes | no  | no   | no     | no     | no    | 0    |
+| R15         | 32        | 1111                             | 0xF        | R15         | 0    | no  | yes | yes   | no   | no    | no  | no  | yes | no   | no     | no     | no    | 0    |
+| SP          | 32        | 1101                             | 0xD        | R13         | 0    | no  | yes | yes   | no   | no    | yes | no  | no  | no   | no     | no     | yes   | 3    |
+| LR          | 32        | 1110                             | 0xE        | R14         | 0    | no  | yes | yes   | no   | no    | no  | yes | no  | no   | no     | no     | yes   | 3    |
+| PC          | 32        | 1111                             | 0xF        | R15         | 0    | no  | yes | yes   | no   | no    | no  | no  | yes | no   | no     | no     | yes   | 3    |
+| CPSR        | 32        | 00000                            | 0x10       | CPSR        | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| SPSR_fiq    | 32        | 10001                            | 0x11       | SPSR_fiq    | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 0    |
+| SPSR_irq    | 32        | 10010                            | 0x12       | SPSR_irq    | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 0    |
+| SPSR_svc    | 32        | 10011                            | 0x13       | SPSR_svc    | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 0    |
+| SPSR_abt    | 32        | 10111                            | 0x17       | SPSR_abt    | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 0    |
+| SPSR_und    | 32        | 11011                            | 0x1B       | SPSR_und    | 9    | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 0    |
+| R8_fiq      | 32        | 1000                             | 0x8        | R8          | 10   | yes | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R9_fiq      | 32        | 1001                             | 0x9        | R9          | 10   | yes | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R10_fiq     | 32        | 1010                             | 0xA        | R10         | 10   | yes | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R11_fiq     | 32        | 1011                             | 0xB        | R11         | 10   | yes | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R12_fiq     | 32        | 1100                             | 0xC        | R12         | 10   | yes | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R13_fiq     | 32        | 1101                             | 0xD        | R13         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R14_fiq     | 32        | 1110                             | 0xE        | R14         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R13_irq     | 32        | 1101                             | 0xD        | R13         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R14_irq     | 32        | 1110                             | 0xE        | R14         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R13_svc     | 32        | 1101                             | 0xD        | R13         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R14_svc     | 32        | 1110                             | 0xE        | R14         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R13_abt     | 32        | 1101                             | 0xD        | R13         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R14_abt     | 32        | 1110                             | 0xE        | R14         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R13_und     | 32        | 1101                             | 0xD        | R13         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| R14_und     | 32        | 1110                             | 0xE        | R14         | 10   | no  | yes | no    | no   | no    | no  | no  | no  | no   | no     | yes    | no    | 4    |
+| DISPCNT     | 16        | 00000100000000000000000000000000 | 0x04000000 | DISPCNT     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| GREENSWAP   | 16        | 00000100000000000000000000000010 | 0x04000002 | GREENSWAP   | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DISPSTAT    | 16        | 00000100000000000000000000000100 | 0x04000004 | DISPSTAT    | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| VCOUNT      | 16        | 00000100000000000000000000000110 | 0x04000006 | VCOUNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG0CNT      | 16        | 00000100000000000000000000001000 | 0x04000008 | BG0CNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG1CNT      | 16        | 00000100000000000000000000001010 | 0x0400000A | BG1CNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2CNT      | 16        | 00000100000000000000000000001100 | 0x0400000C | BG2CNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3CNT      | 16        | 00000100000000000000000000001110 | 0x0400000E | BG3CNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG0HOFS     | 16        | 00000100000000000000000000010000 | 0x04000010 | BG0HOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG0VOFS     | 16        | 00000100000000000000000000010010 | 0x04000012 | BG0VOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG1HOFS     | 16        | 00000100000000000000000000010100 | 0x04000014 | BG1HOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG1VOFS     | 16        | 00000100000000000000000000010110 | 0x04000016 | BG1VOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2HOFS     | 16        | 00000100000000000000000000011000 | 0x04000018 | BG2HOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2VOFS     | 16        | 00000100000000000000000000011010 | 0x0400001A | BG2VOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3HOFS     | 16        | 00000100000000000000000000011100 | 0x0400001C | BG3HOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3VOFS     | 16        | 00000100000000000000000000011110 | 0x0400001E | BG3VOFS     | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2PA       | 16        | 00000100000000000000000000100000 | 0x04000020 | BG2PA       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2PB       | 16        | 00000100000000000000000000100010 | 0x04000022 | BG2PB       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2PC       | 16        | 00000100000000000000000000100100 | 0x04000024 | BG2PC       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2PD       | 16        | 00000100000000000000000000100110 | 0x04000026 | BG2PD       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2X        | 32        | 00000100000000000000000000101000 | 0x04000028 | BG2X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2X00      | 16        | 00000100000000000000000000101000 | 0x04000028 | BG2X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| BG2X01      | 16        | 00000100000000000000000000101010 | 0x0400002A | BG2X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| BG2Y        | 32        | 00000100000000000000000000101100 | 0x0400002C | BG2Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG2Y00      | 16        | 00000100000000000000000000101100 | 0x0400002C | BG2Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| BG2Y01      | 16        | 00000100000000000000000000101110 | 0x0400002E | BG2Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| BG3PA       | 16        | 00000100000000000000000000110000 | 0x04000030 | BG3PA       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3PB       | 16        | 00000100000000000000000000110010 | 0x04000032 | BG3PB       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3PC       | 16        | 00000100000000000000000000110100 | 0x04000034 | BG3PC       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3PD       | 16        | 00000100000000000000000000110110 | 0x04000036 | BG3PD       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3X        | 32        | 00000100000000000000000000111000 | 0x04000038 | BG3X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3X00      | 16        | 00000100000000000000000000111000 | 0x04000038 | BG3X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| BG3X01      | 16        | 00000100000000000000000000111010 | 0x0400003A | BG3X        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| BG3Y        | 32        | 00000100000000000000000000111100 | 0x0400003C | BG3Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BG3Y00      | 16        | 00000100000000000000000000111100 | 0x0400003C | BG3Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| BG3Y01      | 16        | 00000100000000000000000000111110 | 0x0400003E | BG3Y        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| WIN0H       | 16        | 00000100000000000000000001000000 | 0x04000040 | WIN0H       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WIN1H       | 16        | 00000100000000000000000001000010 | 0x04000042 | WIN1H       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WIN0V       | 16        | 00000100000000000000000001000100 | 0x04000044 | WIN0V       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WIN1V       | 16        | 00000100000000000000000001000110 | 0x04000046 | WIN1V       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WININ       | 16        | 00000100000000000000000001001000 | 0x04000048 | WININ       | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WINOUT      | 16        | 00000100000000000000000001001010 | 0x0400004A | WINOUT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| MOSAIC      | 16        | 00000100000000000000000001001100 | 0x0400004C | MOSAIC      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BLDCNT      | 16        | 00000100000000000000000001010000 | 0x04000050 | BLDCNT      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BLDALPHA    | 16        | 00000100000000000000000001010010 | 0x04000052 | BLDALPHA    | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BLDY        | 16        | 00000100000000000000000001010100 | 0x04000054 | BLDY        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND1CNT_L | 16        | 00000100000000000000000001100000 | 0x04000060 | SOUND1CNT_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND1CNT_H | 16        | 00000100000000000000000001100010 | 0x04000062 | SOUND1CNT_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND1CNT_X | 16        | 00000100000000000000000001100100 | 0x04000064 | SOUND1CNT_X | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND2CNT_L | 16        | 00000100000000000000000001101000 | 0x04000068 | SOUND2CNT_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND2CNT_H | 16        | 00000100000000000000000001101100 | 0x0400006C | SOUND2CNT_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND3CNT_L | 16        | 00000100000000000000000001110000 | 0x04000070 | SOUND3CNT_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND3CNT_H | 16        | 00000100000000000000000001110010 | 0x04000072 | SOUND3CNT_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND3CNT_X | 16        | 00000100000000000000000001110100 | 0x04000074 | SOUND3CNT_X | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND4CNT_L | 16        | 00000100000000000000000001111000 | 0x04000078 | SOUND4CNT_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUND4CNT_H | 16        | 00000100000000000000000001111100 | 0x0400007C | SOUND4CNT_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUNDCNT_L  | 16        | 00000100000000000000000010000000 | 0x04000080 | SOUNDCNT_L  | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUNDCNT_H  | 16        | 00000100000000000000000010000010 | 0x04000082 | SOUNDCNT_H  | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUNDCNT_X  | 16        | 00000100000000000000000010000100 | 0x04000084 | SOUNDCNT_X  | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SOUNDBIAS   | 16        | 00000100000000000000000010001000 | 0x04000088 | SOUNDBIAS   | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM0_L | 16        | 00000100000000000000000010010000 | 0x04000090 | WAVE_RAM0_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM0_H | 16        | 00000100000000000000000010010010 | 0x04000092 | WAVE_RAM0_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM1_L | 16        | 00000100000000000000000010010100 | 0x04000094 | WAVE_RAM1_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM1_H | 16        | 00000100000000000000000010010110 | 0x04000096 | WAVE_RAM1_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM2_L | 16        | 00000100000000000000000010011000 | 0x04000098 | WAVE_RAM2_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM2_H | 16        | 00000100000000000000000010011010 | 0x0400009A | WAVE_RAM2_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM3_L | 16        | 00000100000000000000000010011100 | 0x0400009C | WAVE_RAM3_L | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAVE_RAM3_H | 16        | 00000100000000000000000010011110 | 0x0400009E | WAVE_RAM3_H | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| FIFO_A      | 32        | 00000100000000000000000010100000 | 0x040000A0 | FIFO_A      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| FIFO_A00    | 16        | 00000100000000000000000010100000 | 0x040000A0 | FIFO_A      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| FIFO_A01    | 16        | 00000100000000000000000010100010 | 0x040000A2 | FIFO_A      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| FIFO_B      | 32        | 00000100000000000000000010100100 | 0x040000A4 | FIFO_B      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| FIFO_B00    | 16        | 00000100000000000000000010100100 | 0x040000A4 | FIFO_B      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| FIFO_B01    | 16        | 00000100000000000000000010100110 | 0x040000A6 | FIFO_B      | 2    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA0SAD     | 32        | 00000100000000000000000010110000 | 0x040000B0 | DMA0SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA0SAD00   | 16        | 00000100000000000000000010110000 | 0x040000B0 | DMA0SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA0SAD01   | 16        | 00000100000000000000000010110010 | 0x040000B2 | DMA0SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA0DAD     | 32        | 00000100000000000000000010110100 | 0x040000B4 | DMA0DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA0DAD00   | 16        | 00000100000000000000000010110100 | 0x040000B4 | DMA0DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA0DAD01   | 16        | 00000100000000000000000010110110 | 0x040000B6 | DMA0DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA0CNT     | 32        | 00000100000000000000000010111000 | 0x040000B8 | DMA0CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA0CNT00   | 16        | 00000100000000000000000010111000 | 0x040000B8 | DMA0CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA0CNT01   | 16        | 00000100000000000000000010111010 | 0x040000BA | DMA0CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA1SAD     | 32        | 00000100000000000000000010111100 | 0x040000BC | DMA1SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA1SAD00   | 16        | 00000100000000000000000010111100 | 0x040000BC | DMA1SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA1SAD01   | 16        | 00000100000000000000000010111110 | 0x040000BE | DMA1SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA1DAD     | 32        | 00000100000000000000000011000000 | 0x040000C0 | DMA1DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA1DAD00   | 16        | 00000100000000000000000011000000 | 0x040000C0 | DMA1DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA1DAD01   | 16        | 00000100000000000000000011000010 | 0x040000C2 | DMA1DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA1CNT     | 32        | 00000100000000000000000011000100 | 0x040000C4 | DMA1CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA1CNT00   | 16        | 00000100000000000000000011000100 | 0x040000C4 | DMA1CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA1CNT01   | 16        | 00000100000000000000000011000110 | 0x040000C6 | DMA1CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA2SAD     | 32        | 00000100000000000000000011001000 | 0x040000C8 | DMA2SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA2SAD00   | 16        | 00000100000000000000000011001000 | 0x040000C8 | DMA2SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA2SAD01   | 16        | 00000100000000000000000011001010 | 0x040000CA | DMA2SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA2DAD     | 32        | 00000100000000000000000011001100 | 0x040000CC | DMA2DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA2DAD00   | 16        | 00000100000000000000000011001100 | 0x040000CC | DMA2DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA2DAD01   | 16        | 00000100000000000000000011001110 | 0x040000CE | DMA2DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA2CNT     | 32        | 00000100000000000000000011010000 | 0x040000D0 | DMA2CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA2CNT00   | 16        | 00000100000000000000000011010000 | 0x040000D0 | DMA2CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA2CNT01   | 16        | 00000100000000000000000011010010 | 0x040000D2 | DMA2CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA3SAD     | 32        | 00000100000000000000000011010100 | 0x040000D4 | DMA3SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA3SAD00   | 16        | 00000100000000000000000011010100 | 0x040000D4 | DMA3SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA3SAD01   | 16        | 00000100000000000000000011010110 | 0x040000D6 | DMA3SAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA3DAD     | 32        | 00000100000000000000000011011000 | 0x040000D8 | DMA3DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA3DAD00   | 16        | 00000100000000000000000011011000 | 0x040000D8 | DMA3DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA3DAD01   | 16        | 00000100000000000000000011011010 | 0x040000DA | DMA3DAD     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| DMA3CNT     | 32        | 00000100000000000000000011011100 | 0x040000DC | DMA3CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| DMA3CNT00   | 16        | 00000100000000000000000011011100 | 0x040000DC | DMA3CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| DMA3CNT01   | 16        | 00000100000000000000000011011110 | 0x040000DE | DMA3CNT     | 3    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| TM0CNT      | 32        | 00000100000000000000000100000000 | 0x04000100 | TM0CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| TM0CNT00    | 16        | 00000100000000000000000100000000 | 0x04000100 | TM0CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| TM0CNT01    | 16        | 00000100000000000000000100000010 | 0x04000102 | TM0CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| TM1CNT      | 32        | 00000100000000000000000100000100 | 0x04000104 | TM1CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| TM1CNT00    | 16        | 00000100000000000000000100000100 | 0x04000104 | TM1CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| TM1CNT01    | 16        | 00000100000000000000000100000110 | 0x04000106 | TM1CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| TM2CNT      | 32        | 00000100000000000000000100001000 | 0x04000108 | TM2CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| TM2CNT00    | 16        | 00000100000000000000000100001000 | 0x04000108 | TM2CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| TM2CNT01    | 16        | 00000100000000000000000100001010 | 0x0400010A | TM2CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| TM3CNT      | 32        | 00000100000000000000000100001100 | 0x0400010C | TM3CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| TM3CNT00    | 16        | 00000100000000000000000100001100 | 0x0400010C | TM3CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| TM3CNT01    | 16        | 00000100000000000000000100001110 | 0x0400010E | TM3CNT      | 4    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| SIODATA32   | 32        | 00000100000000000000000100100000 | 0x04000120 | SIODATA32   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIODATA3200 | 16        | 00000100000000000000000100100000 | 0x04000120 | SIODATA32   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| SIODATA3201 | 16        | 00000100000000000000000100100010 | 0x04000122 | SIODATA32   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| SIOMULTI0   | 16        | 00000100000000000000000100100000 | 0x04000120 | SIOMULTI0   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIOMULTI1   | 16        | 00000100000000000000000100100010 | 0x04000122 | SIOMULTI1   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIOMULTI2   | 16        | 00000100000000000000000100100100 | 0x04000124 | SIOMULTI2   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIOMULTI3   | 16        | 00000100000000000000000100100110 | 0x04000126 | SIOMULTI3   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIOCNT      | 16        | 00000100000000000000000100101000 | 0x04000128 | SIOCNT      | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIOMLT_SEND | 16        | 00000100000000000000000100101010 | 0x0400012A | SIOMLT_SEND | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| SIODATA8    | 16        | 00000100000000000000000100101010 | 0x0400012A | SIODATA8    | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| RCNT        | 16        | 00000100000000000000000100110100 | 0x04000134 | RCNT        | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| JOYCNT      | 16        | 00000100000000000000000101000000 | 0x04000140 | JOYCNT      | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| JOY_RECV    | 32        | 00000100000000000000000101010000 | 0x04000150 | JOY_RECV    | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| JOY_RECV00  | 16        | 00000100000000000000000101010000 | 0x04000150 | JOY_RECV    | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| JOY_RECV01  | 16        | 00000100000000000000000101010010 | 0x04000152 | JOY_RECV    | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| JOY_TRANS   | 32        | 00000100000000000000000101010100 | 0x04000154 | JOY_TRANS   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| JOY_TRANS00 | 16        | 00000100000000000000000101010100 | 0x04000154 | JOY_TRANS   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 1    |
+| JOY_TRANS01 | 16        | 00000100000000000000000101010110 | 0x04000156 | JOY_TRANS   | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | yes   | 2    |
+| JOYSTAT     | 16        | 00000100000000000000000101011000 | 0x04000158 | JOYSTAT     | 6    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| KEYINPUT    | 16        | 00000100000000000000000100110000 | 0x04000130 | KEYINPUT    | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| KEYCNT      | 16        | 00000100000000000000000100110010 | 0x04000132 | KEYCNT      | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| IE          | 16        | 00000100000000000000001000000000 | 0x04000200 | IE          | 7    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| IF          | 16        | 00000100000000000000001000000010 | 0x04000202 | IF          | 7    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| IME         | 16        | 00000100000000000000001000001000 | 0x04000208 | IME         | 7    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| WAITCNT     | 16        | 00000100000000000000001000000100 | 0x04000204 | WAITCNT     | 8    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| POSTFLG     | 8         | 00000100000000000000001100000000 | 0x04000300 | POSTFLG     | 8    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| HALTCNT     | 8         | 00000100000000000000001100000001 | 0x04000301 | HALTCNT     | 8    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |
+| BIOS        | 131072    | 00000000000000000000000000000000 | 0x00000000 | BIOS        | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| EWRAM       | 2097152   | 00000010000000000000000000000000 | 0x02000000 | EWRAM       | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| IWRAM       | 262144    | 00000011000000000000000000000000 | 0x03000000 | IWRAM       | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| IOREG       | 8192      | 00000100000000000000000000000000 | 0x04000000 | IOREG       | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| PALRAM      | 8192      | 00000101000000000000000000000000 | 0x05000000 | PALRAM      | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| VRAM        | 786432    | 00000110000000000000000000000000 | 0x06000000 | VRAM        | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| OAM         | 8192      | 00000111000000000000000000000000 | 0x07000000 | OAM         | 1    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| ROM_WS0     | 268435456 | 00001000000000000000000000000000 | 0x08000000 | ROM_WS0     | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| ROM_WS1     | 268435456 | 00001010000000000000000000000000 | 0x0A000000 | ROM_WS1     | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| ROM_WS2     | 268435456 | 00001100000000000000000000000000 | 0x0C000000 | ROM_WS2     | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+| SRAM        | 524288    | 00001110000000000000000000000000 | 0x0E000000 | SRAM        | 11   | no  | yes | yes   | no   | no    | no  | no  | no  | no   | yes    | no     | no    | 0    |
+; =========================
+; COMENTARIOS
+; =========================
+; Esta tabla no usa fila separadora Markdown.
+; Todas las filas de datos empiezan con |.
+; Los comentarios empiezan con ;.
+;
+; NAME:
+;   Nombre simbolico. Es el unico campo fijo obligatorio.
+;
+; bits:
+;   Tamano en bits. En regiones de memoria es el tamano total de la region.
+;
+; code:
+;   CPU: codigo binario real del registro ARM.
+;   MMIO/REGION: direccion base en binario de 32 bits.
+;   STATUS: codigo interno estable para CPSR/SPSR.
+;
+; hex:
+;   CPU: valor hexadecimal del codigo.
+;   MMIO/REGION: direccion base hexadecimal.
+;
+; fam:
+;   Familia del registro.
+;   Los subregistros comparten exactamente la misma familia que su registro padre.
+;   Ejemplo: BG2X, BG2X00 y BG2X01 usan fam BG2X.
+;
+; part:
+;   0 = entrada principal.
+;   1 = parte baja de 16 bits.
+;   2 = parte alta de 16 bits.
+;   3 = alias simbolico, por ejemplo SP/LR/PC.
+;   4 = registro fisico bancarizado.
+;
+; GNP:
+;   yes = registro de proposito general.
+;   no = registro especial, MMIO, region, alias o estado.
+;
+; ARM:
+;   yes = accesible desde ARM o pertenece al estado ARM7TDMI/GBA.
+;   no = no accesible.
+;
+; THUMB:
+;   yes = usable desde THUMB por acceso directo, especial o por load/store a memoria.
+;   no = no usable directamente desde THUMB.
+;
+; TLOW:
+;   yes = registro bajo THUMB R0-R7.
+;   no = no es registro bajo THUMB.
+;
+; THIGH:
+;   yes = registro alto THUMB R8-R12 para operaciones high-register.
+;   no = no es registro alto THUMB normal.
+;
+; TSP:
+;   yes = registro especial SP en THUMB.
+;   no = no es SP.
+;
+; TLR:
+;   yes = registro especial LR en THUMB.
+;   no = no es LR.
+;
+; TPC:
+;   yes = registro especial PC en THUMB.
+;   no = no es PC.
+;
+; MMIO:
+;   yes = registro de hardware mapeado en 0x04000000+.
+;   no = no es MMIO.
+;
+; REGION:
+;   yes = region de memoria.
+;   no = registro individual o alias.
+;
+; BANKED:
+;   yes = registro fisico bancarizado por modo CPU.
+;   no = registro no bancarizado.
+;
+; ALIAS:
+;   yes = nombre alternativo o subparte de otro registro.
+;   no = entrada principal.
+;
+; =========================
+; type 0-n
+; =========================
+; type 0  = CPU_GPR
+;   Registros visibles principales del ARM7TDMI: R0-R15 y alias SP/LR/PC.
+;
+; type 1  = VIDEO_VRAM_PPU
+;   Video, LCD, fondos, ventanas, blending, PALRAM, VRAM y OAM.
+;
+; type 2  = SOUND
+;   Registros PSG, Direct Sound, Wave RAM, FIFO A/B y control de audio.
+;
+; type 3  = DMA
+;   Canales DMA0-DMA3: source, destination, count/control.
+;
+; type 4  = TIMER
+;   Timers TM0-TM3.
+;
+; type 5  = INPUT
+;   Botones: KEYINPUT y KEYCNT.
+;
+; type 6  = SERIAL
+;   Link cable, SIO normal/multiplayer/UART/general purpose y joy bus.
+;
+; type 7  = INTERRUPT
+;   IE, IF e IME.
+;
+; type 8  = SYSTEM
+;   WAITCNT, POSTFLG y HALTCNT.
+;
+; type 9  = STATUS
+;   CPSR y SPSR.
+;
+; type 10 = BANKED
+;   Registros fisicos bancarizados por modo CPU: FIQ, IRQ, SVC, ABT y UND.
+;
+; type 11 = MEMORY_REGION
+;   Regiones principales del mapa de memoria: BIOS, WRAM, IOREG, ROM y SRAM.
+;

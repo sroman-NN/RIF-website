@@ -1,4 +1,4 @@
-"""Calcula distancia relativa entre dos puntos de memoria."""
+
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Verifica que un valor tenga exactamente n bits."""
+
 
 from __future__ import annotations
 

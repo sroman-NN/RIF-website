@@ -1,12 +1,15 @@
 # Build y Run
 
-El ejemplo GBA se construye desde una carpeta de proyecto:
+El ejemplo GBA funcional se construye desde la raiz del proyecto:
 
 ```bash
-python -m rif build gba
-python -m rif -pcli gba run gba/hello.gba -nd
+python -m rif build examples/gba --plugin gba --name example
+```
+
+Ejecutar con mGBA:
+
+```bash
+python -m rif -pcli gba run examples/gba/hello.gba -nd
 ```
 
 `-nd` intenta reutilizar una ventana abierta de mGBA para no duplicar instancias.
-
-El pack GBA declara instrucciones pequenas para header, logo, checksum, entrada, framebuffer y padding.

@@ -1,0 +1,8 @@
+{
+  "name": "gba",
+  "version": "0.1.0",
+  "author": "RIF Contributors",
+  "architecture": "ARM7TDMI / Game Boy Advance",
+  "license": "MIT",
+  "purpose": "El plugin gba contiene el pack de ejemplo para construir ROMs de Game Boy Advance y un conjunto de generadores pequenos para cabeceras, logo, checksum, entrada, framebuffer y padding de ROM. Su proposito es producir bytes validos para una imagen GBA desde fuentes RIF, con reglas Thumb comunes, registros de hardware y fillables utiles para prototipos visuales."
+}

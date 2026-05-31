@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import json
 import shlex
 import sys
 from pathlib import Path
@@ -21,14 +22,16 @@ def expand_fillables(program: Program, source: str, *, phase: str = "compile") -
     if not fillables:
         return source
 
+    fills = FillCollector(program, phase=phase)
     out: list[str] = []
     for raw in source.splitlines():
         stripped = raw.strip()
         if not stripped.startswith("@"):
             out.append(raw)
             continue
-        expanded = expand_fillable_line(program, stripped, fillables, phase=phase)
+        expanded = expand_fillable_line(program, stripped, fillables, phase=phase, fills=fills)
         out.extend(expanded.splitlines())
+    fills.write()
     return "\n".join(out) + ("\n" if source.endswith("\n") else "")
 
 
@@ -38,6 +41,7 @@ def expand_fillable_line(
     fillables: dict[str, Any],
     *,
     phase: str,
+    fills: "FillCollector | None" = None,
 ) -> str:
     parts = shlex.split(stripped[1:], posix=True)
     if not parts:
@@ -48,11 +52,16 @@ def expand_fillable_line(
     if func is None:
         raise PackError(f'fillable no encontrado "@{name}"')
 
+    plugin_name = getattr(func, "_rif_plugin_name", "unknown")
     context = {
         "program": program,
         "config": parse_packer_config(program),
         "source_path": program.source_path,
         "phase": phase,
+        "project_path": getattr(program, "project_path", None) or getattr(program, "cache_project_path", None),
+        "plugin_name": plugin_name,
+        "fillable": name,
+        "fills": fills,
     }
     try:
         signature = inspect.signature(func)
@@ -82,6 +91,8 @@ def load_fillables(program: Program, config: Any | None = None) -> dict[str, Any
         plugin_root = _find_plugin_root(roots, plugin_name)
         if plugin_root is None:
             continue
+        from .plugin_security import validate_plugin_root
+        validate_plugin_root(plugin_root)
 
         for extra in (plugin_root / "plugins", plugin_root):
             extra_str = str(extra)
@@ -106,6 +117,78 @@ def load_fillables(program: Program, config: Any | None = None) -> dict[str, Any
             for attr in dir(module):
                 func = getattr(module, attr)
                 if attr.startswith("fill_") and callable(func):
+                    setattr(func, "_rif_plugin_name", plugin_name)
                     out.setdefault(attr, func)
                     out.setdefault(attr[5:], func)
     return out
+
+
+class FillCollector:
+    def __init__(self, program: Program | None = None, *, phase: str = "compile", project_path: str | Path | None = None):
+        self.program = program
+        self.phase = phase
+        self.project_path = Path(project_path).resolve() if project_path else _project_root(program)
+        self.records: dict[str, dict[str, dict[str, Any]]] = {}
+
+    @property
+    def path(self) -> Path:
+        return self.project_path / "fills.json"
+
+    def add(self, plugin: str, name: str, **info: Any) -> None:
+        plugin_key = str(plugin or "unknown")
+        fill_name = str(name or "fill")
+        row = {"name": fill_name, **_jsonable(info)}
+        self.records.setdefault(plugin_key, {})[fill_name] = row
+
+    def payload(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "_meta": {
+                "project": str(self.project_path),
+                "phase": self.phase,
+            }
+        }
+        for plugin, fills in sorted(self.records.items()):
+            data[plugin] = dict(sorted(fills.items()))
+        return data
+
+    def write(self) -> None:
+        if not self.records:
+            return
+        self.project_path.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(self.payload(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def record_fill(context: Any, plugin: str, name: str, **info: Any) -> None:
+    collector = context.get("fills") if isinstance(context, dict) else None
+    if isinstance(collector, FillCollector):
+        collector.add(plugin, name, **info)
+        return
+    program = context.get("program") if isinstance(context, dict) else None
+    project_path = context.get("project_path") if isinstance(context, dict) else None
+    phase = str(context.get("phase", "compile")) if isinstance(context, dict) else "compile"
+    direct = FillCollector(program, phase=phase, project_path=project_path)
+    direct.add(plugin, name, **info)
+    direct.write()
+
+
+def _project_root(program: Program | None) -> Path:
+    if program is not None:
+        value = getattr(program, "project_path", None) or getattr(program, "cache_project_path", None)
+        if value:
+            return Path(value).resolve()
+        source_path = getattr(program, "source_path", None)
+        if source_path:
+            return Path(source_path).resolve().parent
+    return Path.cwd().resolve()
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _jsonable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)

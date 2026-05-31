@@ -1,9 +1,4 @@
-"""Reserva un campo relocatable generico.
 
-Sintaxis:
-    reloc kind, target, width
-    reloc kind, target, width, addend
-"""
 
 from __future__ import annotations
 

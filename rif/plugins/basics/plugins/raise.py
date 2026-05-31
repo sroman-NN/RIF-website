@@ -1,9 +1,4 @@
-"""Lanza el último error acumulado por `error`.
 
-Sintaxis:
-
-    raise
-"""
 
 from __future__ import annotations
 
@@ -14,7 +9,7 @@ def main():
     if Line.elements != 1:
         return Err("La instrucción raise no espera argumentos")
 
-    Line.Advance()  # consumir "raise"
+    Line.Advance()  
     Line.expects(" ", "\n")
 
     if Errors.last is None:

@@ -30,7 +30,7 @@ from .models import (
 )
 
 
-CONFIG_DIRECTIVES = {"commit", "comment", "separator", "blocks", "encoding"}
+CONFIG_DIRECTIVES = {"commit", "comment", "separator", "table-separator", "blocks", "block", "encoding"}
 
 
 class Parser:
@@ -532,6 +532,9 @@ def parse_packer_config(program: Program) -> PackerConfig:
         elif stmt.name == "plugin":
             _require_args(stmt, 1)
             config.plugins.append(_stringish(stmt.args[0]))
+        elif stmt.name == "pluginsymbolorder":
+            _require_args(stmt, 1)
+            config.pluginsymbolorder = _int_arg(stmt.args[0], stmt.line)
         elif stmt.name == "precompile":
             _require_args(stmt, 1)
             config.precompilers.append(_stringish(stmt.args[0]))
@@ -551,16 +554,24 @@ def parse_packer_config(program: Program) -> PackerConfig:
             for child in stmt.children:
                 name = child.name
                 args = child.args
-                if name == "fsystem":
+                if name in ("fsystem", "filesystem"):
                     _require_args(child, 1)
                     config.fsystem = _int_arg(args[0], child.line)
                     if config.fsystem not in (0, 1):
                         raise ParseError("fsystem must be 0 or 1", child.line)
+                elif name == "entryfilename":
+                    _require_args(child, 1)
+                    config.entryfilename = _stringish(args[0])
                 elif name == "ext":
                     _require_args(child, 1)
                     config.ext = _stringish(args[0])
                     if not config.ext.startswith("."):
                         config.ext = "." + config.ext
+                elif name == "outext":
+                    _require_args(child, 1)
+                    config.outext = _stringish(args[0])
+                    if not config.outext.startswith("."):
+                        config.outext = "." + config.outext
                 elif name == "sectpre":
                     _require_args(child, 1)
                     config.sectpre = _stringish(args[0])
@@ -597,7 +608,8 @@ def parse_packer_config(program: Program) -> PackerConfig:
                     _require_args(child, 1)
                     config.source_block = _stringish(args[0])
                 elif name in ("extensions", "sources"):
-                    config.source_extensions = [_stringish(arg) for arg in args if arg.value != ","]
+
+                    pass
                 elif name in ("require_section", "requiresect"):
                     _require_args(child, 1)
                     config.source_require_section = _stringish(args[0]).strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
@@ -609,6 +621,27 @@ def parse_packer_config(program: Program) -> PackerConfig:
                     config.source_section_directive = _stringish(args[0])
                 else:
                     raise ParseError(f"unknown reader option {name!r}", child.line)
+        elif stmt.name == "linker":
+            program.linker_config.enabled = True
+            for child in stmt.children:
+                name = child.name
+                args = child.args
+                if name in ("fsystem", "filesystem"):
+                    _require_args(child, 1)
+                    program.linker_config.fsystem = _int_arg(args[0], child.line)
+                    if program.linker_config.fsystem not in (0, 1):
+                        raise ParseError("linker fsystem must be 0 or 1", child.line)
+                elif name == "sectexec":
+                    _require_args(child, 1)
+                    program.linker_config.sectexec = PackerConfig.normalize_section(_stringish(args[0]))
+                elif name == "sectneed":
+                    _require_args(child, 1)
+                    program.linker_config.sectneed.add(PackerConfig.normalize_section(_stringish(args[0])))
+                elif name == "sectopt":
+                    _require_args(child, 1)
+                    program.linker_config.sectopt.add(PackerConfig.normalize_section(_stringish(args[0])))
+                else:
+                    raise ParseError(f"unknown linker option {name!r}", child.line)
 
     return config
 
@@ -656,8 +689,15 @@ def load_plugins(program: Program, config: PackerConfig) -> dict[str, Any]:
             raise PackError(
                 f'Plugin declarado no encontrado: "{plugin_name}"\nRutas buscadas:\n{rutas_str}'
             )
+        from .plugin_security import validate_plugin_root
+        validate_plugin_root(plugin_root)
         plugin_dir = plugin_root / "plugins"
         if not plugin_dir.exists():
+            if (plugin_root / "ignore.txt").exists():
+                plugin_root_str = str(plugin_root)
+                if plugin_root_str not in sys.path:
+                    sys.path.insert(0, plugin_root_str)
+                continue
             raise PackError(
                 f'Plugin "{plugin_name}" encontrado en {plugin_root} pero sin subcarpeta plugins/ (vacío)'
             )
@@ -670,9 +710,15 @@ def load_plugins(program: Program, config: PackerConfig) -> dict[str, Any]:
         for path in sorted(plugin_dir.rglob(f"*{ext}")):
             if path.is_file():
                 relative_name = "_".join(path.relative_to(plugin_dir).with_suffix("").parts)
-                module_name = f"rif.plugins.{_module_safe(plugin_name)}.{_module_safe(relative_name)}"
+                module_name = f"rif.loaded_plugins.{_module_safe(plugin_name)}.{_module_safe(relative_name)}"
                 spec = importlib.util.spec_from_file_location(module_name, path)
                 if spec and spec.loader:
+                    if path.stem in loaded:
+                        if config.pluginsymbolorder == 0:
+                            raise PackError(f"Colisión de símbolos de plugin (pluginsymbolorder 0): '{path.stem}' ya fue definido por otro plugin.")
+                        elif config.pluginsymbolorder == 3:
+                            continue
+
                     mod = importlib.util.module_from_spec(spec)
                     sys.modules[module_name] = mod
                     try:
@@ -706,6 +752,8 @@ def run_precompilers(program: Program, config: PackerConfig) -> None:
         path = plugin_root / "compiler.py"
         if not path.exists():
             raise PackError(f"precompile plugin not found: {path}")
+        from .plugin_security import validate_plugin_root
+        validate_plugin_root(plugin_root)
 
         module_name = f"rif.precompile.{plugin_name}.compiler"
         spec = importlib.util.spec_from_file_location(module_name, path)
@@ -732,7 +780,7 @@ def _plugin_roots(base_dir: Path) -> list[Path]:
         resolved = candidate.resolve()
         if candidate.exists() and resolved not in roots:
             roots.append(resolved)
-    
+
     try:
         import rif as _rif_pkg
         pkg_plugins = Path(_rif_pkg.__file__).parent / "plugins"
@@ -742,7 +790,7 @@ def _plugin_roots(base_dir: Path) -> list[Path]:
                 roots.append(resolved)
     except Exception:
         pass
-        
+
     return roots
 
 
@@ -810,7 +858,7 @@ def run_plugins_on_statements(program: Program, plugins: dict[str, Any]) -> None
                 res = mod.main()
             if isinstance(res, Err):
                 raise PackError(f"Plugin {stmt.name} error: {res.message}", stmt.line)
-            # Si estamos en una rama condicional, registramos el resultado con rule_name=None para que no afecte a la firma.
+
             _record_plugin_result(program, res, None if in_conditional else rule_name)
             return _result_items(res)
         except Exception as e:

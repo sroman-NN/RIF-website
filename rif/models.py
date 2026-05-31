@@ -780,6 +780,15 @@ class BitVariable:
 
 
 @dataclass
+class LinkerConfig:
+    enabled: bool = False
+    fsystem: int = 0
+    sectexec: str | None = None
+    sectneed: set[str] = field(default_factory=set)
+    sectopt: set[str] = field(default_factory=set)
+
+
+@dataclass
 class Program:
     source_path: Path | None
     lexer_config: LexerConfig
@@ -798,6 +807,7 @@ class Program:
     type_map: dict[str, Any] = field(default_factory=dict)
     operator_saved: dict[str, list[str]] = field(default_factory=dict)
     operator_bindings: dict[str, dict[str, OperatorBinding]] = field(default_factory=dict)
+    linker_config: LinkerConfig = field(default_factory=LinkerConfig)
 
     @property
     def comment_char(self) -> str:
@@ -848,7 +858,9 @@ class DATA:
 class PackerConfig:
     enabled: bool = False
     fsystem: int = 0
-    ext: str = ".pack"
+    ext: str = ""
+    entryfilename: str = "main"
+    outext: str = ".bin"
     sectpre: str | None = None
     subpre: str | None = None
     defined_sections: set[str] = field(default_factory=set)
@@ -856,10 +868,10 @@ class PackerConfig:
     required_prefixes: set[str] = field(default_factory=set)
     plugext: str = ".py"
     plugins: list[str] = field(default_factory=list)
+    pluginsymbolorder: int = 2
     precompilers: list[str] = field(default_factory=list)
     types: dict[str, str] = field(default_factory=dict)
     output: str | None = None
-    source_extensions: list[str] = field(default_factory=lambda: [".rif", ".asm", ".s"])
     source_comment: str | None = None
     source_separator: str | None = None
     source_block: str | None = None

@@ -7,14 +7,15 @@ plugin "atari2600"
 
 packer:
     fsystem 0
-    ext ".bin"
+    entryfilename "main"
+    ext ".rif"
+    outext ".bin"
     output "out.bin"
 
 reader:
     comment ";"
     blocks ":"
     section ".section"
-    sources ".rif"
     requiresect true
     validatesect true
 

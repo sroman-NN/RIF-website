@@ -57,6 +57,8 @@ class SourceReader:
             tokens = self.lex_line(text, line_no)
             section = self.section_from_tokens(tokens)
             if section is not None:
+                if section == current_section:
+                    continue
                 self._validate_section(section, line_no)
                 current_section = section
                 if section not in sections:
@@ -119,11 +121,52 @@ class SourceReader:
 
     def read_project_source(self, root: str | Path) -> str:
         root = Path(root)
+        if self.program.linker_config.enabled and self.program.linker_config.fsystem == 1:
+            return self._read_fractured_project(root)
+
         files = self.project_files(root)
         chunks: list[str] = []
         for path in files:
             text = path.read_text(encoding=self.lexer_config.encoding)
             chunks.append(text.rstrip())
+        return "\n".join(chunk for chunk in chunks if chunk) + ("\n" if chunks else "")
+
+    def _read_fractured_project(self, root: Path) -> str:
+        code_dir = root / "code"
+        search_root = code_dir if (code_dir.exists() and code_dir.is_dir()) else root
+
+        entry_name = self.config.entryfilename or "main"
+        extension = self.config.ext.lower()
+        if extension and not extension.startswith("."):
+            extension = "." + extension
+
+        linker = self.program.linker_config
+        sections: list[str] = []
+        if linker.sectexec:
+            sections.append(linker.sectexec)
+        sections.extend(sorted(list(linker.sectneed)))
+        sections.extend(sorted(list(linker.sectopt)))
+
+        chunks: list[str] = []
+        for sec in sections:
+            if sec == linker.sectexec:
+                filename = f"{entry_name}{extension}"
+            else:
+                filename = f"{entry_name}{sec}{extension}"
+
+            target = search_root / filename
+            if not target.exists():
+                if search_root != root and (root / filename).exists():
+                    target = root / filename
+                elif sec == linker.sectexec or sec in linker.sectneed:
+                    raise PackError(f"sección requerida no encontrada: {filename}")
+                else:
+                    continue
+
+            text = target.read_text(encoding=self.lexer_config.encoding)
+            directive = self.config.source_section_directive
+            chunks.append(f"{directive} {sec}\n{text.rstrip()}")
+
         return "\n".join(chunk for chunk in chunks if chunk) + ("\n" if chunks else "")
 
     def project_files(self, root: str | Path) -> tuple[Path, ...]:
@@ -137,8 +180,46 @@ class SourceReader:
         code_dir = root / "code"
         search_root = code_dir if (code_dir.exists() and code_dir.is_dir()) else root
 
-        extensions = {ext.lower() for ext in self.config.source_extensions}
-        ignored = {self.config.ext.lower(), ".pack", ".temp"}
+        entry_name = self.config.entryfilename or "main"
+        extension = self.config.ext.lower()
+        if extension and not extension.startswith("."):
+            extension = "." + extension
+
+        if self.program.linker_config.enabled and self.program.linker_config.fsystem == 1:
+            linker = self.program.linker_config
+            sections: list[str] = []
+            if linker.sectexec:
+                sections.append(linker.sectexec)
+            sections.extend(sorted(list(linker.sectneed)))
+            sections.extend(sorted(list(linker.sectopt)))
+
+            fractured: list[Path] = []
+            for sec in sections:
+                if sec == linker.sectexec:
+                    filename = f"{entry_name}{extension}"
+                else:
+                    filename = f"{entry_name}{sec}{extension}"
+
+                target = search_root / filename
+                if not target.exists():
+                    if search_root != root and (root / filename).exists():
+                        target = root / filename
+                if target.exists():
+                    fractured.append(target)
+            return tuple(fractured)
+
+        if self.config.fsystem == 0:
+            filename = f"{entry_name}{extension}"
+            target = search_root / filename
+            if not target.exists():
+
+                if search_root != root and (root / filename).exists():
+                    target = root / filename
+                else:
+                    raise PackError(f"archivo de entrada principal no existe: {filename}")
+            return (target,)
+
+        ignored = {self.config.outext.lower(), ".pack", ".temp"}
         files: list[Path] = []
         for path in sorted(search_root.rglob("*")):
             if not path.is_file():
@@ -148,7 +229,7 @@ class SourceReader:
             suffix = path.suffix.lower()
             if suffix in ignored:
                 continue
-            if suffix not in extensions:
+            if extension and suffix != extension:
                 continue
             files.append(path)
         return tuple(files)
@@ -211,6 +292,8 @@ class SourceReader:
         current: list[str] = []
         quote = False
         escaped = False
+        bracket_level = 0
+        brace_level = 0
 
         def push() -> None:
             if current:
@@ -231,29 +314,69 @@ class SourceReader:
             if quote:
                 current.append(ch)
                 continue
+            if ch == "[":
+                bracket_level += 1
+                current.append(ch)
+                continue
+            if ch == "]":
+                if bracket_level > 0:
+                    bracket_level -= 1
+                current.append(ch)
+                continue
+            if ch == "{":
+                brace_level += 1
+                current.append(ch)
+                continue
+            if ch == "}":
+                if brace_level > 0:
+                    brace_level -= 1
+                current.append(ch)
+                continue
             if ch.isspace():
-                push()
+                if bracket_level > 0 or brace_level > 0:
+                    current.append(ch)
+                else:
+                    push()
                 continue
             if ch in {",", "=", self.lexer_config.block}:
-                push()
-                out.append(ch)
+                if bracket_level > 0 or brace_level > 0:
+                    current.append(ch)
+                else:
+                    push()
+                    out.append(ch)
                 continue
             current.append(ch)
         push()
         return out
 
     def _known_sections(self) -> set[str]:
-        table = self.program.tables.get(".sections")
-        if table is None:
-            return set()
         out: set[str] = set()
-        for name in table.rows:
-            out.add(name)
-            out.add(self._normalize_section(name))
+        if self.config.defined_sections:
+            for name in self.config.defined_sections:
+                out.add(name)
+                out.add(self._normalize_section(name))
+
+        table = self.program.tables.get(".sections")
+        if table is not None:
+            for name in table.rows:
+                out.add(name)
+                out.add(self._normalize_section(name))
+
+        if self.program.linker_config.enabled:
+            for name in self.program.linker_config.sectneed:
+                out.add(name)
+                out.add(self._normalize_section(name))
+            for name in self.program.linker_config.sectopt:
+                out.add(name)
+                out.add(self._normalize_section(name))
+            if self.program.linker_config.sectexec:
+                out.add(self.program.linker_config.sectexec)
+                out.add(self._normalize_section(self.program.linker_config.sectexec))
+
         return out
 
     def _validate_section(self, section: str, line: int) -> None:
-        if self.config.source_validate_sections and self.known_sections and section not in self.known_sections:
+        if self.config.source_validate_sections and section not in self.known_sections:
             raise PackError(f'sección de fuente desconocida "{section}"', line)
 
     def _source_lexer_config(self) -> LexerConfig:

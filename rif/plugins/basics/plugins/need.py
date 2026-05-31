@@ -1,4 +1,4 @@
-"""Define una necesidad especificada."""
+
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from rif import TYPES_MAP, Line, Err, Expr, Operator, RuleIndicator
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_:-]*$")
 _BUILTIN_TYPES: dict[str, Any] = {
-    # SYMBOL es un tipo base del compilador: representa un objeto direccionable
-    # que podrá resolverse más adelante con NAME/addrs/bits.
+
+
     "SYMBOL": "SYMBOL",
     "LABEL": "LABEL",
     "VALUE": "VALUE",
@@ -20,8 +20,8 @@ _BUILTIN_TYPES: dict[str, Any] = {
     "MEMORY": "MEMORY",
 }
 _DERIVED_TYPES: dict[str, tuple[str, Any]] = {
-    # SREG existe cuando hay registros: representa subregistros generados o
-    # declarados desde .regs.
+
+
     "SREG": ("REG", ".regs.subs"),
 }
 
@@ -74,11 +74,11 @@ def main():
     if Line.elements <= 1:
         return Err("Se esperaba al menos un tipo, literal u operador")
 
-    Line.Advance()  # consumir "need"
+    Line.Advance()  
 
-    # Caso literal especial: need ",". Al llegar aquí el parser ya perdió la
-    # información de que venía de un STRING, así que una sola coma debe tratarse
-    # como literal y no como separador de tipos.
+
+
+
     if len(Line.toks) == 1 and _clean(Line.toks[0]) == ",":
         Line.Advance()
         Line.expects(" ", "\n")
@@ -88,7 +88,7 @@ def main():
     if isinstance(sanitized, Err):
         return sanitized
 
-    # Caso: need "="
+
     if len(sanitized) == 1:
         item = sanitized[0]
         resolved = _resolve_type(item)

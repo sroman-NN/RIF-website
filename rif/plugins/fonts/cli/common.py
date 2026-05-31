@@ -10,7 +10,7 @@ BITMAP_DIR = PLUGIN_ROOT / "bitmap"
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
-from bitmap.parser import FontParseError, parse_char_label  # noqa: E402
+from bitmap.parser import FontParseError, parse_char_label  
 
 
 def resolve_font_path(file_name: str) -> Path:

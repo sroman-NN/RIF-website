@@ -1,4 +1,4 @@
-"""Sign-extend de un valor a n bits."""
+
 
 from __future__ import annotations
 

@@ -1,0 +1,37 @@
+.rom
+entry:
+    arm_mov_imm R0, 0x04000000
+    arm_mov_imm R1, 0x0400
+    arm_add_imm R1, R1, 0x03
+    arm_strh R1, R0, 0
+    arm_mov_imm R3, 0x04000000
+    arm_add_imm R3, R3, 0x130
+
+loop:
+    arm_ldrh R4, R3, 0
+    arm_tst R4, 1
+    arm_bcond eq, press_a
+    arm_tst R4, 2
+    arm_bcond eq, press_b
+    arm_mov_imm R5, 0x0000
+    arm_b draw
+
+press_a:
+    arm_mov_imm R5, 0x1F
+    arm_b draw
+
+press_b:
+    arm_mov_imm R5, 0x0300
+    arm_add_imm R5, R5, 0xE0
+    arm_b draw
+
+draw:
+    arm_mov_imm R2, 0x06000000
+    arm_mov_imm R6, 0x06000000
+    arm_add_imm R6, R6, 0x10000
+fill_loop:
+    arm_strh R5, R2, 0
+    arm_add_imm R2, R2, 2
+    arm_cmp R2, R6
+    arm_bcond ne, fill_loop
+    arm_b loop

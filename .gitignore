@@ -16,3 +16,4 @@ dist/
 *.sav
 *.vsix
 .rif-build/
+cache/

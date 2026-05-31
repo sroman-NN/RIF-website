@@ -1,8 +1,4 @@
-"""AMD64 precompile hook.
 
-The core compiler exposes the parsed Program through Operators.program before
-compilation. This hook keeps architecture/platform defaults out of the core.
-"""
 
 from __future__ import annotations
 

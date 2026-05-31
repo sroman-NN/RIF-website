@@ -1,49 +1,46 @@
 comment ;
-
-; ============================================================
-; GBA Pack — Archivo raíz del empaquetador
-; Usa fsystem 1 para enlazar fragmentos:
-;   gba.regs.pack     → sección .regs
-;   gba.types.pack    → sección .types
-;   gba.sections.pack → sección .sections
-;   gba.words.pack    → sección .words
-;   gba.rules.pack    → sección .rules
-; ============================================================
+blocks :
+table-separator |
+encoding utf-8
 
 .pack
-plugext ".py"
-plugin "gba"
-plugin "fonts"
+
 plugin "basics"
+plugin "gba"
+plugin "image"
+plugin "fonts"
+pluginsymbolorder 0
+
+types:
+    from ".regs" as REG
+    from ".types" as TYPE
 
 packer:
-    fsystem 1
+    entryfilename "main"
+    ext ".gbasm"
+    outext ".gba"
+    filesystem 1
     subpre *
-    ext ".pack"
-    output "hello.gba"
-    setpre "regs"     ".regs"
-    setpre "types"    ".types"
-    setpre "sections" ".sections"
-    setpre "words"    ".words"
-    setpre "rules"    ".rules"
+    setpre regs .regs
+    setpre rules .rules
+    setpre sections .sections
+    setpre types .types
+    setpre words .words
+
+linker:
+    filesystem 1
+    sectexec .rom
+    sectneed .header
+    sectneed .data
+    sectopt .bss
+    sectopt .rodata
 
 reader:
     comment ";"
-    separator ","
+    separator "|"
     blocks ":"
     section ".section"
-    sources ".rif"
-    requiresect true
-    validatesect true
-
-types:
-    from ".regs" as "REG"
-
-.world
-arch "arm7tdmi"
-os "gba"
-endianness little
 
 .DATA_DEFINITION
-arrautofill
-index true
+    arrautofill true
+    supportstring true

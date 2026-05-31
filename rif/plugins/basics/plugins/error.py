@@ -1,8 +1,4 @@
-"""Emite un error.
 
-La instrucción no termina la compilación. Solo agrega un error multilinea a
-Errors. Para lanzarlo, se usa la instrucción `raise`.
-"""
 
 from __future__ import annotations
 
@@ -21,7 +17,7 @@ def main():
     if Line.elements != 2:
         return Err("La instrucción error espera un string")
 
-    Line.Advance()  # consumir "error"
+    Line.Advance()  
     message = _clean(Line.Advance())
     Line.expects(" ", "\n")
 

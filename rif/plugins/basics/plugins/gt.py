@@ -1,4 +1,4 @@
-"""Verifica left > right."""
+
 
 from __future__ import annotations
 

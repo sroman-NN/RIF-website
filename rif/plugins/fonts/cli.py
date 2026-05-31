@@ -51,15 +51,15 @@ def _load_command(name: str):
     if not path.exists():
         raise SystemExit(f"cannot load fonts command: {name}")
 
-    # Let command modules import sibling helpers as plain modules:
-    #   import common
-    #   import editor
+
+
+
     command_dir = str(COMMANDS)
     if command_dir not in sys.path:
         sys.path.insert(0, command_dir)
 
-    # Let common.py import bitmap as a package:
-    #   from bitmap.parser import ...
+
+
     root_dir = str(ROOT)
     if root_dir not in sys.path:
         sys.path.insert(0, root_dir)

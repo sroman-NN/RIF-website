@@ -998,6 +998,60 @@
           </ul>
         </div>
 
+        
+        <div class="menu-group" data-category="crear_y_cargar">
+          <div class="menu-category">Crear y Cargar</div>
+          <ul>
+            <li>
+              <a href="#" class="menu-link" data-key="crear_un_pack">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Crear un Pack
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="usar_pack_propio">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                Usar Pack Propio
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="usar_pack_plugin">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                Usar Pack Plugin
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="menu-group" data-category="archivo_pack">
+          <div class="menu-category">Configuración .pack</div>
+          <ul>
+            <li>
+              <a href="#" class="menu-link" data-key="importar_plugins">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Importar Plugins
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="packer_1">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"></path></svg>
+                Packer I
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="packer_2_y_errores">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Packer II y Errores
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="linker_1">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Linker I
+              </a>
+            </li>
+          </ul>
+        </div>
         <div class="menu-group" data-category="empaquetadores">
           <div class="menu-category">Empaquetadores</div>
           <ul>
@@ -1029,6 +1083,12 @@
               <a href="#" class="menu-link" data-key="compilar">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
                 Compilación Rápida
+              </a>
+            </li>
+            <li>
+              <a href="#" class="menu-link" data-key="comando_table">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"></path></svg>
+                Edición de Tablas
               </a>
             </li>
           </ul>
@@ -1234,6 +1294,14 @@
   <script>
     // Diccionario estático de Fallback (Soporta file:// CORS sin problemas)
     const docs = {
+      "importar_plugins": "# Importar Plugins y Orden\n\nBajo la cabecera `.pack`, puedes declarar librer\u00edas externas o plugins para extender las funcionalidades del compilador.\n\n## Declaraci\u00f3n\nLa palabra clave `plugin` indicar\u00e1 al compilador la necesidad de buscar la ruta del plugin y cargar sus reglas l\u00e9xicas.\n\n```rif\n.pack\nplugin \"basics\"\nplugin \"gba\"\n```\n\nLos plugins son cargados en el orden exacto en el que son declarados. Si el c\u00f3digo fuente hace uso de una sintaxis implementada en un plugin, RIF sabr\u00e1 c\u00f3mo resolverla de inmediato.\n\n## Control de Colisiones (`pluginsymbolorder`)\n\nSi trabajas con m\u00faltiples plugins, es posible que algunas palabras clave o mnem\u00f3nicos choquen (por ejemplo, dos plugins definiendo `mov`). Para controlar c\u00f3mo reacciona RIF ante estos escenarios, existe la directiva `pluginsymbolorder`.\n\n```rif\n.pack\nplugin \"basics\"\nplugin \"gba\"\npluginsymbolorder 0\n```\n\nValores soportados:\n- **`0` (Estricto)**: RIF detendr\u00e1 la compilaci\u00f3n lanzando un error si se encuentran nombres o funciones repetidas entre plugins. Tolerancia cero.\n- **`2` (Sobrescritura *Bottom-Up*)**: (Por defecto) Permite hacer un \"merge\", priorizando el \u00faltimo plugin importado. Las declaraciones ubicadas m\u00e1s abajo reemplazar\u00e1n a las de arriba en caso de existir choques.\n- **`3` (Privilegio *Top-Down*)**: RIF ignorar\u00e1 los m\u00e9todos repetidos de los plugins subsecuentes. El primer plugin que declare el m\u00e9todo es el que se preservar\u00e1.\n",
+      "linker_1": "# Linker I: Archivos Fracturados\n\nEl bloque `linker:` te otorga un control granular sobre c\u00f3mo el ensamblador agrupa e ingiere el c\u00f3digo fuente distribuido en una jerarqu\u00eda de archivos.\n\n```rif\nlinker:\n    filesystem 1 \n    sectexec .rom \n    sectneed .header \n    sectneed .data \n    sectopt  .bss  \n```\n\n## Modo Fracturado (`filesystem 1`)\n\nCuando `filesystem` se declara en `1`, RIF deja de buscar un \u00fanico archivo y comienza a buscar un ensamblado \"fracturado\" o esparcido a lo largo de varios documentos seg\u00fan las secciones estipuladas. Esto permite una programaci\u00f3n m\u00e1s organizada (por ejemplo, separar el c\u00f3digo de lectura de datos de la l\u00f3gica del ROM principal).\n\n### Regla de Construcci\u00f3n de Nombres\n\nLas diferentes secciones exigen una nomenclatura de archivo **estricta** basada en lo configurado en la cabecera `packer:`.\n\nLa sintaxis del nombre de archivo a buscar por el compilador para cada secci\u00f3n fragmentada es: `{entryfilename}{seccion}{ext}`.\n- Ejemplo para `.data`: `main.data.gbasm`\n- Ejemplo para `.header`: `main.header.gbasm`\n\n### Punto de Entrada Ejecutable (`sectexec`)\nDeclara la secci\u00f3n maestra ejecutable. Para esta secci\u00f3n, la regla de nombre se acorta y ser\u00e1 el archivo base: `{entryfilename}{ext}`. \n- Ejemplo: `main.gbasm`. \n- Si un usuario compila el c\u00f3digo, la directiva `.section` (en este caso `.rom`) ser\u00e1 inyectada autom\u00e1ticamente y validada.\n\n### Secciones Requeridas y Opcionales\n- `sectneed`: Indica que RIF **debe obligatoriamente** encontrar y compilar un archivo para dicha secci\u00f3n (siguiendo la regla de nombre). Si el archivo no se encuentra, la compilaci\u00f3n se abortar\u00e1.\n- `sectopt`: Informa al vinculador que busque un archivo con dicha secci\u00f3n, pero de no encontrarlo, omitir\u00e1 el proceso y seguir\u00e1 adelante de forma segura sin lanzar errores.\n\n### Inyecci\u00f3n de Contexto\nAnotar una secci\u00f3n de fractura inyecta impl\u00edcitamente un cambio a esa secci\u00f3n de la memoria en RIF. Es decir, t\u00fa como desarrollador ya no necesitas escribir la declaraci\u00f3n `.seccion_x` al inicio del archivo fracturado; el propio Linker de RIF sabe a qu\u00e9 secci\u00f3n de la memoria pertenece ese c\u00f3digo simplemente por su nombre de archivo, mitigando la duplicaci\u00f3n en el c\u00f3digo base.\n",
+      "packer_1": "# Packer I: Configuraci\u00f3n Principal\n\nEl bloque `packer:` es la secci\u00f3n responsable de informarle al compilador d\u00f3nde buscar, bajo qu\u00e9 nombre, y con qu\u00e9 extensiones esperar el archivo de c\u00f3digo fuente del proyecto.\n\n```rif\npacker:\n    entryfilename \"main\"\n    ext \".gbasm\"\n    filesystem 0\n```\n\n## Propiedades Fundamentales\n\n### `entryfilename`\nEspecifica el nombre base del archivo principal del programa que el compilador debe ubicar. Por defecto, si esta instrucci\u00f3n se omite, RIF buscar\u00e1 el nombre `main`.\n\n### `ext`\nObligatorio. Define la extensi\u00f3n del archivo fuente (por ejemplo, `\".gbasm\"`). Si el desarrollador olvida proporcionar la extensi\u00f3n, RIF podr\u00eda fallar al intentar leer un archivo sin ninguna terminaci\u00f3n de formato en el directorio.\n\n### `filesystem`\nPor defecto suele ser `0`, lo que le indica a RIF que toda la l\u00f3gica de programaci\u00f3n vive en un **solo archivo** ininterrumpido (por ejemplo: `main.gbasm`). Si se asigna el valor `1`, habilita el motor fragmentador para buscar archivos separados l\u00f3gicamente por secciones.\n",
+      "packer_2_y_errores": "# Packer II y Errores\n\nEl empaquetador tiene otras declaraciones avanzadas, destinadas a la configuraci\u00f3n de salida o de validaci\u00f3n de sintaxis estricta de las secciones.\n\n## Declarando el Entorno (`definesec`)\n\nEl compilador de RIF es altamente estricto. Por defecto, si el compilador est\u00e1 ejecutando tu c\u00f3digo fuente y encuentra una llamada a un salto de secci\u00f3n (por ejemplo, escribir `.rom` como secci\u00f3n para el c\u00f3digo), el sistema levantar\u00e1 un error que se ve as\u00ed:\n\n`[ CODE ] secci\u00f3n de fuente desconocida \".rom\" en l\u00ednea 1`\n\nEsto ocurre porque RIF no tiene conocimiento nativo de cu\u00e1les son las secciones legales para tu ISA. Para prevenir esto, se deben usar variables `definesec`:\n\n```rif\npacker:\n    definesec .rom\n    definesec .data\n```\n\n> **Nota:** Al usar `linker: filesystem 1` con secciones declaradas expl\u00edcitamente (`sectneed`, `sectopt`), RIF autorregistra las secciones, haci\u00e9ndolas \"conocidas\" y anulando autom\u00e1ticamente este error sin necesidad de usar `definesec`.\n\n## Salida y Compilados\n\nOpcionalmente el empaquetador puede encargarse de definir el nombre expl\u00edcito del archivo de volcado final, y su extensi\u00f3n para evitar choques con el c\u00f3digo de entrada:\n\n- `outext \".bin\"`: La extensi\u00f3n final bajo la cual RIF escribir\u00e1 los binarios por defecto.\n- `output \"juego.bin\"`: Fuerza el guardado de la memoria hacia un nombre espec\u00edfico al compilar.\n",
+      "crear_un_pack": "# Crear un Pack\n\nLos archivos `.pack` son el coraz\u00f3n de la configuraci\u00f3n de tu proyecto en RIF (Retargetable ISA Foundry). Act\u00faan como el \"manifiesto\" de compilaci\u00f3n que indica al ensamblador c\u00f3mo interpretar el c\u00f3digo fuente, qu\u00e9 reglas aplicar, qu\u00e9 plugins importar y c\u00f3mo estructurar el empaquetado final.\n\n## Estructura B\u00e1sica\n\nUn archivo `.pack` es un archivo de texto simple (con extensi\u00f3n `.pack`). Utiliza un lenguaje de configuraci\u00f3n propietario, limpio y f\u00e1cil de leer.\n\n```rif\ncomment ;\nblocks :\ntable-separator |\nencoding utf-8\n\n.pack\n\npacker:\n    entryfilename \"main\"\n    ext \".gbasm\"\n```\n\n## Secciones Principales\n- **Cabecera global**: Configura la sintaxis general del propio lector (ej. c\u00f3mo son los comentarios o bloques).\n- **.pack**: El punto de entrada principal para cargar definiciones globales.\n- **packer:**: Configura la recolecci\u00f3n, nombre del archivo de origen y comportamiento de lectura.\n- **linker:**: (Opcional) Configura el ensamblado de c\u00f3digo fragmentado en diferentes archivos seg\u00fan sus secciones.\n\nPara que RIF funcione, tu proyecto debe tener o heredar al menos una configuraci\u00f3n de Pack v\u00e1lida.\n",
+      "usar_pack_plugin": "# Usar el Pack de un Plugin Espec\u00edfico\n\nEn muchos escenarios, es redundante re-crear un archivo `.pack` para un ensamblador que ya existe. Por ello, si compilas un proyecto que **carece** de archivo `.pack`, RIF puede usar la configuraci\u00f3n de un plugin por defecto.\n\n## Par\u00e1metro por L\u00ednea de Comandos\nSi tu directorio de proyecto no tiene `.pack`, puedes forzar la herencia de un entorno completo a trav\u00e9s de los argumentos del CLI:\n\n```bash\npython -m rif.cli build mi_proyecto --pack gba\n```\n\nEn este caso, RIF ir\u00e1 al directorio de instalaci\u00f3n de plugins (por ejemplo, `plugins/gba/pack/gba.pack`), cargar\u00e1 toda la estructura del sistema (incluidas sus macros, definiciones e importaciones) y se comportar\u00e1 como si el archivo `.pack` residiera en tu propia carpeta `mi_proyecto/`.\n\nEsta funcionalidad es ideal para programar r\u00e1pidamente sin tener que configurar el pipeline desde cero cada vez.\n",
+      "usar_pack_propio": "# Usar el Pack Propio\n\nPara que RIF tome tu archivo `.pack` y reaccione a la configuraci\u00f3n, debes colocarlo en la ra\u00edz de la carpeta de tu proyecto. \n\n## Estructura Recomendada\n\nUna arquitectura de proyecto normal de RIF se ve as\u00ed:\n\n```text\nmi_proyecto/\n\u251c\u2500\u2500 mi_proyecto.pack\n\u2514\u2500\u2500 code/\n    \u2514\u2500\u2500 main.gbasm\n```\n\nTambi\u00e9n es v\u00e1lido omitir la carpeta `code/` y poner todo al mismo nivel, aunque para proyectos grandes recomendamos tener los archivos fuente dentro de la carpeta `code`.\n\n```text\nmi_proyecto/\n\u251c\u2500\u2500 mi_proyecto.pack\n\u2514\u2500\u2500 main.gbasm\n```\n\n## Reconocimiento Autom\u00e1tico\n\nAl ejecutar el comando de compilaci\u00f3n:\n```bash\npython -m rif.cli build mi_proyecto\n```\nEl compilador RIF escanear\u00e1 autom\u00e1ticamente el directorio ra\u00edz `mi_proyecto/` buscando cualquier archivo que termine en `.pack`. **Este archivo se convertir\u00e1 en la configuraci\u00f3n local absoluta** del compilador para dicho proyecto, dictando qu\u00e9 archivos leer y qu\u00e9 plugins usar.\n",
+
       "que_es_rif": `# ¿Qué es RIF?
 
 RIF es un generador **retargetable** de arquitectura diseñada para definir ensambladores, empaquetadores y linkers mediante paquetes de configuración (\`.pack\`) y plugins dinámicos de Python.
@@ -1293,20 +1361,25 @@ python -m rif help --open
 \`\`\`
 `,
 
-      "version_actual": `# Versión Actual
+      "version_actual": `# Version actual
 
-### RIF Compiler - Versión 0.0.1 Beta
+### RIF 0.0.2 Beta
 
-Esta versión inicial se centra en cerrar y estabilizar la especificación de diseño del núcleo semántico (core):
+Esta version consolida el compilador, linker, sistema de plugins y CLI.
 
-* **Parser y AST**: Análisis semántico robusto para archivos estructurados \`.pack\`.
-* **Motor de Instrucciones (Compiler Runtime)**: Ejecución segura de reglas dinámicas RIF y enlace de variables locales.
-* **Placeholder and Linker Systems**: Mecanismo de re-solución y offsets estáticos de bloques binarios.
-* **Infraestructura de Plugins**: Saneamiento de punto de entrada unificado (\`_start()\` llamando a \`main()\`) para todos los plugins de Python.
-* **Consola CLI**: Subcomandos unificados para desarrolladores.
+**Nucleo estable:**
+
+- Lexer configurable por pack (comment, separator, block, encoding)
+- Parser de archivos \`.pack\` con soporte de secciones \`.regs\`, \`.data\`, \`.rules\`, \`.memory\`, \`.sections\`, \`.types\`, \`.headers\`, \`.words\`
+- Compilador de reglas con resolución de operandos, placeholders y etiquetas cruzadas
+- Linker con soporte de secciones \`nobits\`, alineación, padding, offsets virtuales/físicos
+- Fillables: expansión de \`@nombre\` antes de compilar, cargados desde \`fillables.py\` de cada plugin
+- CLI unificada: \`lex\`, \`parse\`, \`pack\`, \`link\`, \`compile\`, \`build\`, \`table\`, \`plug\`, \`list\`, \`packs\`, \`clear\`, \`zip\`, \`help\`
+- Sistema de plugins: carga dinámica desde \`plugins/\` local o desde el directorio interno de RIF
+- Plugin CLI: \`rif -pcli <plugin>\` delega a \`cli.py\` de cada plugin
 
 > [!IMPORTANT]
-> Al estar en fase de desarrollo activo Beta, la API interna de los plugins y ciertas palabras clave del compilador podrían sufrir adaptaciones o mejoras semánticas en el futuro cercano.`,
+> La API de plugins y las palabras clave del compilador pueden cambiar en versiones futuras mientras RIF esté en fase Beta.`,
 
       "instrucciones": `# Especificación de Instrucciones
 
@@ -1492,106 +1565,318 @@ def _start():
 > [!IMPORTANT]
 > Cuando se realiza un salto o llamada inter-regla (\`call\`), RIF llama directamente a \`main()\` de forma interna, evitando re-ejecutar \`_start()\` para garantizar la consistencia en llamadas parciales de flujos anidados.`,
 
-      "importar": `# Importación de Plugins
+      "importar": `# Carga de Plugins
 
-El cargador de dependencias (Plugin Loader) de RIF realiza un análisis estructurado y seguro de las rutas para ubicar los plugins declarados en el descriptor \`.pack\`.
+RIF carga plugins de forma dinámica desde el bloque \`.pack\`. Cada plugin es una carpeta con archivos \`.py\` dentro de su subdirectorio \`plugins/\`.
 
-### Directivas en el Pack
+## Declaración en el pack
 
-Las directivas de importación de plugins se especifican en la cabecera del archivo:
-
-\`\`\`rif
+\`\`\`pack
 .pack
-plugext ".py"
 plugin "basics"
+plugin "gba"
 plugin "mi_arquitectura"
 \`\`\`
 
-### Ubicación y Regras del Cargador
+## Rutas de búsqueda (\`_plugin_roots\`)
 
-El cargador busca los módulos en los siguientes directorios (en orden de prioridad):
+RIF busca en este orden, desduplicando por ruta resuelta:
 
-1. Un directorio local \`plugins/\` situado al mismo nivel del archivo \`.pack\` que se está procesando.
-2. La carpeta central \`plugins/\` del repositorio raíz de RIF.
+1. \`{base_dir}/plugins/\` — directorio del archivo \`.pack\` actual
+2. \`{cwd}/plugins/\` — directorio de trabajo actual
+3. \`{rif package}/plugins/\` — plugins internos instalados con RIF
 
-> [!CAUTION]
-> Para garantizar la seguridad del sandbox y la portabilidad del proyecto, los nombres de los plugins declarados no deben ser rutas de sistema, no deben ser absolutos y tienen estrictamente prohibido contener caracteres de escape de directorios como \`..\`.`,
+## Seguridad
 
-      "packer": `# El Módulo Packer
+El nombre del plugin es validado antes de usarlo como ruta. RIF rechaza nombres que sean rutas absolutas, contengan separadores de directorio, o incluyan \`..\` o \`.\`. Esto aplica tanto en \`load_plugins()\` como en \`_find_plugin_cli()\`.
 
-El modulo **Packer** tiene la responsabilidad de consolidar múltiples archivos fuente de ensamblador en una única representación unificada de datos estructurados, validando que se cumplan las directivas declaradas en el archivo \`.pack\`.
+## Carga de módulos
 
-### Opciones de Configuración Comunes
+Cada archivo \`.{plugext}\` (por defecto \`.py\`) en \`{plugin_root}/plugins/\` es cargado como un módulo Python con \`importlib.util\`. La carpeta del plugin y su subdirectorio \`plugins/\` se añaden a \`sys.path\` para que los imports relativos funcionen.
 
-El comportamiento del Packer se define en el bloque de cabecera \`packer:\`:
+## Colisiones de símbolos
 
-\`\`\`rif
+Cuando dos plugins definen el mismo símbolo (mismo nombre de archivo):
+- \`pluginsymbolorder 0\` — error (default)
+- \`pluginsymbolorder 3\` — mantiene el primero, ignora el segundo
+
+## Ejemplo completo
+
+\`\`\`pack
+.pack
+plugin "basics"
+plugin "gba"
+
 packer:
     fsystem 0
-    ext ".bin"
-    definesec ".pack"
-    setpre world ".world"
-    needsect world
+    ext .gba
+\`\`\``,
+
+      "packer": `# El Packer
+
+El Packer consolida un archivo \`.pack\` y sus fragmentos en una representación unificada. Cuando \`fsystem == 1\`, busca archivos fragmento con el patrón \`{stem}.{subpre}{ext}\` y los fusiona en el fuente antes de reparse.
+
+## Bloque \`packer:\` en el pack
+
+\`\`\`pack
+.pack
+packer:
+    fsystem 0          ; 0 = archivo único, 1 = fragmentos por sección
+    ext .bin           ; extensión de salida (auto-agrega el punto)
+    outext .bin        ; extensión del archivo de salida final
+    entryfilename main ; nombre del archivo principal sin extensión
+    sectpre .          ; prefijo de sección en el fuente
+    subpre .           ; prefijo de subfragmento (* = cualquiera)
+    definesec .text    ; registra secciones conocidas
+    setpre world .world  ; mapea prefijo a sección
+    needsect world     ; esta sección es obligatoria
+    output salida      ; nombre de salida
 \`\`\`
 
-### Glosario de Parámetros del Packer
+## Bloque \`reader:\`
 
-* **\`fsystem\`**: Modo de direccionamiento del sistema de archivos local para la resolución de fuentes auxiliares.
-* **\`ext\`**: Extensión de salida que se aplicará por defecto al binario generado.
-* **\`definesec\`**: Registra nombres de secciones de datos conocidas.
-* **\`setpre\`**: Asocia y mapea un prefijo de instrucción o etiqueta a una sección física del ejecutable.
-* **\`needsect\`**: Define secciones críticas que el compilador debe encontrar de forma obligatoria para dar una compilación como exitosa.
-* **\`plugext\`**: La extensión permitida para los módulos del cargador de plugins (por defecto \`.py\`).`,
+Controla cómo RIF lee el código fuente assembly (no el \`.pack\`):
 
-      "linker": `# El Módulo Linker
+\`\`\`pack
+reader:
+    comment ;          ; caracter de comentario
+    separator |        ; separador de columnas de tabla
+    blocks :           ; caracter de inicio de bloque
+    require_section    ; error si hay instrucciones fuera de sección
+    validate_sections  ; valida que las secciones existan en el pack
+    section .section   ; directiva de sección en el fuente
+\`\`\`
 
-El **Linker** (Enlazador) de RIF toma la representación intermedia generada por el compilador, organiza los bloques físicos de código y datos en la memoria virtual/física, y resuelve todas las etiquetas cruzadas y placeholders pendientes.
+## Bloque \`linker:\`
 
-### Capacidades del Linker
+\`\`\`pack
+linker:
+    fsystem 1          ; 1 = proyecto fracturado por sección
+    sectexec .text     ; sección ejecutable (entry point)
+    sectneed .data     ; sección obligatoria
+    sectopt .bss       ; sección opcional
+\`\`\``,
 
-* **Alineación y Relleno**: Organiza secciones respetando sus alineamientos a nivel de byte (\`align\`) y completa con relleno de bytes nulos o directivas NOP según sea configurado.
-* **Secciones \`nobits\`**: Soporta la declaración de variables o memoria que no ocupan espacio de almacenamiento en el archivo ejecutable binario resultante (por ejemplo, secciones BSS).
-* **Gestión de Placeholders**: Resuelve expresiones aritméticas y direcciones de etiquetas complejas (saltos relativos y saltos absolutos a larga distancia).
-* **Regiones Stack y Heap**: Delimita los espacios dinámicos de memoria en base a las especificaciones físicas de la memoria física del target.
+      "linker": `# El Linker
 
-> [!NOTE]
-> Siguiendo la filosofía del compilador, el Linker es completamente agnóstico de la arquitectura. Solo lee offsets, tamaños, expresiones lógicas de re-localización y concatena secuencias de bytes terminados.`,
+El Linker toma el \`Program\` parseado, calcula los bloques físicos y virtuales en memoria, resuelve etiquetas y placeholders, y genera el binario final.
 
-      "cli": `# Interfaz de Línea de Comandos (CLI)
+## Pipeline de \`BinaryLinker.build()\`
 
-RIF cuenta con una herramienta CLI potente y amigable para agilizar todas las fases del desarrollo de arquitecturas de hardware.
+1. \`expand_fillables()\` — expande \`@nombre\` en el fuente antes de compilar
+2. \`_plan_blocks()\` — construye \`LinkBlock\` por cada header y sección de \`.sections\`
+3. \`_assign_offsets()\` — calcula \`physical_offset\`, \`virtual_offset\`, \`physical_size\`, \`virtual_size\`
+4. \`_relocate_source_data()\` — asigna \`addrs\` a objetos de \`.data\`
+5. \`_relocate_memory_regions()\` — asigna direcciones a stack/heap/buffer
+6. \`_materialize_headers()\` — renderiza bloques de cabecera a bytes
+7. Pasos 3-6 se repiten (dos pases para resolver referencias cruzadas)
+8. \`_apply_relocations()\` — escribe valores de relocación en los bytes de cada bloque
+9. \`_assemble_data()\` — concatena todos los bloques en los bytes finales
 
-### Comandos de Consola Clave
+## \`LinkBlock\`
 
-| Comando | Descripción | Ejemplo de Uso |
-| :--- | :--- | :--- |
-| **\`lex\`** | Imprime los tokens y sangrías resultantes del análisis léxico. | \`python -m rif lex minimal.pack\` |
-| **\`parse\`** | Muestra el árbol de sintaxis abstracta (AST) y configuraciones analizadas. | \`python -m rif parse minimal.pack\` |
-| **\`pack\`** | Consolida y empaqueta el fuente en una representación unificada. | \`python -m rif pack minimal.pack\` |
-| **\`compile\`** | Compila y emite bits para una única línea de instrucción de hardware. | \`python -m rif compile store.amd64.pack "byte 0xf"\` |
-| **\`build\`** | Enlaza código fuente y construye un binario final estructurado. | \`python -m rif build store.amd64.pack -s "byte 10"\` |
-| **\`help\`** | Muestra los temas de ayuda y documentación en la terminal. | \`python -m rif help\` |
+Cada bloque tiene: \`name\`, \`kind\` (\`"header"\`, \`"section"\`, \`"nobits"\`), \`data: bytes\`, \`physical_offset\`, \`virtual_offset\`, \`physical_size\`, \`virtual_size\`, \`align\`.
 
-> [!TIP]
-> Si deseas abrir este espectacular visor de documentación en una ventana interactiva de tu navegador predeterminado, añade el argumento \`--open\` al comando de ayuda:
-> 
-> \`\`\`bash
-> python -m rif help --open
-> \`\`\``,
+Los bloques \`"nobits"\` no ocupan espacio en el archivo (equivalente a secciones BSS). Su \`physical_size\` es 0 pero tienen \`virtual_size\`.
 
-      "compilar": `# Compilación de Instrucciones
+## Secciones (\`.sections\` table)
 
-El compilador de RIF evalúa las líneas de ensamblador de entrada y las transforma en una representación intermedia estructurada o en código binario puro.
+Cada fila define un bloque. Campos relevantes:
 
-### Ensamblado Individual
+| Campo | Descripcion |
+|-------|-------------|
+| \`name\` | Nombre de la seccion |
+| \`type\` | \`code\`, \`data\`, o \`nobits\` |
+| \`emit\` | bytes o ruta del compilado |
+| \`align\` | alineacion fisica en bytes |
+| \`valign\` | alineacion virtual en bytes |
+| \`offset\`/\`paddr\` | offset fisico forzado |
+| \`voffset\`/\`vaddr\` | offset virtual forzado |
 
-Para pruebas rápidas y depuración de reglas, el comando \`compile\` permite verificar instantáneamente la salida física de una instrucción aislada:
+## Headers (\`.headers\` table)
+
+Fila con \`NAME\`, \`SIZE\`, \`HEX\`, \`FILL\`. Los headers se emiten primero en el binario.
+
+Pueden contener sub-tablas con \`OFFSET\`, \`SIZE\`, \`ENDIAN\`, \`VALUE\` para escribir campos a offsets especificos.
+
+Valores especiales en \`VALUE\`:
+
+\`\`\`pack
+link:count .data          ; numero de filas en .data
+link:size rom             ; tamaño fisico del bloque rom
+link:vsize rom            ; tamaño virtual del bloque rom
+link:offset rom           ; offset fisico del bloque rom
+link:voffset rom          ; offset virtual del bloque rom
+link:raw rom              ; bytes crudos del bloque rom
+link:name mi_simbolo 4    ; bytes del nombre del simbolo (4 bytes)
+link:expr A+B*2           ; expresion aritmetica
+\`\`\`
+
+## Relocaciones
+
+\`\`\`pack
+reloc kind target width [addend]   ; relocacion absoluta
+reldis origin destination [width]  ; desplazamiento relativo
+\`\`\`
+
+El Linker resuelve relocaciones en \`_apply_relocations()\`, escribiendo el valor calculado directamente en los bytes del bloque correspondiente usando \`byteorder\` y \`signed\`.`,
+
+      "cli": `# CLI de RIF
+
+\`\`\`bash
+python -m rif <comando> [opciones]
+rif <comando> [opciones]         # si está instalado con pip
+\`\`\`
+
+## Comandos
+
+### lex
+Tokeniza un archivo \`.pack\` e imprime cada token con su tipo e indentación.
+
+\`\`\`bash
+python -m rif lex minimal.pack
+\`\`\`
+
+Salida por linea: \`NUMERO:INDENT: TIPO1:valor1 TIPO2:valor2 ...\`
+
+### parse
+Parsea un archivo \`.pack\` y vuelca toda la información estructurada: secciones, registros, tablas, tipos, memoria, packer config, plugins.
+
+\`\`\`bash
+python -m rif parse minimal.pack
+\`\`\`
+
+### pack
+Consolida un archivo \`.pack\` y sus includes en un único archivo temporal.
+
+\`\`\`bash
+python -m rif pack minimal.pack
+python -m rif pack minimal.pack -o salida.pack.temp
+\`\`\`
+
+### link
+Enlaza fragmentos y vuelca las secciones resultantes.
+
+\`\`\`bash
+python -m rif link minimal.pack
+python -m rif link minimal.pack -o linked.pack.temp
+\`\`\`
+
+### compile
+Compila una instrucción individual contra un pack de reglas. Imprime \`rule\`, \`bits\` y \`hex\`.
 
 \`\`\`bash
 python -m rif compile store.amd64.pack "byte 0xff"
 \`\`\`
 
-La salida muestra en detalle la regla emparejada, su equivalente binario de bits y su conversión a sistema hexadecimal:
+Salida:
+\`\`\`text
+rule=byte
+bits=11111111
+hex=ff
+\`\`\`
+
+Si la instrucción contiene placeholders sin resolver (etiquetas futuras), imprime \`hex=<placeholder>\` con \`resolved=\` y \`placeholder=\` por cada uno.
+
+### build
+Compila y enlaza código fuente completo. Genera el binario.
+
+\`\`\`bash
+# Texto inline
+python -m rif build store.amd64.pack -s "byte 0x01\nbyte 0x02"
+
+# Archivo fuente
+python -m rif build store.amd64.pack --source-file main.asm
+
+# Carpeta proyecto
+python -m rif build examples/gba
+
+# Pack de un plugin instalado
+python -m rif build examples/gba --plugin gba --name example
+\`\`\`
+
+Salida: \`bytes=\`, \`output=\`, \`sha256=\` o \`hex=\`, bloques físicos (\`block=nombre:kind:off=:voff=:size=:vsize=\`).
+
+### plug
+Instala un directorio como plugin en el directorio interno de RIF.
+
+\`\`\`bash
+python -m rif plug ./mi_plugin
+\`\`\`
+
+### list
+Listar plugins instalados.
+
+\`\`\`bash
+python -m rif list plugins
+\`\`\`
+
+### packs
+Listar packs disponibles dentro de un plugin instalado.
+
+\`\`\`bash
+python -m rif packs --plugin gba
+\`\`\`
+
+### table
+Editar tablas \`.pack\` desde la terminal.
+
+\`\`\`bash
+python -m rif table modify --from mi.pack "regs add row ax 000 16"
+python -m rif table format --from mi.pack
+python -m rif table undo
+python -m rif table redo
+\`\`\`
+
+### clear
+Limpiar cachés de compilación.
+
+\`\`\`bash
+# Borra todos los __pycache__ de rif/
+python -m rif clear cache
+
+# Borra .cache/ y __pycache__ del plugin image
+python -m rif clear -p image cache
+\`\`\`
+
+### zip
+Empaqueta todo el directorio \`rif/\` en un ZIP, excluyendo \`__pycache__\`.
+
+\`\`\`bash
+python -m rif zip
+python -m rif zip -o mi_backup.zip
+\`\`\`
+
+### help
+Abre la documentación en el visor interactivo o consulta un tema en consola.
+
+\`\`\`bash
+python -m rif help
+python -m rif help --open     # abre en el navegador
+python -m rif help instrucciones
+\`\`\`
+
+## Plugin CLI
+
+Cada plugin puede exponer su propio CLI a través de un archivo \`cli.py\` con función \`main(argv)\`:
+
+\`\`\`bash
+python -m rif -pcli fonts list
+python -m rif -pcli gba run examples/gba/hello.gba
+python -m rif -pcli basics build-doc mi_proyecto
+\`\`\`
+
+RIF busca el \`cli.py\` del plugin primero en \`plugins/\` local y luego en el directorio interno.`,
+
+      "compilar": `# Compilación de Instrucciones
+
+## compile
+
+Compila una instrucción individual. Útil para probar reglas sin montar un proyecto completo.
+
+\`\`\`bash
+python -m rif compile store.amd64.pack "byte 0xff"
+\`\`\`
 
 \`\`\`text
 rule=byte
@@ -1599,15 +1884,112 @@ bits=11111111
 hex=ff
 \`\`\`
 
-### Compilación Completa (Build)
+Si la instrucción produce placeholders sin resolver (saltos a etiquetas futuras), la salida es:
 
-Para ensamblar un código compuesto de múltiples líneas, etiquetas y variables, el comando \`build\` analiza el flujo, crea bloques lógicos e invoca al Linker:
-
-\`\`\`bash
-python -m rif build store.amd64.pack --source-text "byte 0x01\\nbyte 0x02"
+\`\`\`text
+rule=jmp
+bits=<placeholder>
+hex=<placeholder>
+resolved=target:LABEL:0x10
+placeholder=target:LABEL:
 \`\`\`
 
-Si el código contiene etiquetas futuras (saltos hacia adelante), el motor generará una tabla de placeholders pendientes que se resolverá automáticamente una vez completada la lectura del fuente.`,
+## build con código inline
+
+\`\`\`bash
+python -m rif build store.amd64.pack --source-text "byte 0x01\nbyte 0x02" -o salida.bin
+\`\`\`
+
+## build con archivo fuente
+
+\`\`\`bash
+python -m rif build store.amd64.pack --source-file main.asm -o salida.bin
+\`\`\`
+
+## build de proyecto (carpeta)
+
+Cuando \`source\` apunta a una carpeta, RIF busca el pack raíz (\`.pack\` con \`fsystem 1\`), lee el código fuente de los archivos con la extensión configurada por el pack, y genera el binario en esa misma carpeta.
+
+\`\`\`bash
+python -m rif build examples/gba
+python -m rif build examples/gba --plugin gba --name example
+\`\`\`
+
+Salida del build:
+\`\`\`text
+bytes=131264
+output=examples\gba\gba.gba
+sha256=f5a6ede6...
+hex.head=2e0000ea24ffae51...
+hex.tail=0000000000000000...
+block=header:section:off=0:voff=134217728:size=192:vsize=192
+block=rom:section:off=192:voff=134217920:size=131072:vsize=131072
+\`\``,
+
+      "comando_table": `# Comando Table (CLI)
+
+El comando \`rif table\` (o \`rif -table\`) permite modificar y formatear programáticamente las tablas \`.pack\` de RIF directamente desde la terminal. Esto es útil para automatizar la adición de instrucciones, registros, campos y formatear el código de tabla.
+
+## Comandos Principales
+
+- \`rif table modify\`: Modifica filas, columnas, tablas o valores.
+- \`rif table format\`: Alinea y formatea las columnas de una tabla para que se lean correctamente.
+- \`rif table undo\`: Deshace la última modificación de tabla.
+- \`rif table redo\`: Rehace la modificación previamente deshecha.
+
+> [!NOTE]
+> Todos los comandos de modificación y formateo crean automáticamente un archivo de copia de seguridad (\`.bak\`) de forma predeterminada.
+
+## Especificando el Archivo o Pack
+
+Puedes indicar el archivo o pack objetivo utilizando las siguientes opciones:
+
+- \`--from <archivo|carpeta>\`: Ruta al archivo \`.pack\` o carpeta que los contiene.
+- \`-p <plugin> -use <pack>\`: Modifica un pack alojado dentro de un plugin instalado.
+- \`--file <nombre>\`: Cuando \`--from\` o \`-p\` apunta a una carpeta, especifica qué archivo modificar.
+- \`--section <seccion>\`: Apunta a una sección específica (por ejemplo, \`.regs\` o \`.data\`).
+
+> **Ejemplo:** \`rif table modify --from my_pack/ --file cpu.pack "regs add column bits 32"\`
+
+## Operaciones de Modificación (\`modify\`)
+
+El argumento final de \`modify\` es un string con la operación a ejecutar con la forma \`"TABLA comando argumentos"\`.
+
+### Filas (Rows)
+- **Añadir fila:** \`add row <celda1> <celda2> ...\`
+  *(Ej: \`"regs add row ax 000 16"\`)*
+- **Eliminar fila(s):** \`del row <nombre1> <nombre2> ...\`
+- **Renombrar fila:** \`rename row <viejo> <nuevo>\`
+- **Copiar fila:** \`copy row <origen> <nuevo>\`
+- **Mover fila:** \`move row <nombre> before|after|to <destino>\`
+
+### Columnas (Columns)
+- **Añadir columna:** \`add column <nombre> [valor_por_defecto]\`
+  *(Ej: \`"regs add column type INT"\`)*
+- **Eliminar columna(s):** \`del column <nombre1> <nombre2> ...\`
+- **Renombrar columna:** \`rename column <viejo> <nuevo>\`
+- **Asignar valor a toda la columna:** \`set column <columna> <valor1> <valor2> ...\`
+- **Mover columna:** \`move column <nombre> before|after|to <destino>\`
+
+### Celdas (Cells)
+- **Establecer valor:** \`set <fila> <columna> <valor>\`
+  *(Ej: \`"regs set ax bits 32"\`)*
+- **Operación rápida:** \`<columna> <fila> <valor>\`
+  *(Ej: \`"regs bits ax 32"\`)*
+- **Alternar valor booleano:** Usa \`switch\` como valor en celdas de tipo yes/no.
+  *(Ej: \`"rules set add hidden switch"\`)*
+- **Limpiar celda:** \`clear <fila> <columna>\`
+
+### Tablas y Secciones
+- **Eliminar tabla:** \`del table\`
+- **Añadir sección/separador:** \`addsect <texto>\`
+
+## Opciones Adicionales
+
+- \`--dry-run\`: Simula los cambios y muestra las diferencias sin escribir el archivo.
+- \`--no-backup\`: Evita crear el archivo \`.bak\` de seguridad.
+- \`--case-sensitive\`: Las coincidencias en nombres de tablas, filas y columnas distinguen entre mayúsculas y minúsculas.
+- \`--table <nombre>\`: Para \`rif table format\`, restringe el formateo a una tabla específica.`,
 
       "mir": `# Soporte MIR (Medium Intermediate Representation)
 
@@ -1688,13 +2070,13 @@ La productividad del desarrollador de sistemas es una prioridad absoluta. Por el
       "plugin_fonts": "# SX7 Fonts Plugin\n\nPlugin de fuentes bitmap retargetables para SX7/RIF.\n\nEstructura principal:\n\n```txt\nfonts/\n\u251c\u2500\u2500 cli.py\n\u251c\u2500\u2500 cli/\n\u2502   \u251c\u2500\u2500 add.py\n\u2502   \u251c\u2500\u2500 common.py\n\u2502   \u251c\u2500\u2500 delete.py\n\u2502   \u251c\u2500\u2500 editor.py\n\u2502   \u251c\u2500\u2500 list.py\n\u2502   \u251c\u2500\u2500 modify.py\n\u2502   \u2514\u2500\u2500 open.py\n\u2514\u2500\u2500 bitmap/\n    \u251c\u2500\u2500 lexer.py\n    \u251c\u2500\u2500 parser.py\n    \u2514\u2500\u2500 font-5x7x1.f\n```\n\nFormato `.f`:\n\n```txt\nfont SX7\nsize 5, 7, 1 ; 5 bits, 7 filas, 1 byte por fila.\nalign right\n\nA:\n   01110\n   10001\n   10001\n   11111\n   10001\n   10001\n   10001\n```\n\n`size 5, 7, 1` significa:\n\n- `5`: bits visuales por fila.\n- `7`: filas por glyph.\n- `1`: bytes fisicos por fila.\n\nCLI:\n\n```bash\npython fonts/cli.py fonts\npython fonts/cli.py list\npython fonts/cli.py modify font-5x7x1.f A\npython fonts/cli.py add font-5x7x1.f T\npython fonts/cli.py delete font-5x7x1.f T\npython fonts/cli.py open font-5x7x1.f\n```\n\nEn RIF, la forma esperada seria equivalente a:\n\n```bash\npython -m rif -pcli fonts fonts\npython -m rif -pcli fonts modify font-5x7x1.f A\n```\n\nAPI minima:\n\n```python\nfrom fonts.bitmap.parser import load_font\n\nfont = load_font(\"fonts/bitmap/font-5x7x1.f\")\nprint(font.get_ascii_entry(\"A\"))\n# [65, [14, 17, 17, 31, 17, 17, 17]]\n```\n\n\n## Formato Bitmap\n# Formato Bitmap\n\nLas fuentes `.f` usan formato SX7:\n\n```txt\nfont SX7\nsize 5, 7, 1\nalign right\n\nA:\n   01110\n   10001\n   10001\n   11111\n   10001\n   10001\n   10001\n```\n\n`size 5, 7, 1` significa 5 bits visibles, 7 filas y 1 byte fisico por fila.\n\n\n## Fillables\n# Fillables\n\nEl plugin `fonts` expone fillables para el linker.\n\n```rif\n@fill_bitmap_array_logo\n```\n\nEl linker busca funciones `fill_*` en los plugins declarados por el `.pack`, ejecuta la funcion y pega el texto retornado en el codigo fuente antes de compilar.\n\nEsto permite crear tablas o datos repetitivos sin hardcodear macros dentro del core.\n",
       "plugin_fonts/formato_bitmap": "# Formato Bitmap\n\nLas fuentes `.f` usan formato SX7:\n\n```txt\nfont SX7\nsize 5, 7, 1\nalign right\n\nA:\n   01110\n   10001\n   10001\n   11111\n   10001\n   10001\n   10001\n```\n\n`size 5, 7, 1` significa 5 bits visibles, 7 filas y 1 byte fisico por fila.\n",
       "plugin_fonts/fillables": "# Fillables\n\nEl plugin `fonts` expone fillables para el linker.\n\n```rif\n@fill_bitmap_array_logo\n```\n\nEl linker busca funciones `fill_*` en los plugins declarados por el `.pack`, ejecuta la funcion y pega el texto retornado en el codigo fuente antes de compilar.\n\nEsto permite crear tablas o datos repetitivos sin hardcodear macros dentro del core.\n",
-      "plugin_gba": "# GBA minimo para RIF\n\nContenido:\n\n- `gba/gba.pack`: pack GBA.\n- `gba/hello.rif`: fuente de ejemplo.\n- `plugins/gba/plugins/gba_*.py`: piezas que emiten header, logo, checksum, entrada ARM, framebuffer y padding.\n- `plugins/gba/cli.py`: CLI del plugin.\n- `plugins/gba/cli/`: comandos del plugin.\n\nUso desde la raiz del proyecto:\n\n```bash\npython -m rif build gba\npython -m rif -pcli gba install mGBA --add-path\npython -m rif -pcli gba run gba/hello.gba -nd\n```\n\nLa regla disponible es:\n\n```rif\nheaders\nlogo\nchecksum\nentry\nframe\nrompad\n```\n\nQue hace:\n\n- Genera un header GBA con logo Nintendo y checksum correcto.\n- Entra a codigo ARM en `0x080000C0`.\n- Activa modo grafico 3.\n- Copia un framebuffer estatico a VRAM.\n- Muestra `HOLA MUNDO` sobre pantalla verde.\n\nEste no es un backend GBA completo. Es un ejemplo minimo para validar generacion de ROM por plugin.\n\n\n## Build Y Run\n# Build y Run\n\nEl ejemplo GBA se construye desde una carpeta de proyecto:\n\n```bash\npython -m rif build gba\npython -m rif -pcli gba run gba/hello.gba -nd\n```\n\n`-nd` intenta reutilizar una ventana abierta de mGBA para no duplicar instancias.\n\nEl pack GBA declara instrucciones pequenas para header, logo, checksum, entrada, framebuffer y padding.\n\n\n## Overview\n# Plugin GBA\n\nEl plugin `gba` provee soporte para compilar ROMs de Game Boy Advance con RIF.\n\n## Estructura\n\n```\nplugins/gba/\n\u251c\u2500\u2500 cli.py                    \u2190 subcomandos rif -pcli gba\n\u251c\u2500\u2500 cli/\n\u2502   \u251c\u2500\u2500 install.py            \u2190 instala mGBA\n\u2502   \u2514\u2500\u2500 run.py                \u2190 ejecuta el .gba en mGBA\n\u251c\u2500\u2500 fillables.py              \u2190 @fill_screen / @fill_screen_text\n\u251c\u2500\u2500 packs/\n\u2502   \u2514\u2500\u2500 example/\n\u2502       \u251c\u2500\u2500 gba.pack          \u2190 pack ra\u00edz (fsystem 1)\n\u2502       \u251c\u2500\u2500 gba.regs.pack     \u2190 registros ARM7TDMI\n\u2502       \u251c\u2500\u2500 gba.types.pack    \u2190 tipos de dato\n\u2502       \u251c\u2500\u2500 gba.sections.pack \u2190 layout de memoria\n\u2502       \u251c\u2500\u2500 gba.words.pack    \u2190 instrucciones y macros\n\u2502       \u2514\u2500\u2500 gba.rules.pack    \u2190 reglas de compilaci\u00f3n Thumb\n\u2514\u2500\u2500 plugins/\n    \u251c\u2500\u2500 gba_common.py         \u2190 utilidades y constantes\n    \u251c\u2500\u2500 gba_headers.py        \u2190 cabecera ROM (0x00-0xBF)\n    \u251c\u2500\u2500 gba_logo.py           \u2190 logo Nintendo (0x04-0x9F)\n    \u251c\u2500\u2500 gba_checksum.py       \u2190 checksum de cabecera\n    \u251c\u2500\u2500 gba_entry.py          \u2190 c\u00f3digo de entrada ARM\n    \u251c\u2500\u2500 gba_frame.py          \u2190 framebuffer inicial\n    \u2514\u2500\u2500 gba_rompad.py         \u2190 padding hasta 512 KB\n```\n\n## Mapa de memoria GBA\n\n| Secci\u00f3n  | Direcci\u00f3n  | Tama\u00f1o | Descripci\u00f3n                  |\n|----------|------------|--------|------------------------------|\n| rom      | 0x08000000 | 32 MB  | Cartucho ROM (emitida al .gba)|\n| ewram    | 0x02000000 | 256 KB | Work RAM externa (lenta)      |\n| iwram    | 0x03000000 | 32 KB  | Work RAM interna (r\u00e1pida)     |\n| io       | 0x04000000 | 1 KB   | Registros de hardware MMIO    |\n| palette  | 0x05000000 | 1 KB   | Paletas de color (BGR555)     |\n| vram     | 0x06000000 | 96 KB  | Video RAM                     |\n| oam      | 0x07000000 | 1 KB   | Atributos de sprites          |\n| sram     | 0x0E000000 | 64 KB  | Save RAM del cartucho         |\n\n## Arquitectura\n\nEl GBA corre un **ARM7TDMI** en modo **Thumb** (instrucciones de 16 bits, little endian).\nEl pack emite c\u00f3digo Thumb directamente sin necesitar un ensamblador externo.\n\n\n## Instrucciones\n# Instrucciones Thumb\n\nEl pack GBA compila instrucciones Thumb de 16 bits en little endian,\nseg\u00fan el manual ARM7TDMI-S (DDI 0029G).\n\n## Transferencia de datos\n\n| Instrucci\u00f3n         | ARM equiv.       | Descripci\u00f3n                      |\n|---------------------|------------------|----------------------------------|\n| `store Rd = imm`    | MOV Rd, #imm8    | Carga inmediato 8-bit en Rd      |\n| `move Rd, Rs`       | ADD Rd, Rs, #0   | Copia Rs \u2192 Rd                    |\n| `lsl Rd, Rs, imm`   | LSL Rd, Rs, #imm5| Desplazamiento l\u00f3gico izquierda  |\n| `lsr Rd, Rs, imm`   | LSR Rd, Rs, #imm5| Desplazamiento l\u00f3gico derecha    |\n| `asr Rd, Rs, imm`   | ASR Rd, Rs, #imm5| Desplazamiento aritm\u00e9tico derecha|\n\nSolo R0-R7 son accesibles en Thumb (registros bajos de 3 bits).\n\n## Aritm\u00e9tica y l\u00f3gica\n\n| Instrucci\u00f3n    | ARM equiv.   | Descripci\u00f3n                    |\n|----------------|--------------|--------------------------------|\n| `add Rd, Rs, Rn` | ADD Rd, Rs, Rn | Rd = Rs + Rn                |\n| `sub Rd, Rs, Rn` | SUB Rd, Rs, Rn | Rd = Rs - Rn                |\n| `and Rd, Rs`   | AND Rd, Rs   | Rd &= Rs                       |\n| `or  Rd, Rs`   | ORR Rd, Rs   | Rd \\|= Rs                      |\n| `xor Rd, Rs`   | EOR Rd, Rs   | Rd ^= Rs                       |\n| `not Rd, Rs`   | MVN Rd, Rs   | Rd = ~Rs                       |\n| `neg Rd, Rs`   | NEG Rd, Rs   | Rd = 0 - Rs                    |\n| `mul Rd, Rs`   | MUL Rd, Rs   | Rd *= Rs                       |\n| `cmp Rd, Rs`   | CMP Rd, Rs   | Rd - Rs (solo actualiza flags) |\n\n## Acceso a memoria\n\n| Instrucci\u00f3n          | ARM equiv.           | Descripci\u00f3n                |\n|----------------------|----------------------|----------------------------|\n| `ldr  Rd, Rb, Ro`   | LDR  Rd, [Rb, Ro]   | Carga 32 bits              |\n| `ldrb Rd, Rb, Ro`   | LDRB Rd, [Rb, Ro]   | Carga 8 bits (sin signo)   |\n| `ldrh Rd, Rb, Ro`   | LDRH Rd, [Rb, Ro]   | Carga 16 bits (sin signo)  |\n| `str  Rd, Rb, Ro`   | STR  Rd, [Rb, Ro]   | Guarda 32 bits             |\n| `strb Rd, Rb, Ro`   | STRB Rd, [Rb, Ro]   | Guarda 8 bits              |\n| `strh Rd, Rb, Ro`   | STRH Rd, [Rb, Ro]   | Guarda 16 bits             |\n\n`Rb` = base, `Ro` = offset register. Direcci\u00f3n efectiva = `Rb + Ro`.\n\n## Control de flujo\n\n| Instrucci\u00f3n   | ARM equiv. | Descripci\u00f3n                         |\n|---------------|------------|-------------------------------------|\n| `jump label`  | B label    | Salto incondicional (\u00b11 KB)         |\n| `call label`  | BL label   | Salto con retorno (guarda PC en LR) |\n| `beq label`   | BEQ label  | Salta si Z=1 (igual)                |\n| `bne label`   | BNE label  | Salta si Z=0 (distinto)             |\n| `blt label`   | BLT label  | Salta si N\u2260V (menor)                |\n| `bgt label`   | BGT label  | Salta si Z=0 y N=V (mayor)          |\n| `ble label`   | BLE label  | Salta si Z=1 o N\u2260V (menor/igual)    |\n| `bge label`   | BGE label  | Salta si N=V (mayor/igual)          |\n\n## Stack\n\n| Instrucci\u00f3n | ARM equiv.   | Descripci\u00f3n                           |\n|-------------|--------------|---------------------------------------|\n| `push Rd`   | PUSH {Rd}    | Guarda registro en stack (SP -= 4)    |\n| `pop  Rd`   | POP  {Rd}    | Recupera registro del stack (SP += 4) |\n\n## Datos directos\n\n```rif\ndb 0xFF          ; emite un byte\ndh 0x1234        ; emite un halfword (2 bytes, LE)\ndw 0x12345678    ; emite un word (4 bytes, LE)\nbitmap_text \"HELLO\"  ; emite bytes del bitmap 5x7\n```\n\n## Ejemplo completo\n\n```rif\n.rom\nstore R0 = 0x80    ; R0 = 0x80\nstore R1 = 0x03    ; R1 = 0x03 \u2192 R0:R1 = DISPCNT address base\nlsl   R2, R0, 3   ; R2 = R0 << 3\nadd   R3, R0, R1  ; R3 = R0 + R1\ncmp   R3, R2      ; compara\nbne   loop_end    ; salta si distinto\n\nloop_end:\n    jump loop_end ; loop infinito\n```\n\n\n## Registros\n# Registros\n\nEl ARM7TDMI tiene 16 registros de prop\u00f3sito general (R0-R15) y 2 de estado (CPSR/SPSR).\nEn modo Thumb, solo los registros bajos R0-R7 son accesibles en la mayor\u00eda de instrucciones.\n\n## Registros de CPU\n\n| Registro | C\u00f3digo (3 bits) | Uso en Thumb | Prop\u00f3sito                          |\n|----------|-----------------|--------------|------------------------------------|\n| R0       | 000             | \u2713            | General purpose                    |\n| R1       | 001             | \u2713            | General purpose                    |\n| R2       | 010             | \u2713            | General purpose                    |\n| R3       | 011             | \u2713            | General purpose                    |\n| R4       | 100             | \u2713            | General purpose (callee-save)      |\n| R5       | 101             | \u2713            | General purpose (callee-save)      |\n| R6       | 110             | \u2713            | General purpose (callee-save)      |\n| R7       | 111             | \u2713            | General purpose (callee-save)      |\n| R8       | 1000            | \u2717            | Solo ARM (requiere instrucciones especiales) |\n| R9-R12   | 1001-1100       | \u2717            | Solo ARM                           |\n| SP       | 1101            | \u2713 (especial) | Stack Pointer \u2014 R13                |\n| LR       | 1110            | \u2713 (especial) | Link Register \u2014 R14 (return addr)  |\n| PC       | 1111            | \u2713 (especial) | Program Counter \u2014 R15              |\n\n## Convenci\u00f3n de llamada (APCS)\n\n- `R0-R3`: par\u00e1metros / valor de retorno\n- `R4-R7`: callee-saved (preservar antes de usar)\n- `SP` (R13): Stack Pointer \u2014 siempre alineado a 4 bytes\n- `LR` (R14): Link Register \u2014 guarda la direcci\u00f3n de retorno al hacer `call`\n- `PC` (R15): Program Counter \u2014 contiene la direcci\u00f3n de la instrucci\u00f3n + 4\n\n## Registros MMIO seleccionados\n\n| Nombre   | Direcci\u00f3n  | Descripci\u00f3n                     |\n|----------|------------|---------------------------------|\n| DISPCNT  | 0x04000000 | Control de pantalla LCD         |\n| DISPSTAT | 0x04000004 | Estado de pantalla (VBlank etc) |\n| VCOUNT   | 0x04000006 | L\u00ednea vertical actual           |\n| KEYINPUT | 0x04000130 | Estado de botones (active low)  |\n| IME      | 0x04000208 | Habilitador maestro IRQ         |\n| IE       | 0x04000200 | Interrupt Enable                |\n| IF       | 0x04000202 | Interrupt Flag (limpiar con 1)  |\n\nPara acceder a un registro MMIO desde Thumb:\n\n```rif\nstore R0 = 0x00  ; valor a escribir\nstore R1 = 0x00  ; byte bajo de la direcci\u00f3n\nstore R2 = 0x00  ; byte alto de la direcci\u00f3n\n; luego componer la direcci\u00f3n en un registro y usar strh\n```\n\n\n## Fillables\n# Fillables\n\nEl plugin `gba` expone fillables que generan datos de pantalla y bitmaps.\nEl linker los expande antes de compilar al encontrar `@nombre` en el fuente.\n\n## @fill_screen\n\nGenera un array con los pixels de toda la pantalla (240\u00d7160) rellenos de un color BGR555.\n\n```rif\n@fill_screen black screen_bg\n@fill_screen green pantalla_verde\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default      | Descripci\u00f3n               |\n|----------|--------|--------------|---------------------------|\n| 1        | string | `\"black\"`    | Color: `black`, `white`, `green` |\n| 2        | string | `\"screen_data\"` | Nombre del s\u00edmbolo generado |\n\nEl fillable expande a:\n\n```rif\nscreen_bg bitmap[76800] = 0x0000...\n```\n\n## @fill_screen_text\n\nGenera un frame completo con texto centrado dibujado en fuente 5\u00d77 (escala 3).\n\n```rif\n@fill_screen_text HELLO white green pantalla\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default           | Descripci\u00f3n               |\n|----------|--------|-------------------|---------------------------|\n| 1        | string | `\"HELLO\"`         | Texto a dibujar (ASCII)   |\n| 2        | string | `\"white\"`         | Color de texto            |\n| 3        | string | `\"green\"`         | Color de fondo            |\n| 4        | string | `\"screen_frame\"`  | Nombre del s\u00edmbolo        |\n\n## @fill_bitmap_array_logo (del plugin fonts)\n\nGenera una cadena de texto como bytes de bitmap 5\u00d77:\n\n```rif\n@fill_bitmap_array_logo HOLA mi_logo\n```\n\nPara usar estos fillables, el pack debe declarar los plugins:\n\n```pack\n.pack\nplugin \"gba\"\nplugin \"fonts\"\n```\n\n\n## Macros Rom\n# Macros de ROM\n\nEl plugin `gba` incluye macros que generan los datos requeridos por el hardware del GBA\nen la cabecera de la ROM. Todas se declaran como words en el pack y se llaman desde `.rules`.\n\n## set_headers\n\nGenera los primeros 0xC0 bytes de la cabecera ROM:\n- Entry point (instrucci\u00f3n `B entry`)\n- Logo Nintendo (96 bytes, requerido por el BIOS)\n- T\u00edtulo del juego (12 bytes, ASCII uppercase)\n- C\u00f3digo del juego (4 bytes: `RIF0`)\n- C\u00f3digo del fabricante (2 bytes: `00`)\n- Byte de versi\u00f3n del BIOS GBA (`0x96`)\n- Checksum de cabecera\n\n```rif\n.rom\nset_headers\n```\n\n## set_logo\n\nEmite solo el logo Nintendo (bytes 0x04\u20130x9F de la ROM).\n\n## set_checksum\n\nEscribe el bloque de checksum con el t\u00edtulo del juego.\n\n```rif\nset_checksum \"Mi Juego\"\n```\n\n## set_entry\n\nGenera el bloque de c\u00f3digo de entrada ARM (desde 0xC0 a ~0x100):\n- Inicializa el modo de video (BG Mode 3, 15bpp)\n- Copia el framebuffer desde la ROM a VRAM (0x06000000)\n- Queda en loop infinito\n\n## set_frame\n\nGenera el framebuffer inicial (240\u00d7160 pixels, 76800 bytes \u00d7 2 bytes/pixel BGR555).\n\n```rif\nset_frame \"HELLO WORLD\", white, green\n```\n\nArgumentos: texto a centrar, color del texto, color del fondo.\n\n## set_rompad / rompad\n\nRellena la ROM hasta 512 KB con bytes `0xFF`, que es el valor de borrado de una Flash ROM.\n\n```rif\nset_rompad\n```\n\n## Ejemplo de ROM m\u00ednima\n\n```rif\n.rom\nset_headers\nset_frame \"MI JUEGO\", white, green\nset_entry\nset_rompad\n```\n\nEsta secuencia genera una ROM GBA v\u00e1lida que muestra texto centrado en pantalla.\n",
-      "plugin_gba/build_y_run": "# Build y Run\n\nEl ejemplo GBA se construye desde una carpeta de proyecto:\n\n```bash\npython -m rif build gba\npython -m rif -pcli gba run gba/hello.gba -nd\n```\n\n`-nd` intenta reutilizar una ventana abierta de mGBA para no duplicar instancias.\n\nEl pack GBA declara instrucciones pequenas para header, logo, checksum, entrada, framebuffer y padding.\n",
+      "plugin_gba": "# GBA para RIF\n\nEste plugin contiene el pack GBA avanzado funcional usado por `examples/gba`.\n\nContenido principal:\n\n- `packs/example/gba.pack`: pack raiz que enlaza registros, tipos, secciones, words y reglas.\n- `packs/example/gba.rules.pack`: macros de ROM e instrucciones Thumb.\n- `plugins/thumb_ins.py`: emisor Thumb de 16 bits little-endian.\n- `plugins/gba_*.py`: cabecera, logo, checksum, entrada ARM, framebuffer y padding.\n- `fillables.py`: generadores `@fill_screen` y `@fill_screen_text`.\n\nUso desde la raiz del proyecto:\n\n```bash\npython -m rif build examples/gba --plugin gba --name example\npython -m rif -pcli gba run examples/gba/hello.gba -nd\n```\n\nSecuencia ROM avanzada usada por el ejemplo:\n\n```rif\n.section .rom\nset_headers\nset_logo\nset_checksum\nset_entry_thumb\nset_frame\ngame_code\nset_rompad\n```\n\n`set_rompad` rellena hasta el tama\u00f1o ROM configurado por el plugin usando la posicion real actual, por eso no duplica padding cuando se a\u00f1ade codigo despues del framebuffer.\n\n\n## Build Y Run\n# Build y Run\n\nEl ejemplo GBA funcional se construye desde la raiz del proyecto:\n\n```bash\npython -m rif build examples/gba --plugin gba --name example\n```\n\nEjecutar con mGBA:\n\n```bash\npython -m rif -pcli gba run examples/gba/hello.gba -nd\n```\n\n`-nd` intenta reutilizar una ventana abierta de mGBA para no duplicar instancias.\n\n\n## Overview\n# Plugin GBA\n\nEl plugin `gba` provee soporte para compilar ROMs de Game Boy Advance con RIF.\n\n## Estructura\n\n```\nplugins/gba/\n\u251c\u2500\u2500 cli.py                    \u2190 subcomandos rif -pcli gba\n\u251c\u2500\u2500 cli/\n\u2502   \u251c\u2500\u2500 install.py            \u2190 instala mGBA\n\u2502   \u2514\u2500\u2500 run.py                \u2190 ejecuta el .gba en mGBA\n\u251c\u2500\u2500 fillables.py              \u2190 @fill_screen / @fill_screen_text\n\u251c\u2500\u2500 packs/\n\u2502   \u2514\u2500\u2500 example/\n\u2502       \u251c\u2500\u2500 gba.pack          \u2190 pack ra\u00edz (fsystem 1)\n\u2502       \u251c\u2500\u2500 gba.regs.pack     \u2190 registros ARM7TDMI\n\u2502       \u251c\u2500\u2500 gba.types.pack    \u2190 tipos de dato\n\u2502       \u251c\u2500\u2500 gba.sections.pack \u2190 layout de memoria\n\u2502       \u251c\u2500\u2500 gba.words.pack    \u2190 instrucciones y macros\n\u2502       \u2514\u2500\u2500 gba.rules.pack    \u2190 reglas de compilaci\u00f3n Thumb\n\u2514\u2500\u2500 plugins/\n    \u251c\u2500\u2500 gba_common.py         \u2190 utilidades y constantes\n    \u251c\u2500\u2500 gba_headers.py        \u2190 cabecera ROM (0x00-0xBF)\n    \u251c\u2500\u2500 gba_logo.py           \u2190 logo Nintendo (0x04-0x9F)\n    \u251c\u2500\u2500 gba_checksum.py       \u2190 checksum de cabecera\n    \u251c\u2500\u2500 gba_entry.py          \u2190 c\u00f3digo de entrada ARM\n    \u251c\u2500\u2500 gba_frame.py          \u2190 framebuffer inicial\n    \u2514\u2500\u2500 gba_rompad.py         \u2190 padding hasta 512 KB\n```\n\n## Mapa de memoria GBA\n\n| Secci\u00f3n  | Direcci\u00f3n  | Tama\u00f1o | Descripci\u00f3n                  |\n|----------|------------|--------|------------------------------|\n| rom      | 0x08000000 | 32 MB  | Cartucho ROM (emitida al .gba)|\n| ewram    | 0x02000000 | 256 KB | Work RAM externa (lenta)      |\n| iwram    | 0x03000000 | 32 KB  | Work RAM interna (r\u00e1pida)     |\n| io       | 0x04000000 | 1 KB   | Registros de hardware MMIO    |\n| palette  | 0x05000000 | 1 KB   | Paletas de color (BGR555)     |\n| vram     | 0x06000000 | 96 KB  | Video RAM                     |\n| oam      | 0x07000000 | 1 KB   | Atributos de sprites          |\n| sram     | 0x0E000000 | 64 KB  | Save RAM del cartucho         |\n\n## Arquitectura\n\nEl GBA corre un **ARM7TDMI** en modo **Thumb** (instrucciones de 16 bits, little endian).\nEl pack emite c\u00f3digo Thumb directamente sin necesitar un ensamblador externo.\n\n\n## Instrucciones\n# Instrucciones Thumb\n\nEl pack GBA compila instrucciones Thumb de 16 bits en little endian,\nseg\u00fan el manual ARM7TDMI-S (DDI 0029G).\n\n## Transferencia de datos\n\n| Instrucci\u00f3n         | ARM equiv.       | Descripci\u00f3n                      |\n|---------------------|------------------|----------------------------------|\n| `store Rd = imm`    | MOV Rd, #imm8    | Carga inmediato 8-bit en Rd      |\n| `move Rd, Rs`       | ADD Rd, Rs, #0   | Copia Rs \u2192 Rd                    |\n| `lsl Rd, Rs, imm`   | LSL Rd, Rs, #imm5| Desplazamiento l\u00f3gico izquierda  |\n| `lsr Rd, Rs, imm`   | LSR Rd, Rs, #imm5| Desplazamiento l\u00f3gico derecha    |\n| `asr Rd, Rs, imm`   | ASR Rd, Rs, #imm5| Desplazamiento aritm\u00e9tico derecha|\n\nSolo R0-R7 son accesibles en Thumb (registros bajos de 3 bits).\n\n## Aritm\u00e9tica y l\u00f3gica\n\n| Instrucci\u00f3n    | ARM equiv.   | Descripci\u00f3n                    |\n|----------------|--------------|--------------------------------|\n| `add Rd, Rs, Rn` | ADD Rd, Rs, Rn | Rd = Rs + Rn                |\n| `sub Rd, Rs, Rn` | SUB Rd, Rs, Rn | Rd = Rs - Rn                |\n| `and Rd, Rs`   | AND Rd, Rs   | Rd &= Rs                       |\n| `or  Rd, Rs`   | ORR Rd, Rs   | Rd \\|= Rs                      |\n| `xor Rd, Rs`   | EOR Rd, Rs   | Rd ^= Rs                       |\n| `not Rd, Rs`   | MVN Rd, Rs   | Rd = ~Rs                       |\n| `neg Rd, Rs`   | NEG Rd, Rs   | Rd = 0 - Rs                    |\n| `mul Rd, Rs`   | MUL Rd, Rs   | Rd *= Rs                       |\n| `cmp Rd, Rs`   | CMP Rd, Rs   | Rd - Rs (solo actualiza flags) |\n\n## Acceso a memoria\n\n| Instrucci\u00f3n          | ARM equiv.           | Descripci\u00f3n                |\n|----------------------|----------------------|----------------------------|\n| `ldr  Rd, Rb, Ro`   | LDR  Rd, [Rb, Ro]   | Carga 32 bits              |\n| `ldrb Rd, Rb, Ro`   | LDRB Rd, [Rb, Ro]   | Carga 8 bits (sin signo)   |\n| `ldrh Rd, Rb, Ro`   | LDRH Rd, [Rb, Ro]   | Carga 16 bits (sin signo)  |\n| `str  Rd, Rb, Ro`   | STR  Rd, [Rb, Ro]   | Guarda 32 bits             |\n| `strb Rd, Rb, Ro`   | STRB Rd, [Rb, Ro]   | Guarda 8 bits              |\n| `strh Rd, Rb, Ro`   | STRH Rd, [Rb, Ro]   | Guarda 16 bits             |\n\n`Rb` = base, `Ro` = offset register. Direcci\u00f3n efectiva = `Rb + Ro`.\n\n## Control de flujo\n\n| Instrucci\u00f3n   | ARM equiv. | Descripci\u00f3n                         |\n|---------------|------------|-------------------------------------|\n| `jump label`  | B label    | Salto incondicional (\u00b11 KB)         |\n| `call label`  | BL label   | Salto con retorno (guarda PC en LR) |\n| `beq label`   | BEQ label  | Salta si Z=1 (igual)                |\n| `bne label`   | BNE label  | Salta si Z=0 (distinto)             |\n| `blt label`   | BLT label  | Salta si N\u2260V (menor)                |\n| `bgt label`   | BGT label  | Salta si Z=0 y N=V (mayor)          |\n| `ble label`   | BLE label  | Salta si Z=1 o N\u2260V (menor/igual)    |\n| `bge label`   | BGE label  | Salta si N=V (mayor/igual)          |\n\n## Stack\n\n| Instrucci\u00f3n | ARM equiv.   | Descripci\u00f3n                           |\n|-------------|--------------|---------------------------------------|\n| `push Rd`   | PUSH {Rd}    | Guarda registro en stack (SP -= 4)    |\n| `pop  Rd`   | POP  {Rd}    | Recupera registro del stack (SP += 4) |\n\n## Datos directos\n\n```rif\ndb 0xFF          ; emite un byte\ndh 0x1234        ; emite un halfword (2 bytes, LE)\ndw 0x12345678    ; emite un word (4 bytes, LE)\nbitmap_text \"HELLO\"  ; emite bytes del bitmap 5x7\n```\n\n## Ejemplo completo\n\n```rif\n.rom\nstore R0 = 0x80    ; R0 = 0x80\nstore R1 = 0x03    ; R1 = 0x03 \u2192 R0:R1 = DISPCNT address base\nlsl   R2, R0, 3   ; R2 = R0 << 3\nadd   R3, R0, R1  ; R3 = R0 + R1\ncmp   R3, R2      ; compara\nbne   loop_end    ; salta si distinto\n\nloop_end:\n    jump loop_end ; loop infinito\n```\n\n\n## Registros\n# Registros\n\nEl ARM7TDMI tiene 16 registros de prop\u00f3sito general (R0-R15) y 2 de estado (CPSR/SPSR).\nEn modo Thumb, solo los registros bajos R0-R7 son accesibles en la mayor\u00eda de instrucciones.\n\n## Registros de CPU\n\n| Registro | C\u00f3digo (3 bits) | Uso en Thumb | Prop\u00f3sito                          |\n|----------|-----------------|--------------|------------------------------------|\n| R0       | 000             | \u2713            | General purpose                    |\n| R1       | 001             | \u2713            | General purpose                    |\n| R2       | 010             | \u2713            | General purpose                    |\n| R3       | 011             | \u2713            | General purpose                    |\n| R4       | 100             | \u2713            | General purpose (callee-save)      |\n| R5       | 101             | \u2713            | General purpose (callee-save)      |\n| R6       | 110             | \u2713            | General purpose (callee-save)      |\n| R7       | 111             | \u2713            | General purpose (callee-save)      |\n| R8       | 1000            | \u2717            | Solo ARM (requiere instrucciones especiales) |\n| R9-R12   | 1001-1100       | \u2717            | Solo ARM                           |\n| SP       | 1101            | \u2713 (especial) | Stack Pointer \u2014 R13                |\n| LR       | 1110            | \u2713 (especial) | Link Register \u2014 R14 (return addr)  |\n| PC       | 1111            | \u2713 (especial) | Program Counter \u2014 R15              |\n\n## Convenci\u00f3n de llamada (APCS)\n\n- `R0-R3`: par\u00e1metros / valor de retorno\n- `R4-R7`: callee-saved (preservar antes de usar)\n- `SP` (R13): Stack Pointer \u2014 siempre alineado a 4 bytes\n- `LR` (R14): Link Register \u2014 guarda la direcci\u00f3n de retorno al hacer `call`\n- `PC` (R15): Program Counter \u2014 contiene la direcci\u00f3n de la instrucci\u00f3n + 4\n\n## Registros MMIO seleccionados\n\n| Nombre   | Direcci\u00f3n  | Descripci\u00f3n                     |\n|----------|------------|---------------------------------|\n| DISPCNT  | 0x04000000 | Control de pantalla LCD         |\n| DISPSTAT | 0x04000004 | Estado de pantalla (VBlank etc) |\n| VCOUNT   | 0x04000006 | L\u00ednea vertical actual           |\n| KEYINPUT | 0x04000130 | Estado de botones (active low)  |\n| IME      | 0x04000208 | Habilitador maestro IRQ         |\n| IE       | 0x04000200 | Interrupt Enable                |\n| IF       | 0x04000202 | Interrupt Flag (limpiar con 1)  |\n\nPara acceder a un registro MMIO desde Thumb:\n\n```rif\nstore R0 = 0x00  ; valor a escribir\nstore R1 = 0x00  ; byte bajo de la direcci\u00f3n\nstore R2 = 0x00  ; byte alto de la direcci\u00f3n\n; luego componer la direcci\u00f3n en un registro y usar strh\n```\n\n\n## Fillables\n# Fillables\n\nEl plugin `gba` expone fillables que generan datos de pantalla y bitmaps.\nEl linker los expande antes de compilar al encontrar `@nombre` en el fuente.\n\n## @fill_screen\n\nGenera un array con los pixels de toda la pantalla (240\u00d7160) rellenos de un color BGR555.\n\n```rif\n@fill_screen black screen_bg\n@fill_screen green pantalla_verde\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default      | Descripci\u00f3n               |\n|----------|--------|--------------|---------------------------|\n| 1        | string | `\"black\"`    | Color: `black`, `white`, `green` |\n| 2        | string | `\"screen_data\"` | Nombre del s\u00edmbolo generado |\n\nEl fillable expande a:\n\n```rif\nscreen_bg bitmap[76800] = 0x0000...\n```\n\n## @fill_screen_text\n\nGenera un frame completo con texto centrado dibujado en fuente 5\u00d77 (escala 3).\n\n```rif\n@fill_screen_text HELLO white green pantalla\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default           | Descripci\u00f3n               |\n|----------|--------|-------------------|---------------------------|\n| 1        | string | `\"HELLO\"`         | Texto a dibujar (ASCII)   |\n| 2        | string | `\"white\"`         | Color de texto            |\n| 3        | string | `\"green\"`         | Color de fondo            |\n| 4        | string | `\"screen_frame\"`  | Nombre del s\u00edmbolo        |\n\n## @fill_bitmap_array_logo (del plugin fonts)\n\nGenera una cadena de texto como bytes de bitmap 5\u00d77:\n\n```rif\n@fill_bitmap_array_logo HOLA mi_logo\n```\n\nPara usar estos fillables, el pack debe declarar los plugins:\n\n```pack\n.pack\nplugin \"gba\"\nplugin \"fonts\"\n```\n\n\n## Macros Rom\n# Macros de ROM\n\nEl plugin `gba` incluye macros para formar una ROM GBA valida.\n\n## Secuencia minima funcional\n\n```rif\n.section .rom\nset_headers\nset_logo\nset_checksum\nset_entry\nset_frame\nset_rompad\n```\n\n## Secuencia avanzada del ejemplo\n\n```rif\n.section .rom\nset_headers\nset_logo\nset_checksum\nset_entry_thumb\nset_frame\ngame_code\nset_rompad\n```\n\n## Macros\n\n- `set_headers`: emite la instruccion ARM inicial que salta a `0x080000C0`.\n- `set_logo`: emite el logo Nintendo requerido por el BIOS.\n- `set_checksum`: emite titulo, game code, maker code, version y checksum de cabecera.\n- `set_entry`: emite entrada ARM que configura video mode 3, copia framebuffer a VRAM y queda en loop.\n- `set_entry_thumb`: emite stub ARM que configura video mode 3 y salta al codigo Thumb ubicado despues del framebuffer.\n- `set_frame`: emite un framebuffer 240x160 BGR555 con texto centrado.\n- `game_code`: codigo Thumb de ejemplo para la ROM avanzada.\n- `set_rompad` / `rompad`: rellena hasta el tama\u00f1o ROM configurado usando el offset actual real.\n",
+      "plugin_gba/build_y_run": "# Build y Run\n\nEl ejemplo GBA funcional se construye desde la raiz del proyecto:\n\n```bash\npython -m rif build examples/gba --plugin gba --name example\n```\n\nEjecutar con mGBA:\n\n```bash\npython -m rif -pcli gba run examples/gba/hello.gba -nd\n```\n\n`-nd` intenta reutilizar una ventana abierta de mGBA para no duplicar instancias.\n",
       "plugin_gba/overview": "# Plugin GBA\n\nEl plugin `gba` provee soporte para compilar ROMs de Game Boy Advance con RIF.\n\n## Estructura\n\n```\nplugins/gba/\n\u251c\u2500\u2500 cli.py                    \u2190 subcomandos rif -pcli gba\n\u251c\u2500\u2500 cli/\n\u2502   \u251c\u2500\u2500 install.py            \u2190 instala mGBA\n\u2502   \u2514\u2500\u2500 run.py                \u2190 ejecuta el .gba en mGBA\n\u251c\u2500\u2500 fillables.py              \u2190 @fill_screen / @fill_screen_text\n\u251c\u2500\u2500 packs/\n\u2502   \u2514\u2500\u2500 example/\n\u2502       \u251c\u2500\u2500 gba.pack          \u2190 pack ra\u00edz (fsystem 1)\n\u2502       \u251c\u2500\u2500 gba.regs.pack     \u2190 registros ARM7TDMI\n\u2502       \u251c\u2500\u2500 gba.types.pack    \u2190 tipos de dato\n\u2502       \u251c\u2500\u2500 gba.sections.pack \u2190 layout de memoria\n\u2502       \u251c\u2500\u2500 gba.words.pack    \u2190 instrucciones y macros\n\u2502       \u2514\u2500\u2500 gba.rules.pack    \u2190 reglas de compilaci\u00f3n Thumb\n\u2514\u2500\u2500 plugins/\n    \u251c\u2500\u2500 gba_common.py         \u2190 utilidades y constantes\n    \u251c\u2500\u2500 gba_headers.py        \u2190 cabecera ROM (0x00-0xBF)\n    \u251c\u2500\u2500 gba_logo.py           \u2190 logo Nintendo (0x04-0x9F)\n    \u251c\u2500\u2500 gba_checksum.py       \u2190 checksum de cabecera\n    \u251c\u2500\u2500 gba_entry.py          \u2190 c\u00f3digo de entrada ARM\n    \u251c\u2500\u2500 gba_frame.py          \u2190 framebuffer inicial\n    \u2514\u2500\u2500 gba_rompad.py         \u2190 padding hasta 512 KB\n```\n\n## Mapa de memoria GBA\n\n| Secci\u00f3n  | Direcci\u00f3n  | Tama\u00f1o | Descripci\u00f3n                  |\n|----------|------------|--------|------------------------------|\n| rom      | 0x08000000 | 32 MB  | Cartucho ROM (emitida al .gba)|\n| ewram    | 0x02000000 | 256 KB | Work RAM externa (lenta)      |\n| iwram    | 0x03000000 | 32 KB  | Work RAM interna (r\u00e1pida)     |\n| io       | 0x04000000 | 1 KB   | Registros de hardware MMIO    |\n| palette  | 0x05000000 | 1 KB   | Paletas de color (BGR555)     |\n| vram     | 0x06000000 | 96 KB  | Video RAM                     |\n| oam      | 0x07000000 | 1 KB   | Atributos de sprites          |\n| sram     | 0x0E000000 | 64 KB  | Save RAM del cartucho         |\n\n## Arquitectura\n\nEl GBA corre un **ARM7TDMI** en modo **Thumb** (instrucciones de 16 bits, little endian).\nEl pack emite c\u00f3digo Thumb directamente sin necesitar un ensamblador externo.\n",
       "plugin_gba/instrucciones": "# Instrucciones Thumb\n\nEl pack GBA compila instrucciones Thumb de 16 bits en little endian,\nseg\u00fan el manual ARM7TDMI-S (DDI 0029G).\n\n## Transferencia de datos\n\n| Instrucci\u00f3n         | ARM equiv.       | Descripci\u00f3n                      |\n|---------------------|------------------|----------------------------------|\n| `store Rd = imm`    | MOV Rd, #imm8    | Carga inmediato 8-bit en Rd      |\n| `move Rd, Rs`       | ADD Rd, Rs, #0   | Copia Rs \u2192 Rd                    |\n| `lsl Rd, Rs, imm`   | LSL Rd, Rs, #imm5| Desplazamiento l\u00f3gico izquierda  |\n| `lsr Rd, Rs, imm`   | LSR Rd, Rs, #imm5| Desplazamiento l\u00f3gico derecha    |\n| `asr Rd, Rs, imm`   | ASR Rd, Rs, #imm5| Desplazamiento aritm\u00e9tico derecha|\n\nSolo R0-R7 son accesibles en Thumb (registros bajos de 3 bits).\n\n## Aritm\u00e9tica y l\u00f3gica\n\n| Instrucci\u00f3n    | ARM equiv.   | Descripci\u00f3n                    |\n|----------------|--------------|--------------------------------|\n| `add Rd, Rs, Rn` | ADD Rd, Rs, Rn | Rd = Rs + Rn                |\n| `sub Rd, Rs, Rn` | SUB Rd, Rs, Rn | Rd = Rs - Rn                |\n| `and Rd, Rs`   | AND Rd, Rs   | Rd &= Rs                       |\n| `or  Rd, Rs`   | ORR Rd, Rs   | Rd \\|= Rs                      |\n| `xor Rd, Rs`   | EOR Rd, Rs   | Rd ^= Rs                       |\n| `not Rd, Rs`   | MVN Rd, Rs   | Rd = ~Rs                       |\n| `neg Rd, Rs`   | NEG Rd, Rs   | Rd = 0 - Rs                    |\n| `mul Rd, Rs`   | MUL Rd, Rs   | Rd *= Rs                       |\n| `cmp Rd, Rs`   | CMP Rd, Rs   | Rd - Rs (solo actualiza flags) |\n\n## Acceso a memoria\n\n| Instrucci\u00f3n          | ARM equiv.           | Descripci\u00f3n                |\n|----------------------|----------------------|----------------------------|\n| `ldr  Rd, Rb, Ro`   | LDR  Rd, [Rb, Ro]   | Carga 32 bits              |\n| `ldrb Rd, Rb, Ro`   | LDRB Rd, [Rb, Ro]   | Carga 8 bits (sin signo)   |\n| `ldrh Rd, Rb, Ro`   | LDRH Rd, [Rb, Ro]   | Carga 16 bits (sin signo)  |\n| `str  Rd, Rb, Ro`   | STR  Rd, [Rb, Ro]   | Guarda 32 bits             |\n| `strb Rd, Rb, Ro`   | STRB Rd, [Rb, Ro]   | Guarda 8 bits              |\n| `strh Rd, Rb, Ro`   | STRH Rd, [Rb, Ro]   | Guarda 16 bits             |\n\n`Rb` = base, `Ro` = offset register. Direcci\u00f3n efectiva = `Rb + Ro`.\n\n## Control de flujo\n\n| Instrucci\u00f3n   | ARM equiv. | Descripci\u00f3n                         |\n|---------------|------------|-------------------------------------|\n| `jump label`  | B label    | Salto incondicional (\u00b11 KB)         |\n| `call label`  | BL label   | Salto con retorno (guarda PC en LR) |\n| `beq label`   | BEQ label  | Salta si Z=1 (igual)                |\n| `bne label`   | BNE label  | Salta si Z=0 (distinto)             |\n| `blt label`   | BLT label  | Salta si N\u2260V (menor)                |\n| `bgt label`   | BGT label  | Salta si Z=0 y N=V (mayor)          |\n| `ble label`   | BLE label  | Salta si Z=1 o N\u2260V (menor/igual)    |\n| `bge label`   | BGE label  | Salta si N=V (mayor/igual)          |\n\n## Stack\n\n| Instrucci\u00f3n | ARM equiv.   | Descripci\u00f3n                           |\n|-------------|--------------|---------------------------------------|\n| `push Rd`   | PUSH {Rd}    | Guarda registro en stack (SP -= 4)    |\n| `pop  Rd`   | POP  {Rd}    | Recupera registro del stack (SP += 4) |\n\n## Datos directos\n\n```rif\ndb 0xFF          ; emite un byte\ndh 0x1234        ; emite un halfword (2 bytes, LE)\ndw 0x12345678    ; emite un word (4 bytes, LE)\nbitmap_text \"HELLO\"  ; emite bytes del bitmap 5x7\n```\n\n## Ejemplo completo\n\n```rif\n.rom\nstore R0 = 0x80    ; R0 = 0x80\nstore R1 = 0x03    ; R1 = 0x03 \u2192 R0:R1 = DISPCNT address base\nlsl   R2, R0, 3   ; R2 = R0 << 3\nadd   R3, R0, R1  ; R3 = R0 + R1\ncmp   R3, R2      ; compara\nbne   loop_end    ; salta si distinto\n\nloop_end:\n    jump loop_end ; loop infinito\n```\n",
       "plugin_gba/registros": "# Registros\n\nEl ARM7TDMI tiene 16 registros de prop\u00f3sito general (R0-R15) y 2 de estado (CPSR/SPSR).\nEn modo Thumb, solo los registros bajos R0-R7 son accesibles en la mayor\u00eda de instrucciones.\n\n## Registros de CPU\n\n| Registro | C\u00f3digo (3 bits) | Uso en Thumb | Prop\u00f3sito                          |\n|----------|-----------------|--------------|------------------------------------|\n| R0       | 000             | \u2713            | General purpose                    |\n| R1       | 001             | \u2713            | General purpose                    |\n| R2       | 010             | \u2713            | General purpose                    |\n| R3       | 011             | \u2713            | General purpose                    |\n| R4       | 100             | \u2713            | General purpose (callee-save)      |\n| R5       | 101             | \u2713            | General purpose (callee-save)      |\n| R6       | 110             | \u2713            | General purpose (callee-save)      |\n| R7       | 111             | \u2713            | General purpose (callee-save)      |\n| R8       | 1000            | \u2717            | Solo ARM (requiere instrucciones especiales) |\n| R9-R12   | 1001-1100       | \u2717            | Solo ARM                           |\n| SP       | 1101            | \u2713 (especial) | Stack Pointer \u2014 R13                |\n| LR       | 1110            | \u2713 (especial) | Link Register \u2014 R14 (return addr)  |\n| PC       | 1111            | \u2713 (especial) | Program Counter \u2014 R15              |\n\n## Convenci\u00f3n de llamada (APCS)\n\n- `R0-R3`: par\u00e1metros / valor de retorno\n- `R4-R7`: callee-saved (preservar antes de usar)\n- `SP` (R13): Stack Pointer \u2014 siempre alineado a 4 bytes\n- `LR` (R14): Link Register \u2014 guarda la direcci\u00f3n de retorno al hacer `call`\n- `PC` (R15): Program Counter \u2014 contiene la direcci\u00f3n de la instrucci\u00f3n + 4\n\n## Registros MMIO seleccionados\n\n| Nombre   | Direcci\u00f3n  | Descripci\u00f3n                     |\n|----------|------------|---------------------------------|\n| DISPCNT  | 0x04000000 | Control de pantalla LCD         |\n| DISPSTAT | 0x04000004 | Estado de pantalla (VBlank etc) |\n| VCOUNT   | 0x04000006 | L\u00ednea vertical actual           |\n| KEYINPUT | 0x04000130 | Estado de botones (active low)  |\n| IME      | 0x04000208 | Habilitador maestro IRQ         |\n| IE       | 0x04000200 | Interrupt Enable                |\n| IF       | 0x04000202 | Interrupt Flag (limpiar con 1)  |\n\nPara acceder a un registro MMIO desde Thumb:\n\n```rif\nstore R0 = 0x00  ; valor a escribir\nstore R1 = 0x00  ; byte bajo de la direcci\u00f3n\nstore R2 = 0x00  ; byte alto de la direcci\u00f3n\n; luego componer la direcci\u00f3n en un registro y usar strh\n```\n",
       "plugin_gba/fillables": "# Fillables\n\nEl plugin `gba` expone fillables que generan datos de pantalla y bitmaps.\nEl linker los expande antes de compilar al encontrar `@nombre` en el fuente.\n\n## @fill_screen\n\nGenera un array con los pixels de toda la pantalla (240\u00d7160) rellenos de un color BGR555.\n\n```rif\n@fill_screen black screen_bg\n@fill_screen green pantalla_verde\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default      | Descripci\u00f3n               |\n|----------|--------|--------------|---------------------------|\n| 1        | string | `\"black\"`    | Color: `black`, `white`, `green` |\n| 2        | string | `\"screen_data\"` | Nombre del s\u00edmbolo generado |\n\nEl fillable expande a:\n\n```rif\nscreen_bg bitmap[76800] = 0x0000...\n```\n\n## @fill_screen_text\n\nGenera un frame completo con texto centrado dibujado en fuente 5\u00d77 (escala 3).\n\n```rif\n@fill_screen_text HELLO white green pantalla\n```\n\nArgumentos:\n\n| Posici\u00f3n | Tipo   | Default           | Descripci\u00f3n               |\n|----------|--------|-------------------|---------------------------|\n| 1        | string | `\"HELLO\"`         | Texto a dibujar (ASCII)   |\n| 2        | string | `\"white\"`         | Color de texto            |\n| 3        | string | `\"green\"`         | Color de fondo            |\n| 4        | string | `\"screen_frame\"`  | Nombre del s\u00edmbolo        |\n\n## @fill_bitmap_array_logo (del plugin fonts)\n\nGenera una cadena de texto como bytes de bitmap 5\u00d77:\n\n```rif\n@fill_bitmap_array_logo HOLA mi_logo\n```\n\nPara usar estos fillables, el pack debe declarar los plugins:\n\n```pack\n.pack\nplugin \"gba\"\nplugin \"fonts\"\n```\n",
-      "plugin_gba/macros_rom": "# Macros de ROM\n\nEl plugin `gba` incluye macros que generan los datos requeridos por el hardware del GBA\nen la cabecera de la ROM. Todas se declaran como words en el pack y se llaman desde `.rules`.\n\n## set_headers\n\nGenera los primeros 0xC0 bytes de la cabecera ROM:\n- Entry point (instrucci\u00f3n `B entry`)\n- Logo Nintendo (96 bytes, requerido por el BIOS)\n- T\u00edtulo del juego (12 bytes, ASCII uppercase)\n- C\u00f3digo del juego (4 bytes: `RIF0`)\n- C\u00f3digo del fabricante (2 bytes: `00`)\n- Byte de versi\u00f3n del BIOS GBA (`0x96`)\n- Checksum de cabecera\n\n```rif\n.rom\nset_headers\n```\n\n## set_logo\n\nEmite solo el logo Nintendo (bytes 0x04\u20130x9F de la ROM).\n\n## set_checksum\n\nEscribe el bloque de checksum con el t\u00edtulo del juego.\n\n```rif\nset_checksum \"Mi Juego\"\n```\n\n## set_entry\n\nGenera el bloque de c\u00f3digo de entrada ARM (desde 0xC0 a ~0x100):\n- Inicializa el modo de video (BG Mode 3, 15bpp)\n- Copia el framebuffer desde la ROM a VRAM (0x06000000)\n- Queda en loop infinito\n\n## set_frame\n\nGenera el framebuffer inicial (240\u00d7160 pixels, 76800 bytes \u00d7 2 bytes/pixel BGR555).\n\n```rif\nset_frame \"HELLO WORLD\", white, green\n```\n\nArgumentos: texto a centrar, color del texto, color del fondo.\n\n## set_rompad / rompad\n\nRellena la ROM hasta 512 KB con bytes `0xFF`, que es el valor de borrado de una Flash ROM.\n\n```rif\nset_rompad\n```\n\n## Ejemplo de ROM m\u00ednima\n\n```rif\n.rom\nset_headers\nset_frame \"MI JUEGO\", white, green\nset_entry\nset_rompad\n```\n\nEsta secuencia genera una ROM GBA v\u00e1lida que muestra texto centrado en pantalla.\n"
+      "plugin_gba/macros_rom": "# Macros de ROM\n\nEl plugin `gba` incluye macros para formar una ROM GBA valida.\n\n## Secuencia minima funcional\n\n```rif\n.section .rom\nset_headers\nset_logo\nset_checksum\nset_entry\nset_frame\nset_rompad\n```\n\n## Secuencia avanzada del ejemplo\n\n```rif\n.section .rom\nset_headers\nset_logo\nset_checksum\nset_entry_thumb\nset_frame\ngame_code\nset_rompad\n```\n\n## Macros\n\n- `set_headers`: emite la instruccion ARM inicial que salta a `0x080000C0`.\n- `set_logo`: emite el logo Nintendo requerido por el BIOS.\n- `set_checksum`: emite titulo, game code, maker code, version y checksum de cabecera.\n- `set_entry`: emite entrada ARM que configura video mode 3, copia framebuffer a VRAM y queda en loop.\n- `set_entry_thumb`: emite stub ARM que configura video mode 3 y salta al codigo Thumb ubicado despues del framebuffer.\n- `set_frame`: emite un framebuffer 240x160 BGR555 con texto centrado.\n- `game_code`: codigo Thumb de ejemplo para la ROM avanzada.\n- `set_rompad` / `rompad`: rellena hasta el tama\u00f1o ROM configurado usando el offset actual real.\n"
 // DYNAMIC_PLUGINS_DOCS_END
     };
 
