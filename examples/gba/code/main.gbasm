@@ -312,9 +312,9 @@ draw_text_done:
     arm_bx LR
 
 title_text_ptr:
-    apply_reloc abs, esto_es_una_prueba_de_gb_e50e97d6, 32
+    apply_reloc abs, hola_y_bienvenido_42ca0482, 32
 press_start_text_ptr:
-    apply_reloc abs, press_start_435f7911, 32
+    apply_reloc abs, pulsa_start_47dc16c7, 32
 mario_sprite_ptr:
     apply_reloc abs, mario_sprite, 64
 max_reference_sprite_ptr:

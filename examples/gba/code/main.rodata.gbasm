@@ -1,5 +1,5 @@
-@"Esto es una prueba de GBA"@fonts_fill_5x7x1
-@"Press start"@fonts_fill_5x7x1
+@"Hola y bienvenido"@fonts_fill_5x7x1
+@"Pulsa Start"@fonts_fill_5x7x1
 
 mario_sprite:
 dh 0x03E0
