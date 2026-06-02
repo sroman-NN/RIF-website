@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Docs Sega Genesis / Motorola 68000</title>
+  <title>Docs Mega Drive / Genesis / Motorola 68000</title>
   <style>
     * {
       box-sizing: border-box;
@@ -18,15 +18,9 @@
       color: #eee;
     }
 
-    body {
-      display: flex;
-      flex-direction: column;
-    }
-
     .tabs {
       display: flex;
       height: 42px;
-      flex: 0 0 42px;
       background: #181818;
       border-bottom: 1px solid #333;
       overflow-x: auto;
@@ -44,18 +38,13 @@
     }
 
     button.active {
-      background: #0070c0;
+      background: #365cff;
       color: white;
     }
 
-    button:hover:not(.active) {
-      background: #2a2a2a;
-    }
-
     iframe {
-      flex: 1;
-      width: 100%;
-      min-height: 0;
+      width: 100vw;
+      height: calc(100vh - 42px);
       border: 0;
       background: white;
     }
@@ -63,32 +52,20 @@
 </head>
 <body>
   <div class="tabs">
-    <button class="active" onclick="openDoc(this, 'https://wiki.megadrive.org/index.php?title=Main_Page')">
-      Mega Drive Wiki
-    </button>
-
-    <button onclick="openDoc(this, 'https://www.nxp.com/docs/en/reference-manual/M68000PRM.pdf')">
-      M68000 Manual (NXP)
-    </button>
-
-    <button onclick="openDoc(this, 'https://map.grauw.nl/resources/motorola_m68000_instref.pdf')">
-      M68K Inst. Reference
+    <button class="active" onclick="openDoc(this, 'https://www.plutiedev.com/mirror/kabuto-hardware-notes')">
+      Plutiedev - Mega Drive Hardware Notes
     </button>
 
     <button onclick="openDoc(this, 'https://segaretro.org/Sega_Mega_Drive/Technical_specifications')">
-      Sega Genesis Specs
+      Sega Retro - Mega Drive Technical Specs
     </button>
 
-    <button onclick="openDoc(this, 'https://plutiedev.com/mega-drive')">
-      Plutiedev Tutorials
-    </button>
-
-    <button onclick="openDoc(this, 'https://www.chibiakumas.com/68000/')">
-      68000 ASM Guide
+    <button onclick="openDoc(this, 'https://www.easy68k.com/paulrsm/doc/trick68k.htm')">
+      Easy68K - 68000 Tricks and Traps
     </button>
   </div>
 
-  <iframe id="viewer" src="https://wiki.megadrive.org/index.php?title=Main_Page"></iframe>
+  <iframe id="viewer" src="https://www.plutiedev.com/mirror/kabuto-hardware-notes"></iframe>
 
   <script>
     function openDoc(button, url) {

@@ -1,8 +1,8 @@
 # Version actual
 
-### RIF 0.0.4 Stable
+### RIF 0.0.5 FINALLY RESOLVE FIXES
 
-Esta versión consolida el core retargetable, dejando el flujo de trabajo de editor y la inyección de arquitecturas listos para producción y proyectos reales.
+Esta versión está hecha para test agresivos, solucionar y cambios grandes. Posiblemente después de esta se cambie la versión MAJOR 1.
 
 ## Soportado
 
@@ -15,14 +15,14 @@ Esta versión consolida el core retargetable, dejando el flujo de trabajo de edi
 - CLI por plugin con `rif -pcli`.
 - Sistema de plugins locales e instalables.
 - Plugin `fonts` con bitmap 5x7x1.
-- Ecosistema completo para **Game Boy Advance (GBA)** y **Sega Mega Drive / Genesis**.
-- Soporte funcional para **Atari 2600** e inyecciones iniciales para **AMD64**.
+- Ecosistema básico para **Game Boy Advance (GBA)** y **Sega Mega Drive / Genesis**.
+- Soporte mínimo para **Atari 2600** e inyecciones iniciales para **AMD64**.
 - Constructor VS Code/VSIX integral con diagnóstico léxico y gramatical desde `.pack`.
 - Help interactivo para plugins y core compilable on-the-fly.
 
 ## Estado de estabilidad
 
-`Stable` significa que el core de packs, el linker, las extensiones VSIX y la generación de ROMs/binarios de 16-bits (M68k y ARM/Thumb) ya son seguros para su uso. La API de plugins está madura. 
+`FINALLY` significa una versión de cambios grandes, posiblemente experimental.
 
 ## Aun falta (Roadmap)
 
