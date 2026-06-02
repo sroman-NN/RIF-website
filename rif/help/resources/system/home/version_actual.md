@@ -1,8 +1,8 @@
 # Version actual
 
-### RIF 0.0.3 Semi Stable
+### RIF 0.0.4 Stable
 
-Esta version consolida el core retargetable y deja el flujo de trabajo de editor en un punto util para proyectos reales.
+Esta versión consolida el core retargetable, dejando el flujo de trabajo de editor y la inyección de arquitecturas listos para producción y proyectos reales.
 
 ## Soportado
 
@@ -15,19 +15,19 @@ Esta version consolida el core retargetable y deja el flujo de trabajo de editor
 - CLI por plugin con `rif -pcli`.
 - Sistema de plugins locales e instalables.
 - Plugin `fonts` con bitmap 5x7x1.
-- Ejemplo GBA funcional por plugin.
-- Help local con paginas de core y plugins.
-- Constructor VS Code/VSIX con `rif compile --vscode`.
-- Instalador VSIX con `rif install --vscode`.
+- Ecosistema completo para **Game Boy Advance (GBA)** y **Sega Mega Drive / Genesis**.
+- Soporte funcional para **Atari 2600** e inyecciones iniciales para **AMD64**.
+- Constructor VS Code/VSIX integral con diagnóstico léxico y gramatical desde `.pack`.
+- Help interactivo para plugins y core compilable on-the-fly.
 
 ## Estado de estabilidad
 
-`Semi Stable` significa que el flujo normal de packs, plugins, build, help y VSIX ya es usable, pero algunas APIs internas todavia pueden ajustarse mientras se cierran MIR, optimizadores y empaquetado de compiladores dedicados.
+`Stable` significa que el core de packs, el linker, las extensiones VSIX y la generación de ROMs/binarios de 16-bits (M68k y ARM/Thumb) ya son seguros para su uso. La API de plugins está madura. 
 
-## Aun falta
+## Aun falta (Roadmap)
 
-- MIR estable para optimizadores.
-- Optimizadores de seleccion y reduccion de instrucciones.
-- Diagnosticos semanticos profundos desde `.pack`.
-- Empaquetado final del compilador con CLI generada automaticamente.
-- Mas formatos de salida conectados por plugins.
+- MIR (Medium IR) estable para optimizadores.
+- Optimizadores enlazados de selección y reducción de instrucciones.
+- Soporte para nuevas plataformas clásicas de 16-bits (e.g., SNES / 65816).
+- Empaquetado nativo final del compilador en binarios standalone con PyInstaller.
+- Más formatos de salida conectados por plugins (e.g., ELF, PE).

@@ -1,5 +1,19 @@
 import subprocess
+import shutil
 from pathlib import Path
+
+def get_ffmpeg_path() -> str | None:
+    # 1. Intentar FFMPEG del sistema
+    global_ffmpeg = shutil.which("ffmpeg")
+    if global_ffmpeg:
+        return global_ffmpeg
+    
+    # 2. Intentar FFMPEG instalado localmente por RIF
+    local_ffmpeg = Path.home() / ".rif" / "tools" / "ffmpeg" / "bin" / "ffmpeg.exe"
+    if local_ffmpeg.exists():
+        return str(local_ffmpeg)
+        
+    return None
 
 def convert_to_gba_pcm(
     input_path: Path,
@@ -14,8 +28,14 @@ def convert_to_gba_pcm(
     
     Streams the output from stdout directly into memory.
     """
+    ffmpeg_exe = get_ffmpeg_path()
+    if not ffmpeg_exe:
+        raise Exception(
+            "ffmpeg no se encuentra en el sistema. Ejecuta 'python -m rif -pcli sound install ffmpeg' para instalarlo."
+        )
+
     cmd = [
-        "ffmpeg",
+        ffmpeg_exe,
         "-y",
     ]
     if start > 0:

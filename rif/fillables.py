@@ -3,8 +3,10 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
+import re
 import shlex
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -43,11 +45,11 @@ def expand_fillable_line(
     phase: str,
     fills: "FillCollector | None" = None,
 ) -> str:
-    parts = _parse_fillable_call(stripped)
-    if not parts:
+    call = _parse_fillable_call(stripped)
+    if not call.name:
         raise PackError("fillable vacio despues de @")
 
-    name, args = parts[0], parts[1:]
+    name, args = call.name, call.args
     func = fillables.get(name)
     if func is None:
         raise PackError(f'fillable no encontrado "@{name}"')
@@ -61,6 +63,7 @@ def expand_fillable_line(
         "project_path": getattr(program, "project_path", None) or getattr(program, "cache_project_path", None),
         "plugin_name": plugin_name,
         "fillable": name,
+        "fill_label": call.label,
         "fills": fills,
     }
     try:
@@ -77,24 +80,43 @@ def expand_fillable_line(
     return str(result)
 
 
-def _parse_fillable_call(stripped: str) -> list[str]:
-    """Parsea @func args y la forma inversa @args@func."""
-    if len(stripped) > 1 and stripped[0] == "@":
-        split_at = _reverse_fillable_separator(stripped)
-        if split_at is not None:
-            arg_text = stripped[1:split_at].strip()
-            call_text = stripped[split_at + 1:].strip()
-            call_parts = shlex.split(call_text, posix=True)
-            if not call_parts:
-                raise PackError("fillable inverso sin funcion despues de @")
-            return [call_parts[0], *shlex.split(arg_text, posix=True), *call_parts[1:]]
-    return shlex.split(stripped[1:], posix=True)
+@dataclass(frozen=True)
+class FillableCall:
+    name: str
+    args: list[str]
+    label: str
 
 
-def _reverse_fillable_separator(text: str) -> int | None:
+_FILL_LABEL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_:-]*$")
+
+
+def _parse_fillable_call(stripped: str) -> FillableCall:
+    """Parsea la forma unica @args@namefunc@namelabel."""
+    if not stripped.startswith("@"):
+        raise PackError("fillable debe iniciar con @")
+
+    separators = _fillable_separators(stripped)
+    if len(separators) != 3 or separators[0] != 0:
+        raise PackError("fillable debe usar la forma unica @args@namefunc@namelabel")
+
+    arg_text = stripped[separators[0] + 1:separators[1]].strip()
+    name_text = stripped[separators[1] + 1:separators[2]].strip()
+    label = stripped[separators[2] + 1:].strip()
+    name_parts = shlex.split(name_text, posix=True)
+    if len(name_parts) != 1:
+        raise PackError("fillable requiere exactamente una funcion entre el segundo y tercer @")
+    if not label:
+        raise PackError("fillable requiere namelabel despues del tercer @")
+    if not _FILL_LABEL_RE.match(label):
+        raise PackError(f'namelabel invalido "{label}"')
+    return FillableCall(name_parts[0], shlex.split(arg_text, posix=True), label)
+
+
+def _fillable_separators(text: str) -> list[int]:
     quote: str | None = None
     escape = False
-    for index, char in enumerate(text[1:], start=1):
+    separators: list[int] = []
+    for index, char in enumerate(text):
         if escape:
             escape = False
             continue
@@ -109,8 +131,8 @@ def _reverse_fillable_separator(text: str) -> int | None:
             quote = char
             continue
         if char == "@":
-            return index
-    return None
+            separators.append(index)
+    return separators
 
 
 def load_fillables(program: Program, config: Any | None = None) -> dict[str, Any]:
@@ -156,6 +178,8 @@ def load_fillables(program: Program, config: Any | None = None) -> dict[str, Any
                     setattr(func, "_rif_plugin_name", plugin_name)
                     out.setdefault(attr, func)
                     out.setdefault(attr[5:], func)
+                    out.setdefault(attr.lower(), func)
+                    out.setdefault(attr[5:].lower(), func)
     return out
 
 
@@ -195,6 +219,8 @@ class FillCollector:
 
 
 def record_fill(context: Any, plugin: str, name: str, **info: Any) -> None:
+    if isinstance(context, dict) and context.get("fill_label"):
+        name = str(context["fill_label"])
     collector = context.get("fills") if isinstance(context, dict) else None
     if isinstance(collector, FillCollector):
         collector.add(plugin, name, **info)

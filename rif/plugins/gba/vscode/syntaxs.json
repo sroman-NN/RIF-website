@@ -1,12 +1,20 @@
 {
   "registers": [
     "R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
-    "R8", "R9", "R10", "R11", "R12", "SP", "LR", "PC"
+    "R8", "R9", "R10", "R11", "R12", "SP", "LR", "PC",
+    "DISPCNT", "DISPSTAT", "VCOUNT", "BG0CNT", "BG1CNT", "BG2CNT", "BG3CNT",
+    "BG0HOFS", "BG0VOFS", "BG1HOFS", "BG1VOFS", "BG2HOFS", "BG2VOFS", "BG3HOFS", "BG3VOFS",
+    "WIN0H", "WIN1H", "WIN0V", "WIN1V", "WININ", "WINOUT", "MOSAIC", "BLDCNT", "BLDALPHA", "BLDY",
+    "SOUNDCNT_L", "SOUNDCNT_H", "SOUNDCNT_X", "SOUNDBIAS", "FIFO_A", "FIFO_B",
+    "DMA0SAD", "DMA0DAD", "DMA0CNT", "DMA1SAD", "DMA1DAD", "DMA1CNT", "DMA2SAD", "DMA2DAD", "DMA2CNT", "DMA3SAD", "DMA3DAD", "DMA3CNT",
+    "TM0CNT", "TM1CNT", "TM2CNT", "TM3CNT",
+    "KEYINPUT", "KEYCNT", "KEY_A", "KEY_B", "KEY_SELECT", "KEY_START", "KEY_RIGHT", "KEY_LEFT", "KEY_UP", "KEY_DOWN", "KEY_R", "KEY_L",
+    "IE", "IF", "IME", "WAITCNT", "POSTFLG", "HALTCNT",
+    "BIOS", "EWRAM", "IWRAM", "IOREG", "PALRAM", "VRAM", "OAM", "ROM_WS0", "ROM_WS1", "ROM_WS2", "SRAM"
   ],
   "directives": [
     ".rom",
     ".header",
-    ".text",
     ".rodata",
     ".data",
     ".bss",
@@ -21,20 +29,22 @@
   ],
   "keywords": [
     "db", "u8", "byte", "dh", "u16", "half", "halfword", "dw", "u32", "word",
-    "imm", "store", "mov_imm", "cmp_imm", "add_imm", "sub_imm", "move", "mov",
-    "add", "sub", "add3_imm", "sub3_imm", "add_hi", "cmp_hi",
-    "and", "xor", "eor", "lsl", "lsr", "asr", "adc", "sbc", "ror", "tst",
+    "imm", "store", "mov_imm", "movs", "cmp_imm", "cmpi", "add_imm", "addi", "sub_imm", "subi", "move", "mov", "mov_hi",
+    "add", "adds", "sub", "subs", "add3_imm", "sub3_imm", "add_hi", "cmp_hi",
+    "and", "xor", "eor", "lsl", "lsl_reg", "lsr", "lsr_reg", "asr", "asr_reg", "adc", "sbc", "ror", "tst",
     "neg", "cmp", "cmn", "or", "orr", "mul", "bic", "not", "mvn",
     "ldr", "ldrb", "ldrh", "ldsb", "ldsh", "str", "strb", "strh",
     "str_imm", "ldr_imm", "strb_imm", "ldrb_imm", "strh_imm", "ldrh_imm",
-    "ldr_pc", "ldr_pc_label", "str_sp", "ldr_sp", "adr", "adr_label",
+    "ldr_pc", "ldr_pc_label", "ldr_literal", "str_sp", "ldr_sp", "adr", "adr_label",
     "add_sp", "add_sp_imm", "sub_sp_imm", "bx",
     "push", "push_mask", "push_list", "pop", "pop_mask", "pop_list",
     "stmia", "stmia_list", "ldmia", "ldmia_list",
     "b", "jump", "bcond", "beq", "bne", "bcs", "bhs", "bcc", "blo",
     "bmi", "bpl", "bvs", "bvc", "bhi", "bls", "blt", "bgt", "ble", "bge",
-    "call", "bl", "swi", "thumb",
+    "call", "bl", "swi", "svc", "thumb",
     "arm_bx", "arm_b", "arm_bl", "arm_bcond", "arm_blcond", "arm_swi", "arm_raw",
+    "arm_beq", "arm_bne", "arm_bcs", "arm_bcc", "arm_bmi", "arm_bpl", "arm_bvs", "arm_bvc",
+    "arm_bhi", "arm_bls", "arm_bge", "arm_blt", "arm_bgt", "arm_ble", "arm_svc",
     "arm_mov", "arm_mov_imm", "arm_mvn", "arm_mvn_imm",
     "arm_add", "arm_add_imm", "arm_sub", "arm_sub_imm", "arm_rsb",
     "arm_cmp", "arm_cmp_imm", "arm_cmn", "arm_and", "arm_orr", "arm_eor",
@@ -59,11 +69,19 @@
   "completions": [
     {
       "label": "gba_rom_skeleton",
-      "insertText": ".header\n    set_headers\n    set_logo\n    set_checksum \"${1:RIF GBA}\"\n    set_entry_thumb\n\n.text\nmain:\n    ${2:store R0 = 0}\n    ${3:b main}\n\n.rodata\n\n    rompad",
+      "insertText": ".header\n    set_headers\n    set_logo\n    set_checksum \"${1:RIF GBA}\"\n    set_entry\n\n.rom\nmain:\n    ${2:arm_b main}\n\n.rodata\n    rompad",
       "detail": "GBA project",
-      "documentation": "Plantilla minima de ROM GBA con header, entry Thumb y loop principal.",
+      "documentation": "Plantilla minima de ROM GBA con header, entrada ARM y padding final.",
       "kind": "Snippet",
       "sortText": "000-gba-rom-skeleton"
+    },
+    {
+      "label": "gba_mode3_red",
+      "insertText": ".header\n    set_headers\n    set_logo\n    set_checksum \"${1:RIF GBA}\"\n    set_entry\n\n.rom\nmain:\n    arm_mov_imm R0, 0x04000000\n    arm_mov_imm R1, 0x0400\n    arm_add_imm R1, R1, 0x03\n    arm_strh R1, R0, 0\n\n    arm_mov_imm R2, 0x06000000\n    arm_mov_imm R3, 0x06000000\n    arm_add_imm R3, R3, 0x12C00\n    arm_mov_imm R4, 0x001F\nfill_loop:\n    arm_strh R4, R2, 0\n    arm_add_imm R2, R2, 2\n    arm_cmp R2, R3\n    arm_bcond ne, fill_loop\nforever:\n    arm_b forever\n\n.rodata\n    rompad",
+      "detail": "GBA Mode 3",
+      "documentation": "ROM minima que activa Mode 3 y pinta la pantalla en rojo BGR555.",
+      "kind": "Snippet",
+      "sortText": "001-gba-mode3-red"
     },
     {
       "label": "store",
@@ -72,16 +90,72 @@
       "documentation": "MOV inmediato de 8 bits."
     },
     {
+      "label": "movs",
+      "insertText": "movs ${1:R0} ${2:0}",
+      "detail": "ARM7TDMI Thumb",
+      "documentation": "MOVS Rd, #imm8. Forma canonica Thumb para cargar un inmediato en R0-R7.",
+      "kind": "Snippet",
+      "sortText": "010-thumb-movs"
+    },
+    {
+      "label": "adds",
+      "insertText": "adds ${1:R0} ${2:R1} ${3:R2}",
+      "detail": "ARM7TDMI Thumb",
+      "documentation": "ADDS Rd, Rs, Rn. Suma de registros bajos Thumb.",
+      "kind": "Snippet",
+      "sortText": "011-thumb-adds"
+    },
+    {
+      "label": "subs",
+      "insertText": "subs ${1:R0} ${2:R1} ${3:R2}",
+      "detail": "ARM7TDMI Thumb",
+      "documentation": "SUBS Rd, Rs, Rn. Resta de registros bajos Thumb.",
+      "kind": "Snippet",
+      "sortText": "012-thumb-subs"
+    },
+    {
       "label": "strh",
       "insertText": "strh ${1:R0}, ${2:R1}, ${3:0}",
       "detail": "GBA Thumb",
       "documentation": "Guarda 16 bits en memoria."
     },
     {
+      "label": "push_list",
+      "insertText": "push ${1:{R0-R3,LR}}",
+      "detail": "ARM7TDMI Thumb",
+      "documentation": "PUSH {Rlist, LR}. Sintaxis de lista real para stack Thumb.",
+      "kind": "Snippet",
+      "sortText": "013-thumb-push"
+    },
+    {
+      "label": "pop_list",
+      "insertText": "pop ${1:{R0-R3,PC}}",
+      "detail": "ARM7TDMI Thumb",
+      "documentation": "POP {Rlist, PC}. Sintaxis de lista real para retorno Thumb.",
+      "kind": "Snippet",
+      "sortText": "014-thumb-pop"
+    },
+    {
       "label": "arm_ldr_label",
       "insertText": "arm_ldr_label ${1:R0}, ${2:label}",
       "detail": "GBA ARM",
       "documentation": "Carga la direccion de una etiqueta."
+    },
+    {
+      "label": "arm_beq",
+      "insertText": "arm_beq ${1:label}",
+      "detail": "ARM7TDMI ARM",
+      "documentation": "Branch ARM condicional BEQ. Alias de arm_b con condicion eq.",
+      "kind": "Snippet",
+      "sortText": "020-arm-beq"
+    },
+    {
+      "label": "arm_bne",
+      "insertText": "arm_bne ${1:label}",
+      "detail": "ARM7TDMI ARM",
+      "documentation": "Branch ARM condicional BNE. Alias de arm_b con condicion ne.",
+      "kind": "Snippet",
+      "sortText": "021-arm-bne"
     },
     {
       "label": "apply_reloc",
@@ -111,10 +185,25 @@
     },
     {
       "name": "support.constant.gba.io",
-      "match": "\\b(?:DISPCNT|VCOUNT|KEYINPUT|SOUNDCNT_H|SOUNDCNT_X|FIFO_A)\\b"
+      "match": "\\b(?:DISPCNT|DISPSTAT|VCOUNT|KEYINPUT|KEYCNT|SOUNDCNT_H|SOUNDCNT_X|FIFO_A|FIFO_B|DMA[0-3](?:SAD|DAD|CNT)|TM[0-3]CNT|IE|IF|IME|WAITCNT)\\b"
+    },
+    {
+      "name": "support.constant.gba.memory",
+      "match": "\\b(?:BIOS|EWRAM|IWRAM|IOREG|PALRAM|VRAM|OAM|ROM_WS0|ROM_WS1|ROM_WS2|SRAM)\\b"
+    },
+    {
+      "name": "support.constant.gba.key",
+      "match": "\\b(?:KEY_A|KEY_B|KEY_SELECT|KEY_START|KEY_RIGHT|KEY_LEFT|KEY_UP|KEY_DOWN|KEY_R|KEY_L)\\b"
     }
   ],
   "errors": [
+    {
+      "match": "^\\s*\\.text\\b",
+      "message": "GBA: el pack oficial usa .rom para codigo ejecutable; .text no esta declarada en gba.sections.pack.",
+      "severity": "warning",
+      "code": "gba-unknown-text-section",
+      "suggest": "Cambiar .text por .rom."
+    },
     {
       "match": "\\b(?:add|sub|and|or|xor|mul)\\s+PC\\b",
       "message": "GBA: modificar PC aritmeticamente en Thumb suele romper el flujo. Usa b, jump, bl o bx.",

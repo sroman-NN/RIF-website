@@ -1,0 +1,952 @@
+{
+  "words": {
+    "atari2600_overview": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Soporte RIF para ROMs Atari 2600 de 4 KiB con MOS 6507, TIA, RIOT, vectores 6502 y ejecucion con Stella."
+        },
+        {
+          "type": "code",
+          "content": "python -m rif build examples/atari2600 --plugin atari2600 --name example"
+        }
+      ],
+      "links": [
+        "https://www.atariage.com/2600/programming/2600_101/docs/stella.html",
+        "https://www.computerarcheology.com/Atari2600/Stella.html"
+      ]
+    },
+    "rompad_to_vectors": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Rellena la ROM hasta el offset fisico 0x0FFA, dejando los ultimos seis bytes para NMI, RESET e IRQ/BRK."
+        },
+        {
+          "type": "code",
+          "content": "rompad_to_vectors\nvectors start"
+        }
+      ]
+    },
+    "vectors": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Emite tres vectores 6502 de 16 bits hacia la etiqueta indicada: NMI, RESET e IRQ/BRK. En 2600 el vector clave es RESET en 0xFFFC."
+        },
+        {
+          "type": "code",
+          "content": "vectors start"
+        }
+      ]
+    },
+    "lda": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Load Accumulator. Carga A y actualiza flags N/Z. Usa sufijos como _imm, _zp, _abs_addr, _absx, _absy, _indx o _indy."
+        }
+      ]
+    },
+    "lda_imm": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "LDA inmediato. Carga A con un valor de 8 bits."
+        },
+        {
+          "type": "code",
+          "content": "lda_imm 0x02"
+        }
+      ]
+    },
+    "lda_abs_addr": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "LDA absoluto con direccion o simbolo addr16. Util para leer registros RIOT/TIA declarados o direcciones concretas."
+        },
+        {
+          "type": "code",
+          "content": "lda_abs_addr INTIM"
+        }
+      ]
+    },
+    "sta": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Store Accumulator. Escribe A en memoria o MMIO. No modifica flags."
+        }
+      ]
+    },
+    "sta_abs_addr": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "STA absoluto con direccion o simbolo addr16. Es la forma comun para escribir registros TIA y RIOT."
+        },
+        {
+          "type": "code",
+          "content": "sta_abs_addr WSYNC"
+        }
+      ]
+    },
+    "ldx": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Load X. Carga el indice X y actualiza N/Z. Muy usado como contador de scanlines."
+        }
+      ]
+    },
+    "ldx_imm": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "LDX inmediato de 8 bits."
+        },
+        {
+          "type": "code",
+          "content": "ldx_imm 192"
+        }
+      ]
+    },
+    "ldy": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Load Y. Carga el indice Y y actualiza N/Z."
+        }
+      ]
+    },
+    "stx": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Store X. Escribe el indice X en memoria."
+        }
+      ]
+    },
+    "sty": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Store Y. Escribe el indice Y en memoria."
+        }
+      ]
+    },
+    "adc": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Add with Carry. Suma operando + A + C. Usa clc antes de sumas normales y sec antes de ciertos patrones."
+        }
+      ]
+    },
+    "sbc": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Subtract with Carry. En 6502 el borrow esta invertido; usa sec antes de una resta normal."
+        }
+      ]
+    },
+    "cmp": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Compare A. Actualiza flags como si restara, sin cambiar A."
+        }
+      ]
+    },
+    "cpx": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Compare X. Comun para loops contados."
+        }
+      ]
+    },
+    "cpy": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Compare Y. Comun para tablas y loops indexados."
+        }
+      ]
+    },
+    "and": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "AND bit a bit con A. Util para leer botones activos en bajo y probar flags."
+        }
+      ]
+    },
+    "ora": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "OR bit a bit con A. Util para componer bits de control antes de escribir TIA."
+        }
+      ]
+    },
+    "eor": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Exclusive OR con A. Util para alternar patrones, colores o flags."
+        }
+      ]
+    },
+    "bit": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "BIT prueba bits contra A y copia bits 7/6 del operando a N/V."
+        }
+      ]
+    },
+    "asl": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Arithmetic Shift Left. Desplaza a la izquierda; bit 7 va a Carry."
+        }
+      ]
+    },
+    "lsr": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Logical Shift Right. Desplaza a la derecha; bit 0 va a Carry."
+        }
+      ]
+    },
+    "rol": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Rotate Left through Carry."
+        }
+      ]
+    },
+    "ror": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Rotate Right through Carry."
+        }
+      ]
+    },
+    "jmp_abs": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "JMP absoluto a etiqueta. RIF emite relocacion de 16 bits usando el voffset de la seccion."
+        },
+        {
+          "type": "code",
+          "content": "jmp_abs main_loop"
+        }
+      ]
+    },
+    "jsr_abs": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "JSR absoluto a subrutina. Empuja retorno en stack y salta a la etiqueta."
+        }
+      ]
+    },
+    "rts": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Return from Subroutine."
+        }
+      ]
+    },
+    "bne": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Not Equal. Salta si Z=0. El destino debe caber en desplazamiento relativo de 8 bits."
+        },
+        {
+          "type": "code",
+          "content": "bne draw_loop"
+        }
+      ]
+    },
+    "beq": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Equal. Salta si Z=1."
+        }
+      ]
+    },
+    "bcc": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Carry Clear."
+        }
+      ]
+    },
+    "bcs": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Carry Set."
+        }
+      ]
+    },
+    "bmi": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Minus / Negative set."
+        }
+      ]
+    },
+    "bpl": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch if Plus / Negative clear."
+        }
+      ]
+    },
+    "dex": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Decrement X. Muy usado con bne para contar scanlines."
+        }
+      ]
+    },
+    "inx": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Increment X. Comun para limpiar RAM con contador de 8 bits."
+        }
+      ]
+    },
+    "sei": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Set Interrupt Disable. Instruccion tipica de arranque."
+        }
+      ]
+    },
+    "cld": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Clear Decimal Mode. Recomendado al inicio de ROMs 2600."
+        }
+      ]
+    },
+    "txs": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Transfer X to Stack Pointer. Usado al inicializar stack."
+        }
+      ]
+    },
+    "pha": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Push Accumulator."
+        }
+      ]
+    },
+    "pla": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Pull Accumulator."
+        }
+      ]
+    },
+    "VSYNC": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x00. D1=1 inicia sync vertical; D1=0 lo detiene. En NTSC se mantiene normalmente durante 3 scanlines."
+        },
+        {
+          "type": "code",
+          "content": "lda_imm 0x02\nsta_abs_addr VSYNC"
+        }
+      ]
+    },
+    "VBLANK": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x01. D1 controla blank vertical; D6 controla latches INPT4/5; D7 descarga paddles INPT0-3."
+        }
+      ]
+    },
+    "WSYNC": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x02. Detiene el 6507 hasta el inicio del siguiente horizontal blank. Fundamental para kernels por scanline."
+        },
+        {
+          "type": "code",
+          "content": "sta_abs_addr WSYNC"
+        }
+      ]
+    },
+    "RSYNC": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x03. Resetea contador horizontal; usado principalmente para pruebas de chip."
+        }
+      ]
+    },
+    "NUSIZ0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x04. Controla numero y tamano de copias de player 0 y missile 0."
+        }
+      ]
+    },
+    "NUSIZ1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x05. Controla numero y tamano de copias de player 1 y missile 1."
+        }
+      ]
+    },
+    "COLUP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x06. Color/luminancia de player 0 y missile 0. Usa bits D7-D1."
+        }
+      ]
+    },
+    "COLUP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x07. Color/luminancia de player 1 y missile 1. Usa bits D7-D1."
+        }
+      ]
+    },
+    "COLUPF": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x08. Color/luminancia de playfield y ball."
+        }
+      ]
+    },
+    "COLUBK": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x09. Color/luminancia de fondo."
+        }
+      ]
+    },
+    "CTRLPF": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0A. D0 refleja playfield; D1 score mode; D2 prioridad playfield/ball; D4-D5 tamano de ball."
+        }
+      ]
+    },
+    "REFP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0B. D3=1 refleja horizontalmente player 0."
+        }
+      ]
+    },
+    "REFP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0C. D3=1 refleja horizontalmente player 1."
+        }
+      ]
+    },
+    "PF0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0D. Primeros 4 bits del playfield, almacenados en D7-D4."
+        }
+      ]
+    },
+    "PF1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0E. Ocho bits centrales del playfield."
+        }
+      ]
+    },
+    "PF2": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x0F. Ocho bits finales del playfield."
+        }
+      ]
+    },
+    "RESP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x10. Resetea posicion horizontal de player 0 en el ciclo actual."
+        }
+      ]
+    },
+    "RESP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x11. Resetea posicion horizontal de player 1 en el ciclo actual."
+        }
+      ]
+    },
+    "RESM0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x12. Resetea posicion horizontal de missile 0."
+        }
+      ]
+    },
+    "RESM1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x13. Resetea posicion horizontal de missile 1."
+        }
+      ]
+    },
+    "RESBL": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x14. Resetea posicion horizontal de ball."
+        }
+      ]
+    },
+    "AUDC0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x15. Control de ruido/tipo de onda del canal de audio 0."
+        }
+      ]
+    },
+    "AUDC1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x16. Control de ruido/tipo de onda del canal de audio 1."
+        }
+      ]
+    },
+    "AUDF0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x17. Divisor de frecuencia del canal de audio 0."
+        }
+      ]
+    },
+    "AUDF1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x18. Divisor de frecuencia del canal de audio 1."
+        }
+      ]
+    },
+    "AUDV0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x19. Volumen del canal 0, 0 a 15."
+        }
+      ]
+    },
+    "AUDV1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1A. Volumen del canal 1, 0 a 15."
+        }
+      ]
+    },
+    "GRP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1B. Bitmap de 8 bits para player 0."
+        }
+      ]
+    },
+    "GRP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1C. Bitmap de 8 bits para player 1."
+        }
+      ]
+    },
+    "ENAM0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1D. D1=1 habilita missile 0."
+        }
+      ]
+    },
+    "ENAM1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1E. D1=1 habilita missile 1."
+        }
+      ]
+    },
+    "ENABL": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x1F. D1=1 habilita ball."
+        }
+      ]
+    },
+    "HMP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x20. Movimiento horizontal fino de player 0 en D7-D4."
+        }
+      ]
+    },
+    "HMP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x21. Movimiento horizontal fino de player 1 en D7-D4."
+        }
+      ]
+    },
+    "HMM0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x22. Movimiento horizontal fino de missile 0 en D7-D4."
+        }
+      ]
+    },
+    "HMM1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x23. Movimiento horizontal fino de missile 1 en D7-D4."
+        }
+      ]
+    },
+    "HMBL": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x24. Movimiento horizontal fino de ball en D7-D4."
+        }
+      ]
+    },
+    "VDELP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x25. D0=1 retrasa player 0 una linea vertical."
+        }
+      ]
+    },
+    "VDELP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x26. D0=1 retrasa player 1 una linea vertical."
+        }
+      ]
+    },
+    "VDELBL": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x27. D0=1 retrasa ball una linea vertical."
+        }
+      ]
+    },
+    "RESMP0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x28. D1=1 acopla missile 0 a player 0 y deshabilita su salida independiente."
+        }
+      ]
+    },
+    "RESMP1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA write 0x29. D1=1 acopla missile 1 a player 1 y deshabilita su salida independiente."
+        }
+      ]
+    },
+    "HMOVE": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x2A. Aplica movimientos horizontales. Debe ejecutarse justo despues de WSYNC para comportamiento estable."
+        }
+      ]
+    },
+    "HMCLR": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x2B. Limpia todos los registros de movimiento horizontal."
+        }
+      ]
+    },
+    "CXCLR": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA strobe 0x2C. Limpia todos los latches de colision."
+        }
+      ]
+    },
+    "CXM0P": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x30. D7=M0/P1, D6=M0/P0."
+        }
+      ]
+    },
+    "CXM1P": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x31. D7=M1/P0, D6=M1/P1."
+        }
+      ]
+    },
+    "CXP0FB": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x32. D7=P0/PF, D6=P0/BL."
+        }
+      ]
+    },
+    "CXP1FB": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x33. D7=P1/PF, D6=P1/BL."
+        }
+      ]
+    },
+    "CXM0FB": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x34. D7=M0/PF, D6=M0/BL."
+        }
+      ]
+    },
+    "CXM1FB": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x35. D7=M1/PF, D6=M1/BL."
+        }
+      ]
+    },
+    "CXBLPF": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x36. D7=BL/PF."
+        }
+      ]
+    },
+    "CXPPMM": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x37. D7=P0/P1, D6=M0/M1."
+        }
+      ]
+    },
+    "INPT0": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x38. Paddle input 0 en D7."
+        }
+      ]
+    },
+    "INPT1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x39. Paddle input 1 en D7."
+        }
+      ]
+    },
+    "INPT2": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x3A. Paddle input 2 en D7."
+        }
+      ]
+    },
+    "INPT3": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x3B. Paddle input 3 en D7."
+        }
+      ]
+    },
+    "INPT4": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x3C. Boton/latch de entrada, normalmente boton del jugador 0, en D7."
+        }
+      ]
+    },
+    "INPT5": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "TIA read ghost 0x3D. Boton/latch de entrada, normalmente boton del jugador 1, en D7."
+        }
+      ]
+    },
+    "SWCHA": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0280 Port A. Joysticks; bits activos en bajo. D7-D4 player 0, D3-D0 player 1."
+        }
+      ]
+    },
+    "SWACNT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0281 DDR de Port A. 0=entrada, 1=salida."
+        }
+      ]
+    },
+    "SWCHB": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0282 Port B. Switches de consola: difficulty, color/BW, select y reset."
+        }
+      ]
+    },
+    "SWBCNT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0283 DDR de Port B. 0=entrada, 1=salida."
+        }
+      ]
+    },
+    "INTIM": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0284. Lectura del valor actual del temporizador."
+        },
+        {
+          "type": "code",
+          "content": "lda_abs_addr INTIM\nbne wait_timer"
+        }
+      ]
+    },
+    "TIMINT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0285. Registro/flag de interrupcion del temporizador."
+        }
+      ]
+    },
+    "TIM1T": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0294. Carga temporizador con decremento cada 1 ciclo."
+        }
+      ]
+    },
+    "TIM8T": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0295. Carga temporizador con decremento cada 8 ciclos."
+        }
+      ]
+    },
+    "TIM64T": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0296. Carga temporizador con decremento cada 64 ciclos. Comun para VBlank y overscan."
+        }
+      ]
+    },
+    "TIM1024T": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "RIOT 0x0297. Carga temporizador con decremento cada 1024 ciclos."
+        }
+      ]
+    },
+    "T1024T": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Alias compatible de TIM1024T en el pack Atari 2600."
+        }
+      ]
+    }
+  }
+}

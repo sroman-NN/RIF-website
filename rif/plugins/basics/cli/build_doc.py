@@ -265,6 +265,15 @@ def _merge_plugin_vscode(
         _merge_syntax(syntax, _read_jsonc(plugin_vscode / "syntaxs.json", required=False))
         _collect_assets(plugin_name, plugin_vscode, assets)
         _collect_plugin_docs(plugin_name, plugin_root, plugin_docs)
+        
+        # Detect ext.* in plugin_root
+        for ext_file in plugin_root.glob("ext.*"):
+            if ext_file.is_file():
+                ext = ext_file.suffix
+                if ext:
+                    base_exts = build.setdefault("extensions", [])
+                    if ext not in base_exts:
+                        base_exts.append(ext)
 
 
 def _merge_build(base: dict[str, Any], override: dict[str, Any]) -> None:
@@ -709,6 +718,7 @@ def _grammar_json(build: dict[str, Any], doc: dict[str, Any], syntax: dict[str, 
         {"name": "constant.numeric.rif", "match": r"\b(0x[0-9A-Fa-f_]+|0b[01_]+|[0-9][0-9_]*)\b"},
         {"name": "keyword.operator.rif", "match": r"[=\+\-\*\/&\|<>!~,:]"},
         {"name": "entity.name.function.label.rif", "match": r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(:)", "captures": {"1": {"name": "entity.name.function.label.rif"}, "2": {"name": "keyword.operator.rif"}}},
+        {"name": "entity.name.section.rif", "match": r"^\s*\.section\b"},
         {"name": "support.function.fillable.rif", "match": r"@[A-Za-z_][A-Za-z0-9_]*"},
         {"name": "support.function.fillable.reverse.rif", "match": r"@(?:[^@\"']|\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')+@[A-Za-z_][A-Za-z0-9_]*"},
         {"name": "variable.other.symbol.rif", "match": r"\b[A-Za-z_][A-Za-z0-9_]*(?=\s+(?:u8|u16|u32|s8|b8|b16|b32)\[)"},
@@ -717,13 +727,13 @@ def _grammar_json(build: dict[str, Any], doc: dict[str, Any], syntax: dict[str, 
     if directives:
         patterns.append({"name": "keyword.control.directive.rif", "match": _word_pattern(directives, boundary=False)})
     if words:
-        patterns.append({"name": "keyword.control.rif", "match": _word_pattern(words)})
+        patterns.append({"name": "keyword.other.instruction.rif", "match": _word_pattern(words)})
     if builtins:
         patterns.append({"name": "support.function.builtin.rif", "match": _word_pattern(builtins)})
     if types:
         patterns.append({"name": "storage.type.rif", "match": _word_pattern(types)})
     if registers:
-        patterns.append({"name": "constant.language.register.rif", "match": _word_pattern(registers)})
+        patterns.append({"name": "variable.language.register.rif", "match": _word_pattern(registers)})
 
     custom_patterns = syntax.get("patterns")
     if isinstance(custom_patterns, list):
@@ -916,7 +926,7 @@ def _vsix_manifest(build: dict[str, Any]) -> str:
     <Description>{description}</Description>
     <Tags>{escape(','.join(_list_strings(build.get('keywords')) or ['rif']))}</Tags>
     <Categories>Visual Studio Code</Categories>
-    <GalleryFlags>Public</GalleryFlags>
+""" + (f"    <Icon>extension/{escape(build['icon'])}</Icon>\n" if build.get("icon") else "") + """    <GalleryFlags>Public</GalleryFlags>
     <Properties>
       <Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.80.0" />
     </Properties>
@@ -926,7 +936,7 @@ def _vsix_manifest(build: dict[str, Any]) -> str:
   </Installation>
   <Dependencies />
   <Assets>
-    <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
+""" + (f'    <Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/{escape(build["icon"])}" Addressable="true" />\n' if build.get("icon") else "") + """    <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
   </Assets>
 </PackageManifest>
 """

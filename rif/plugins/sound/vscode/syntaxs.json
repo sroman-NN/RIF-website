@@ -12,7 +12,7 @@
   "completions": [
     {
       "label": "gba_bgm_mp3",
-      "insertText": "@sound_mp3 \"${1:assets/music.mp3}\" ${2:bgm_sample} ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}\n@gba_dsound_start ${2:bgm_sample} ${3:8192}",
+      "insertText": "@\"${1:assets/music.mp3}\" ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}@sound_mp3@${2:bgm_sample}\n@${2:bgm_sample} ${3:8192}@gba_dsound_start@${2:bgm_sample}_player",
       "detail": "sound",
       "documentation": "Plantilla de musica de fondo con volumen y fade-in suaves.",
       "kind": "Snippet",
@@ -20,19 +20,19 @@
     },
     {
       "label": "sound_mp3",
-      "insertText": "@sound_mp3 \"${1:assets/music.mp3}\" ${2:bgm_sample} ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}",
+      "insertText": "@\"${1:assets/music.mp3}\" ${3:8192} ${4:8} ${5:0} ${6:0.35} ${7:0.25}@sound_mp3@${2:bgm_sample}",
       "detail": "fillable",
       "documentation": "Convierte MP3 a PCM s8 mono."
     },
     {
       "label": "sound_wav",
-      "insertText": "@sound_wav \"${1:assets/music.wav}\" ${2:bgm_sample} ${3:8192}",
+      "insertText": "@\"${1:assets/music.wav}\" ${3:8192}@sound_wav@${2:bgm_sample}",
       "detail": "fillable",
       "documentation": "Convierte audio a PCM s8 mono."
     },
     {
       "label": "gba_dsound_start",
-      "insertText": "@gba_dsound_start ${1:bgm_sample} ${2:8192}",
+      "insertText": "@${1:bgm_sample} ${2:8192}@gba_dsound_start@${1:bgm_sample}_player",
       "detail": "fillable",
       "documentation": "Inicializa Direct Sound A en GBA para un simbolo PCM."
     }
@@ -40,10 +40,10 @@
   "errors": [
     {
       "match": "@(?:fill_)?sound_(?:wav|mp3)\\s*(?:\\r?\\n|$)",
-      "message": "Sound: falta archivo y simbolo. Ejemplo: @sound_mp3 \"assets/music.mp3\" bgm_sample 8192.",
+      "message": "Sound: falta archivo o namelabel. Ejemplo: @\"assets/music.mp3\" 8192@sound_mp3@bgm_sample.",
       "severity": "error",
       "code": "sound-missing-path",
-      "suggest": "Completa la llamada: @sound_mp3 \"assets/music.mp3\" bgm_sample 8192."
+      "suggest": "Completa la llamada: @\"assets/music.mp3\" 8192@sound_mp3@bgm_sample."
     },
     {
       "match": "@sound_(?:wav|mp3)\\s+\"[^\"]+\"\\s+\\w+\\s+(?:44100|48000)",

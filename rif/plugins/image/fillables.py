@@ -7,18 +7,20 @@ def fill_image_bitmap(*args, context=None) -> str:
         return "; Error: @fill_image_bitmap requiere al menos la ruta a la imagen"
 
     image_path = str(args[0])
-    symbol = str(args[1]) if len(args) > 1 else "image_data"
+    label = context.get("fill_label") if isinstance(context, dict) else None
+    symbol = str(label or (args[1] if len(args) > 1 else "image_data"))
     threshold = 128
     invert = False
+    option_offset = 1 if label else 2
 
-    if len(args) > 2:
+    if len(args) > option_offset:
         try:
-            threshold = int(args[2])
+            threshold = int(args[option_offset])
         except ValueError:
             pass
 
-    if len(args) > 3:
-        invert = str(args[3]).strip().lower() in {"1", "true", "yes", "si", "sí", "on", "invert"}
+    if len(args) > option_offset + 1:
+        invert = str(args[option_offset + 1]).strip().lower() in {"1", "true", "yes", "si", "sí", "on", "invert"}
 
     try:
         data = image_to_bitmap_bytes(image_path, threshold=threshold, invert=invert, context=context)

@@ -27,12 +27,14 @@ def fill_sound_wav(*args, context=None) -> str:
         return "; Error: @fill_sound_wav requiere al menos la ruta al archivo de sonido"
         
     sound_path = str(args[0])
-    symbol = str(args[1]) if len(args) > 1 else "sound_data"
-    sample_rate = _number(args[2], 8192, int) if len(args) > 2 else 8192
-    duration = _number(args[3], 6.0, float) if len(args) > 3 else 6.0
-    start = _number(args[4], 0.0, float) if len(args) > 4 else 0.0
-    volume = _number(args[5], 0.85, float) if len(args) > 5 else 0.85
-    fade_in = _number(args[6], 0.25, float) if len(args) > 6 else 0.25
+    label = context.get("fill_label") if isinstance(context, dict) else None
+    symbol = str(label or (args[1] if len(args) > 1 else "sound_data"))
+    option_offset = 1 if label else 2
+    sample_rate = _number(args[option_offset], 8192, int) if len(args) > option_offset else 8192
+    duration = _number(args[option_offset + 1], 6.0, float) if len(args) > option_offset + 1 else 6.0
+    start = _number(args[option_offset + 2], 0.0, float) if len(args) > option_offset + 2 else 0.0
+    volume = _number(args[option_offset + 3], 0.85, float) if len(args) > option_offset + 3 else 0.85
+    fade_in = _number(args[option_offset + 4], 0.25, float) if len(args) > option_offset + 4 else 0.25
             
     # Resolve relative paths relative to project_path or source_path
     proj_path = context.get("project_path") if context else None

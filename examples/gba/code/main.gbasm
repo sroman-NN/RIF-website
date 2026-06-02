@@ -55,7 +55,7 @@ title_input:
 game_start:
     arm_mov_imm R7, 112
     arm_mov_imm R8, 72
-    @gba_dsound_start bgm_sample 8192
+    @bgm_sample 8192@gba_dsound_start@bgm_sample_player
 
 clear_screen:
     arm_mov_imm R2, 0x06000000

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Docs Sega Genesis / Motorola 68000</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs {
+      display: flex;
+      height: 42px;
+      flex: 0 0 42px;
+      background: #181818;
+      border-bottom: 1px solid #333;
+      overflow-x: auto;
+    }
+
+    button {
+      border: 0;
+      padding: 0 14px;
+      background: #222;
+      color: #ddd;
+      cursor: pointer;
+      border-right: 1px solid #333;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    button.active {
+      background: #0070c0;
+      color: white;
+    }
+
+    button:hover:not(.active) {
+      background: #2a2a2a;
+    }
+
+    iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      border: 0;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="tabs">
+    <button class="active" onclick="openDoc(this, 'https://wiki.megadrive.org/index.php?title=Main_Page')">
+      Mega Drive Wiki
+    </button>
+
+    <button onclick="openDoc(this, 'https://www.nxp.com/docs/en/reference-manual/M68000PRM.pdf')">
+      M68000 Manual (NXP)
+    </button>
+
+    <button onclick="openDoc(this, 'https://map.grauw.nl/resources/motorola_m68000_instref.pdf')">
+      M68K Inst. Reference
+    </button>
+
+    <button onclick="openDoc(this, 'https://segaretro.org/Sega_Mega_Drive/Technical_specifications')">
+      Sega Genesis Specs
+    </button>
+
+    <button onclick="openDoc(this, 'https://plutiedev.com/mega-drive')">
+      Plutiedev Tutorials
+    </button>
+
+    <button onclick="openDoc(this, 'https://www.chibiakumas.com/68000/')">
+      68000 ASM Guide
+    </button>
+  </div>
+
+  <iframe id="viewer" src="https://wiki.megadrive.org/index.php?title=Main_Page"></iframe>
+
+  <script>
+    function openDoc(button, url) {
+      document.querySelectorAll("button").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      button.classList.add("active");
+      document.getElementById("viewer").src = url;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "instructions": [
+    "adc", "and", "asl", "bcc", "bcs", "beq", "bit", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc", "cld", "cli", "clv", "cmp", "cpx", "cpy", "dec", "dex", "dey", "eor", "inc", "inx", "iny", "jmp", "jsr", "lda", "ldx", "ldy", "lsr", "nop", "ora", "pha", "php", "pla", "plp", "rol", "ror", "rti", "rts", "sbc", "sec", "sed", "sei", "sta", "stx", "sty", "tax", "tay", "tsx", "txa", "txs", "tya"
+  ],
+  "registers": [
+    "A", "X", "Y", "SP",
+    "VSYNC", "VBLANK", "WSYNC", "RSYNC", "NUSIZ0", "NUSIZ1", "COLUP0", "COLUP1", "COLUPF", "COLUBK", "CTRLPF", "REFP0", "REFP1", "PF0", "PF1", "PF2", "RESP0", "RESP1", "RESM0", "RESM1", "RESBL", "AUDC0", "AUDC1", "AUDF0", "AUDF1", "AUDV0", "AUDV1", "GRP0", "GRP1", "ENAM0", "ENAM1", "ENABL", "HMP0", "HMP1", "HMM0", "HMM1", "HMBL", "VDELP0", "VDELP1", "VDELBL", "RESMP0", "RESMP1", "HMOVE", "HMCLR", "CXCLR",
+    "CXM0P", "CXM1P", "CXP0FB", "CXP1FB", "CXM0FB", "CXM1FB", "CXBLPF", "CXPPMM", "INPT0", "INPT1", "INPT2", "INPT3", "INPT4", "INPT5",
+    "SWCHA", "SWACNT", "SWCHB", "SWBCNT", "INTIM", "TIMINT", "TIM1T", "TIM8T", "TIM64T", "TIM1024T", "T1024T"
+  ],
+  "directives": [
+    ".pack", ".world", ".rules", ".regs", ".types", ".sections", ".words",
+    ".rom", ".ram", ".zp"
+  ],
+  "patterns": [
+    {
+      "name": "entity.name.tag.section.rif",
+      "match": "^\\s*\\.[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    {
+      "name": "keyword.control.rom.atari2600.rif",
+      "match": "\\b(?:rompad_to_vectors|vectors)\\b"
+    },
+    {
+      "name": "support.constant.tia.atari2600.rif",
+      "match": "\\b(?:VSYNC|VBLANK|WSYNC|COLUP0|COLUP1|COLUPF|COLUBK|CTRLPF|PF0|PF1|PF2|GRP0|GRP1|HMOVE|CXCLR)\\b"
+    }
+  ],
+  "completions": [
+    {
+      "label": "atari2600_rom_skeleton",
+      "insertText": ".section rom\\nstart:\\n    sei\\n    cld\\n    txs\\n\\nmain_loop:\\n    lda_imm 0x02\\n    sta_abs_addr VSYNC\\n    sta_abs_addr WSYNC\\n    sta_abs_addr WSYNC\\n    sta_abs_addr WSYNC\\n    lda_imm 0x00\\n    sta_abs_addr VSYNC\\n\\n    lda_imm 43\\n    sta_abs_addr TIM64T\\nwait_vblank:\\n    lda_abs_addr INTIM\\n    bne wait_vblank\\n    sta_abs_addr WSYNC\\n    sta_abs_addr VBLANK\\n\\n    ldx_imm 192\\ndraw_loop:\\n    sta_abs_addr WSYNC\\n    dex\\n    bne draw_loop\\n\\n    lda_imm 0x02\\n    sta_abs_addr VBLANK\\n    lda_imm 35\\n    sta_abs_addr TIM64T\\nwait_overscan:\\n    lda_abs_addr INTIM\\n    bne wait_overscan\\n\\n    jmp_abs main_loop\\n\\n    rompad_to_vectors\\n    vectors start",
+      "detail": "Atari 2600 ROM",
+      "documentation": "Esqueleto NTSC con VSYNC, VBLANK, 192 scanlines, padding y vectores.",
+      "kind": "Snippet",
+      "sortText": "000-atari2600-rom-skeleton"
+    },
+    {
+      "label": "vectors",
+      "insertText": "vectors ${1:start}",
+      "detail": "Atari 2600 ROM",
+      "documentation": "Emite NMI, RESET e IRQ apuntando a la etiqueta indicada.",
+      "kind": "Snippet",
+      "sortText": "001-vectors"
+    },
+    {
+      "label": "rompad_to_vectors",
+      "insertText": "rompad_to_vectors",
+      "detail": "Atari 2600 ROM",
+      "documentation": "Rellena hasta 0x0FFA para dejar espacio a los tres vectores 6502.",
+      "kind": "Function",
+      "sortText": "002-rompad"
+    }
+  ]
+}

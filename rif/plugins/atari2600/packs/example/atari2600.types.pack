@@ -1,0 +1,4 @@
+| NAME   | bits | array | sizeset | longset |
+| b8     | 8    | false | false   | false   |
+| addr8  | 8    | false | false   | false   |
+| addr16 | 16   | false | false   | false   |

@@ -214,8 +214,20 @@ def _branch_offset(target: str, bits: int) -> int:
     return offset & ((1 << bits) - 1)
 
 
+
+def _get_endianness() -> str:
+    ctx = globals().get("CONTEXT")
+    if ctx is not None and getattr(ctx, "program", None) is not None and hasattr(ctx.program, "world"):
+        raw = ctx.program.world.values.get("endianness", ctx.program.world.values.get("endianess", "little"))
+        if isinstance(raw, int):
+            return "big" if raw else "little"
+        text = str(raw).strip().lower()
+        if text in {"big", "be", "1"}:
+            return "big"
+    return "little"
+
 def _emit16(opcode: int):
-    return emit_bytes(int(opcode & 0xFFFF).to_bytes(2, "little"))
+    return emit_bytes(int(opcode & 0xFFFF).to_bytes(2, _get_endianness()))
 
 
 def _emit_hi(op: int, rd_value: Any, rs_value: Any, *, name: str):
@@ -242,12 +254,12 @@ def main():
         if ins in {"dh", "u16"}:
             if len(pack) != 2:
                 return Err("dh requiere 1 argumento")
-            return emit_bytes(_range(_int(pack[1], name="dh"), 16, name="dh").to_bytes(2, "little"))
+            return emit_bytes(_range(_int(pack[1], name="dh"), 16, name="dh").to_bytes(2, _get_endianness()))
 
         if ins in {"dw", "u32"}:
             if len(pack) != 2:
                 return Err("dw requiere 1 argumento")
-            return emit_bytes(_range(_int(pack[1], name="dw"), 32, name="dw").to_bytes(4, "little"))
+            return emit_bytes(_range(_int(pack[1], name="dw"), 32, name="dw").to_bytes(4, _get_endianness()))
 
         if ins in {"store", "mov_imm"}:
             if len(pack) != 3:
@@ -481,7 +493,7 @@ def main():
             off &= 0x3FFFFF
             hi = (off >> 11) & 0x7FF
             lo = off & 0x7FF
-            return emit_bytes((0xF000 | hi).to_bytes(2, "little") + (0xF800 | lo).to_bytes(2, "little"))
+            return emit_bytes((0xF000 | hi).to_bytes(2, _get_endianness()) + (0xF800 | lo).to_bytes(2, _get_endianness()))
 
         return Err(f"thumb_ins: instruccion no soportada '{ins}'")
     except ValueError as exc:

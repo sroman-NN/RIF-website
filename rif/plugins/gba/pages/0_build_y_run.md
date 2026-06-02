@@ -1,46 +1,74 @@
-# Construcción y Ejecución de Proyectos GBA
+# Build y Ejecucion
 
-El entorno RIF cuenta con un flujo completo y automatizado para orquestar la fusión de tu código ensamblador con recursos como audio e imágenes, construyendo directamente imágenes de ROM (`.gba`) válidas.
+El plugin `gba` empaqueta codigo RIF, cabecera de cartucho y recursos en una ROM
+`.gba` valida para emuladores y hardware compatible.
 
-## 🔨 Compilar un Proyecto
-
-Dado que el plugin GBA asume el control del entorno para inyectar su set de instrucciones Thumb y su mapeo de cabeceras, la compilación de proyectos requiere que invoques el empaquetador indicando el plugin GBA:
+## Compilar
 
 ```bash
-# Formato general de construcción:
-python -m rif build <ruta_al_directorio_fuente> --plugin gba --name <nombre_del_pack>
-
-# Ejemplo oficial:
 python -m rif build examples/gba --plugin gba --name example
 ```
 
-Al ejecutar este comando, RIF hará lo siguiente:
-1. Extraerá las reglas y metadatos alojados en `rif/plugins/gba/packs/example/`.
-2. Evaluará secuencialmente cada archivo con extensión `.gbasm` dentro del directorio especificado.
-3. Inyectará llamadas dinámicas (como conversión de audio e imágenes) si usas macros como `@fill_sound_wav`.
-4. Renderizará en consola un elegante reporte visual indicando el tamaño (Bytes), la ubicación lógica en memoria de tus bloques, el Hash `SHA256` y los offsets de enlace (Linker Labels) generados.
+El pack usado vive en:
 
-El binario resultante se depositará en el directorio fuente bajo el nombre `<directorio>.gba` (en el caso del ejemplo: `examples/gba/gba.gba`).
+```text
+rif/plugins/gba/packs/example/gba.pack
+```
 
----
+Durante el build, RIF:
 
-## 🎮 Ejecución en Emuladores (CLI nativo)
+1. Carga las tablas `.regs`, `.rules`, `.sections`, `.types` y `.words`.
+2. Lee archivos `.gbasm` del proyecto, incluyendo subarchivos si el proyecto usa
+   `code/`.
+3. Resuelve fillables como imagenes, fuentes, audio o cabeceras.
+4. Enlaza secciones con sus offsets virtuales.
+5. Escribe la ROM final con extension `.gba`.
 
-El plugin GBA incorpora herramientas especializadas accesibles bajo el prefijo CLI de RIF `-pcli gba`.
+## Ejecutar con mGBA
 
-Si no tienes un emulador, el propio RIF puede descargar la última versión portátil del popular emulador **mGBA** e instalarla de forma local:
+Registrar el emulador:
 
 ```bash
-# Descarga e instala mGBA automáticamente:
 python -m rif -pcli gba install mGBA --add-path
 ```
 
-Una vez tengas tu archivo `.gba` generado y tu emulador listo, puedes lanzar tu juego directamente desde la terminal de forma fluida:
+Ejecutar:
+
+```bash
+python -m rif -pcli gba run examples/gba/gba.gba
+```
+
+Evitar ventanas duplicadas durante desarrollo:
 
 ```bash
 python -m rif -pcli gba run examples/gba/gba.gba -nd
 ```
 
-### 💡 Acerca del flag `-nd` (No Duplicates)
+Ver el comando sin abrir el emulador:
 
-El flag `-nd` es de vital importancia durante el desarrollo. Cuando compilas iterativamente, no querrás acumular cientos de ventanas del emulador abiertas. El motor de RIF rastreará activamente los hilos de `mGBA` a nivel de sistema operativo y reutilizará de forma forzada la ventana abierta anteriormente cerrando el proceso heredado antes de lanzar el nuevo.
+```bash
+python -m rif -pcli gba run examples/gba/gba.gba --dry-run
+```
+
+## Configuracion
+
+La ruta del emulador se guarda en:
+
+```text
+~/.rif/plugins/gba/config.json
+```
+
+Si mGBA esta en una ruta concreta:
+
+```bash
+python -m rif -pcli gba install mGBA --add-path "C:/Program Files/mGBA/mGBA.exe"
+```
+
+## Errores comunes
+
+| Mensaje | Causa | Solucion |
+|---|---|---|
+| `ROM no encontrada` | La ruta al `.gba` no existe. | Compila primero o corrige la ruta. |
+| `mGBA no esta configurado` | No hay ruta guardada ni ejecutable en `PATH`. | Ejecuta `install mGBA --add-path`. |
+| Pantalla blanca | Cabecera, logo, checksum o entry incompletos. | Revisa `.header`, `set_logo`, `set_checksum` y `set_entry_thumb`. |
+| Imagen corrupta | Escrituras byte a byte en VRAM/OAM/Palette RAM. | Usa `strh` o `arm_strh`. |

@@ -1,45 +1,104 @@
 {
   "builtins": [
+    "@fonts_fill_text_u8",
+    "@fonts_fill_text_u16",
+    "@fonts_fill_text_u32",
+    "@fonts_fill_3x5x1",
+    "@fonts_fill_4x6x1",
     "@fonts_fill_5x7x1",
+    "@fonts_fill_6x8x1",
     "@bitmap_array_logo"
   ],
   "types": [
     "font",
     "glyph",
-    "bitmap-text"
+    "bitmap-text",
+    "font-3x5x1.f",
+    "font-4x6x1.f",
+    "font-5x7x1.f",
+    "font-6x8x1.f"
   ],
   "completions": [
     {
-      "label": "centered_title_text",
-      "insertText": "@\"${1:Esto es una prueba de GBA}\"@fonts_fill_5x7x1",
-      "detail": "fonts",
-      "documentation": "Texto bitmap listo para centrar desde el proyecto.",
+      "label": "fonts_text_u8",
+      "insertText": "@\"${1:Texto}\" ${2:5x7}@fonts_fill_text_u8@${3:text_bitmap}",
+      "detail": "fonts fillable",
+      "documentation": "Texto bitmap como bytes crudos de filas empaquetadas.",
       "kind": "Snippet",
-      "sortText": "000-centered-title-text"
+      "sortText": "000-fonts-text-u8"
+    },
+    {
+      "label": "fonts_text_u16",
+      "insertText": "@\"${1:Texto}\" ${2:5x7}@fonts_fill_text_u16@${3:text_bitmap}",
+      "detail": "fonts fillable",
+      "documentation": "Texto bitmap como una fila por u16 little-endian.",
+      "kind": "Snippet",
+      "sortText": "001-fonts-text-u16"
+    },
+    {
+      "label": "fonts_text_u32",
+      "insertText": "@\"${1:Texto}\" ${2:6x8}@fonts_fill_text_u32@${3:text_bitmap}",
+      "detail": "fonts fillable",
+      "documentation": "Texto bitmap como una fila por u32 little-endian.",
+      "kind": "Snippet",
+      "sortText": "002-fonts-text-u32"
+    },
+    {
+      "label": "fonts_fill_3x5x1",
+      "insertText": "@\"${1:HP 99}\"@fonts_fill_3x5x1@${2:hud_text}",
+      "detail": "fonts 3x5",
+      "documentation": "Texto compacto 3x5x1 como u16 por fila.",
+      "kind": "Snippet"
+    },
+    {
+      "label": "fonts_fill_4x6x1",
+      "insertText": "@\"${1:Menu}\"@fonts_fill_4x6x1@${2:menu_text}",
+      "detail": "fonts 4x6",
+      "documentation": "Texto 4x6x1 como u16 por fila.",
+      "kind": "Snippet"
     },
     {
       "label": "fonts_fill_5x7x1",
-      "insertText": "@\"${1:Texto}\"@fonts_fill_5x7x1",
-      "detail": "fillable",
-      "documentation": "Convierte texto a filas bitmap 5x7x1 en forma inversa."
+      "insertText": "@\"${1:Texto}\"@fonts_fill_5x7x1@${2:texto_bitmap}",
+      "detail": "fonts 5x7",
+      "documentation": "Alias historico: texto 5x7x1 como u16 por fila.",
+      "kind": "Snippet"
+    },
+    {
+      "label": "fonts_fill_6x8x1",
+      "insertText": "@\"${1:START}\"@fonts_fill_6x8x1@${2:title_text}",
+      "detail": "fonts 6x8",
+      "documentation": "Texto 6x8x1 como u16 por fila.",
+      "kind": "Snippet"
     },
     {
       "label": "bitmap_array_logo",
-      "insertText": "@bitmap_array_logo \"${1:RIF}\" ${2:logo_bitmap}",
-      "detail": "fillable",
-      "documentation": "Genera un arreglo u8 desde texto bitmap."
+      "insertText": "@\"${1:RIF}\"@bitmap_array_logo@${2:logo_bitmap}",
+      "detail": "fonts legacy",
+      "documentation": "Alias antiguo que genera un arreglo u8 desde texto bitmap.",
+      "kind": "Snippet"
+    }
+  ],
+  "patterns": [
+    {
+      "name": "support.function.fillable.fonts",
+      "match": "@(?:fonts_fill_text_u8|fonts_fill_text_u16|fonts_fill_text_u32|fonts_fill_[3456]x[5678]x1|bitmap_array_logo)\\b"
+    },
+    {
+      "name": "support.constant.fonts.file",
+      "match": "\\b(?:font-[3456]x[5678]x1\\.f|3x5|4x6|5x7|6x8|3x5x1|4x6x1|5x7x1|6x8x1)\\b"
     }
   ],
   "errors": [
     {
-      "match": "@\\s*fonts_fill_5x7x1\\b",
-      "message": "Fonts: usa la forma inversa para texto: @\"Texto\"@fonts_fill_5x7x1.",
+      "match": "@\\s*fonts_fill_",
+      "message": "Fonts: usa la forma @\"Texto\" [fuente]@fillable@label.",
       "severity": "warning",
       "code": "fonts-reverse-fillable",
-      "suggest": "Escribe primero el texto: @\"Texto\"@fonts_fill_5x7x1."
+      "suggest": "Ejemplo: @\"Texto\" 5x7@fonts_fill_text_u16@texto_bitmap"
     },
     {
-      "match": "@\"\"@fonts_fill_5x7x1",
+      "match": "@\"\"@fonts_fill_",
       "message": "Fonts: el texto vacio genera un asset sin glyphs visibles.",
       "severity": "hint",
       "code": "fonts-empty-text"

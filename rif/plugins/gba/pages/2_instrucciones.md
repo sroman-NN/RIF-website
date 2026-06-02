@@ -1,87 +1,95 @@
-# Conjunto de Instrucciones Thumb (GBA)
+# Instrucciones ARM y Thumb
 
-La consola GBA corre una CPU **ARM7TDMI** nativa. El framework de RIF compila sus instrucciones utilizando el modo **Thumb** (Instrucciones de 16-bits alineadas en formato *Little-Endian*), cumpliendo estrictamente con el manual de referencia técnica ARM (DDI 0029G).
+El pack GBA contiene reglas Thumb de 16 bits y reglas ARM de 32 bits. Thumb es
+compacto y muy practico para ROM; ARM ofrece mas registros, inmediatos y
+operaciones para rutinas generadas.
 
-> [!IMPORTANT]  
-> En el estado Thumb de 16-bits, casi todas las instrucciones están limitadas a operar exclusivamente sobre los **registros bajos (R0-R7)** para ahorrar espacio en la codificación binaria.
+## Thumb: registros y limites
 
----
+Muchas instrucciones Thumb simples solo aceptan registros bajos `R0-R7`.
+`SP`, `LR` y `PC` son especiales. `R8-R12` existen, pero solo algunas formas
+high-register pueden tocarlos directamente.
 
-## 🧮 Transferencia de Datos
+## Datos y constantes
 
-Estas instrucciones permiten mover información entre los registros o cargar constantes.
+| Regla | Equivalente | Uso |
+|---|---|---|
+| `store Rd = imm` | `MOVS Rd, #imm8` | Carga inmediato de 8 bits en registro bajo. |
+| `movs Rd imm` | `MOVS Rd, #imm8` | Forma canonica Thumb. |
+| `move Rd Rs` / `mov Rd Rs` | high register move | Copia registros, incluyendo formas altas si aplica. |
+| `ldr_pc_label Rd label` | literal PC-relative | Carga datos cercanos a PC. |
+| `adr_label Rd label` | ADR | Calcula direccion cercana a PC. |
 
-| Instrucción RIF | Equivalencia ARM | Descripción |
-| :--- | :--- | :--- |
-| `store Rd = imm` | `MOV Rd, #imm8` | Carga un número inmediato (0-255) en un registro. |
-| `move Rd, Rs` | `ADD Rd, Rs, #0` | Copia el contenido del registro origen `Rs` al destino `Rd`. |
-| `lsl Rd, Rs, imm` | `LSL Rd, Rs, #imm5` | **L**ogical **S**hift **L**eft (Multiplica por 2^n). |
-| `lsr Rd, Rs, imm` | `LSR Rd, Rs, #imm5` | **L**ogical **S**hift **R**ight (Divide sin signo). |
-| `asr Rd, Rs, imm` | `ASR Rd, Rs, #imm5` | **A**rithmetic **S**hift **R**ight (Mantiene el signo). |
+## ALU Thumb
 
-## ⚔️ Aritmética y Lógica
+| Regla | Operacion |
+|---|---|
+| `adds Rd Rs Rn` / `add Rd Rs Rn` | `Rd = Rs + Rn`. |
+| `subs Rd Rs Rn` / `sub Rd Rs Rn` | `Rd = Rs - Rn`. |
+| `add_imm Rd imm` | Suma inmediato de 8 bits. |
+| `sub_imm Rd imm` | Resta inmediato de 8 bits. |
+| `cmp Rd Rs` | Compara registros. |
+| `cmp_imm Rd imm` | Compara con inmediato. |
+| `and`, `orr`, `eor`, `bic`, `mvn` | Logica bit a bit. |
+| `lsl`, `lsr`, `asr`, `ror` | Shifts y rotaciones. |
+| `mul` | Multiplicacion de registros bajos. |
 
-A diferencia de ARM, las instrucciones aritméticas de Thumb actualizan automáticamente las banderas (Flags) de condición en el registro CPSR (Condition Program Status Register).
+## Load / Store Thumb
 
-| Instrucción RIF | Equivalencia ARM | Descripción |
-| :--- | :--- | :--- |
-| `add Rd, Rs, Rn` | `ADD Rd, Rs, Rn` | Suma aritmética (`Rd = Rs + Rn`). |
-| `sub Rd, Rs, Rn` | `SUB Rd, Rs, Rn` | Resta aritmética (`Rd = Rs - Rn`). |
-| `and Rd, Rs` | `AND Rd, Rs` | Y lógico bit a bit (`Rd &= Rs`). |
-| `or Rd, Rs` | `ORR Rd, Rs` | O lógico bit a bit (`Rd \|= Rs`). |
-| `xor Rd, Rs` | `EOR Rd, Rs` | O exclusivo lógico bit a bit (`Rd ^= Rs`). |
-| `not Rd, Rs` | `MVN Rd, Rs` | Niega los bits (`Rd = ~Rs`). |
-| `neg Rd, Rs` | `NEG Rd, Rs` | Niega el signo (Complemento a 2) (`Rd = 0 - Rs`). |
-| `mul Rd, Rs` | `MUL Rd, Rs` | Multiplicación (`Rd *= Rs`). |
-| `cmp Rd, Rs` | `CMP Rd, Rs` | Compara restando, actualizando flags pero sin guardar el resultado. |
+| Regla | Acceso |
+|---|---|
+| `ldr Rd Rb Ro` / `str Rd Rb Ro` | Word de 32 bits con offset de registro. |
+| `ldrh Rd Rb Ro` / `strh Rd Rb Ro` | Halfword de 16 bits. |
+| `ldrb Rd Rb Ro` / `strb Rd Rb Ro` | Byte de 8 bits. |
+| `ldr_imm`, `str_imm` | Word con offset inmediato. |
+| `ldrh_imm`, `strh_imm` | Halfword con offset inmediato. |
+| `ldr_sp`, `str_sp` | Acceso relativo a `SP`. |
 
-## 💾 Acceso a Memoria (Load / Store)
+No uses `strb` en VRAM, OAM o Palette RAM. Esas memorias estan conectadas a un
+bus de 16 bits y el hardware duplica el byte, corrompiendo pixeles o atributos.
 
-El hardware de GBA requiere usar Load y Store para escribir en VRAM o leer el cartucho. La dirección efectiva de memoria siempre se calcula sumando el registro Base (`Rb`) y un registro de Desplazamiento (`Ro`).
+## Control de flujo Thumb
 
-| Instrucción RIF | Equivalencia ARM | Descripción |
-| :--- | :--- | :--- |
-| `ldr Rd, Rb, Ro` | `LDR Rd, [Rb, Ro]` | Lee **32-bits** de memoria (Word). |
-| `ldrb Rd, Rb, Ro` | `LDRB Rd, [Rb, Ro]` | Lee **8-bits** sin signo (Byte). |
-| `ldrh Rd, Rb, Ro` | `LDRH Rd, [Rb, Ro]` | Lee **16-bits** sin signo (Halfword). |
-| `str Rd, Rb, Ro` | `STR Rd, [Rb, Ro]` | Escribe **32-bits** en memoria. |
-| `strb Rd, Rb, Ro` | `STRB Rd, [Rb, Ro]` | Escribe **8-bits** en memoria. |
-| `strh Rd, Rb, Ro` | `STRH Rd, [Rb, Ro]` | Escribe **16-bits** en memoria. |
+| Regla | Condicion |
+|---|---|
+| `b` / `jump` | Salto incondicional. |
+| `beq`, `bne` | Igual / diferente. |
+| `bcs`, `bcc` | Carry set / clear. |
+| `bmi`, `bpl` | Negativo / positivo. |
+| `bvs`, `bvc` | Overflow set / clear. |
+| `bhi`, `bls`, `bge`, `blt`, `bgt`, `ble` | Comparaciones ordenadas. |
+| `call` / `bl` | Branch with link. |
+| `bx` | Branch and exchange. |
+| `swi` / `svc` | Llamada BIOS/software interrupt. |
 
-> [!WARNING]  
-> La VRAM del GBA (donde se dibujan los píxeles) **no** soporta escrituras de 8-bits (`strb`). Si intentas escribir un solo byte en la RAM de video, el hardware lo reflejará escribiendo el byte duplicado en los 16-bits de la dirección. Usa siempre `strh` para colores.
-
-## 🔀 Control de Flujo (Saltos)
-
-Las directivas de control de flujo son resueltas internamente por el motor de RIF. Él calculará automáticamente si el salto es hacia atrás o hacia adelante y generará los saltos relativos de 16-bits correctos.
-
-| Instrucción RIF | Equivalencia ARM | Comportamiento |
-| :--- | :--- | :--- |
-| `jump label` | `B label` | Salto incondicional hacia `label`. |
-| `call label` | `BL label` | Salta y guarda la dirección de retorno en el Link Register (`LR`). |
-| `beq label` | `BEQ label` | Salta si es **igual** (Flag `Z=1`). |
-| `bne label` | `BNE label` | Salta si es **diferente** (Flag `Z=0`). |
-| `blt label` | `BLT label` | Salta si es **menor que** (Flags `N!=V`). |
-| `bgt label` | `BGT label` | Salta si es **mayor que** (Flags `Z=0` y `N=V`). |
-| `ble label` | `BLE label` | Salta si es **menor o igual** (Flags `Z=1` o `N!=V`). |
-| `bge label` | `BGE label` | Salta si es **mayor o igual** (Flags `N=V`). |
-
-## 🥞 Stack (Pila)
-
-| Instrucción RIF | Equivalencia ARM | Descripción |
-| :--- | :--- | :--- |
-| `push Rd` | `PUSH {Rd}` | Empuja un registro a la pila de RAM (decrementa `SP`). |
-| `pop Rd` | `POP {Rd}` | Extrae un registro de la pila hacia `Rd` (incrementa `SP`). |
-
-## 📝 Declaración Directa de Datos
-
-Si necesitas escribir bytes crudos intercalados en medio de tus rutinas (por ejemplo, para colores BGR555 o datos puros):
+## Stack Thumb
 
 ```rif
-db 0xFF              ; Declara 1 Byte (8 bits)
-dh 0x1234            ; Declara 1 Halfword (16 bits)
-dw 0x12345678        ; Declara 1 Word (32 bits)
+push {R0-R3,LR}
+pop {R0-R3,PC}
+```
 
-; También puedes usar las directivas externas de fuentes:
-bitmap_text "RIF"    ; Emite bits del array de fuente de la consola
+Tambien existen formas de mascara (`push_mask`, `pop_mask`) para codigo
+generado.
+
+## ARM helpers
+
+Las reglas ARM se usan en el ejemplo oficial y en fillables generados:
+
+| Regla | Uso |
+|---|---|
+| `arm_mov_imm Rd imm` | Carga inmediato ARM. |
+| `arm_add_imm Rd Rn imm` | Suma inmediato. |
+| `arm_ldr_label Rd label` | Carga direccion de etiqueta via relocacion/literal. |
+| `arm_ldrh Rd Rb off` / `arm_strh Rd Rb off` | Acceso halfword a MMIO/VRAM. |
+| `arm_b label`, `arm_bcond cond label` | Saltos ARM. |
+| `arm_bl label`, `arm_bx Rn` | Subrutinas y retorno/intercambio de estado. |
+| `apply_reloc abs label bits` | Emite relocacion directa para datos puntero. |
+
+## Datos crudos
+
+```rif
+db 0x12
+dh 0x1234
+dw 0x12345678
 ```

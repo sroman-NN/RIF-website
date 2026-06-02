@@ -4,13 +4,65 @@
       "doc": [
         {
           "type": "text",
-          "content": "Herramientas de fuentes bitmap retargetables para convertir texto a datos binarios en build time."
+          "content": "Fuentes bitmap retargetables. El plugin convierte texto en filas de bits; cada consola decide como renderizarlas."
         },
         {
           "type": "image",
           "src": "assets/fonts/font-grid.svg",
-          "alt": "5x7 bitmap font grid",
-          "caption": "Un glyph 5x7x1 se serializa por filas para que el proyecto lo renderice donde quiera."
+          "alt": "Bitmap font grid",
+          "caption": "Cada glyph se serializa por filas para poder leerse desde ROM, RAM o tablas generadas."
+        }
+      ]
+    },
+    "fonts_fill_text_u8": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Genera bytes crudos de filas empaquetadas usando la fuente indicada o font-5x7x1.f por defecto."
+        },
+        {
+          "type": "code",
+          "content": "@\"SCORE\" 3x5@fonts_fill_text_u8@score_text"
+        }
+      ]
+    },
+    "fonts_fill_text_u16": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Genera una fila por u16 little-endian. Recomendado para renderers GBA que evitan lecturas byte a byte."
+        },
+        {
+          "type": "code",
+          "content": "@\"PRESS START\" 5x7@fonts_fill_text_u16@press_start_text"
+        }
+      ]
+    },
+    "fonts_fill_text_u32": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Genera una fila por u32 little-endian para renderers que prefieren palabras alineadas."
+        },
+        {
+          "type": "code",
+          "content": "@\"TITLE\" 6x8@fonts_fill_text_u32@title_text"
+        }
+      ]
+    },
+    "fonts_fill_3x5x1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Alias compacto: usa font-3x5x1.f y emite u16 por fila."
+        }
+      ]
+    },
+    "fonts_fill_4x6x1": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Alias pequeno: usa font-4x6x1.f y emite u16 por fila."
         }
       ]
     },
@@ -18,19 +70,19 @@
       "doc": [
         {
           "type": "text",
-          "content": "Genera texto bitmap 5x7 de 1 bit por pixel como filas u16 listas para leer desde una ROM GBA."
+          "content": "Alias historico: usa font-5x7x1.f y emite u16 por fila."
         },
         {
           "type": "code",
-          "content": "@\"Esto es una prueba\"@fonts_fill_5x7x1"
-        },
+          "content": "@\"RIF\"@fonts_fill_5x7x1@rif_text"
+        }
+      ]
+    },
+    "fonts_fill_6x8x1": {
+      "doc": [
         {
           "type": "text",
-          "content": "La forma inversa deja primero los argumentos y despues la funcion. Si no se pasa simbolo, RIF crea un nombre estable basado en el texto."
-        },
-        {
-          "type": "tip",
-          "content": "Para GBA este fillable emite u16 con el byte de fila en la parte baja, evitando lecturas byte a byte desde ROM."
+          "content": "Alias grande: usa font-6x8x1.f y emite u16 por fila."
         }
       ]
     },
@@ -38,11 +90,43 @@
       "doc": [
         {
           "type": "text",
-          "content": "Genera un arreglo u8 con el bitmap de un texto usando una fuente bitmap registrada."
+          "content": "Alias antiguo que genera un arreglo u8 con texto bitmap."
         },
         {
           "type": "code",
-          "content": "@bitmap_array_logo \"RIF\" logo_bitmap"
+          "content": "@\"RIF\"@bitmap_array_logo@logo_bitmap"
+        }
+      ]
+    },
+    "font-3x5x1.f": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Fuente bitmap 3x5 de 1 byte por fila. Tambien puedes usar alias 3x5."
+        }
+      ]
+    },
+    "font-4x6x1.f": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Fuente bitmap 4x6 de 1 byte por fila. Tambien puedes usar alias 4x6."
+        }
+      ]
+    },
+    "font-5x7x1.f": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Fuente bitmap base 5x7 de 1 byte por fila. Tambien puedes usar alias 5x7."
+        }
+      ]
+    },
+    "font-6x8x1.f": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Fuente bitmap 6x8 de 1 byte por fila. Tambien puedes usar alias 6x8."
         }
       ]
     }

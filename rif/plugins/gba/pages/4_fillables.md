@@ -1,66 +1,96 @@
-# Directivas Fillables (Generación de Datos)
+# Fillables
 
-En RIF, un "fillable" (marcado con `@`) es una macro inteligente pre-procesada. Antes de compilar, el linker de RIF intercepta estas llamadas y genera bloques masivos de código fuente o binario de forma algorítmica.
+Un fillable es una llamada de build-time. RIF la resuelve antes de compilar,
+genera bytes o codigo auxiliar y registra la ubicacion final en `fills.json`.
 
-El plugin de GBA trae herramientas estáticas nativas, pero también se diseña para recibir inyecciones de los plugins `image` y `sound`.
-
----
-
-## 🎨 Gráficos Básicos Nativos (GBA Plugin)
-
-Estas directivas generan memoria VRAM desde colores simples o texto pre-empaquetado usando las rutinas internas del plugin.
-
-### `@fill_screen`
-Genera un buffer completo de 38,400 píxeles de 16-bits (76.8 KB) rellenado del color BGR555 especificado. Es perfecto para limpiar fondos.
+Forma general:
 
 ```rif
-@fill_screen black screen_bg
-@fill_screen green mi_fondo
+@args@namefunc@namelabel
 ```
-- **Arg 1**: Color (`black`, `white`, `green`, `red`, `blue`, etc.)
-- **Arg 2**: Nombre de la variable (label) generada.
 
-### `@fill_screen_text`
-Genera un buffer de pantalla completa, pero estampa en el centro un texto en fuente de mapa de bits (bitmap) a escala x3.
+| Parte | Significado |
+|---|---|
+| `args` | Argumentos del fillable. Usa comillas si contienen espacios. |
+| `namefunc` | Funcion del plugin que genera el contenido. |
+| `namelabel` | Label y clave generada en `fills.json`. |
+
+## Cabecera y ROM
+
+| Fillable | Uso |
+|---|---|
+| `fill_headers` | Emite la instruccion ARM inicial de la cabecera. |
+| `fill_logo` | Inserta el logo requerido por la BIOS. |
+| `fill_checksum` | Inserta metadatos y checksum. |
+| `fill_gba_header` | Todo en uno: header, logo y checksum. |
+| `fill_entry` | Entrada ARM. |
+| `fill_entry_thumb` | Entrada que cambia a Thumb. |
+| `fill_rompad` | Padding final de ROM. |
+
+Ejemplo:
 
 ```rif
-@fill_screen_text START white black pantalla_inicio
+@"MY GAME"@fill_gba_header@gba_header
+@fill_entry_thumb
 ```
-- **Arg 1**: El texto a renderizar (ASCII en mayúsculas).
-- **Arg 2**: Color de la fuente.
-- **Arg 3**: Color del fondo.
-- **Arg 4**: Etiqueta generada.
 
----
+En proyectos que prefieren macros directas, usa `set_headers`, `set_logo`,
+`set_checksum`, `set_entry_thumb` y `rompad`.
 
-## 🖼️ Imágenes Avanzadas (Plugin `image`)
+## Pantalla
 
-Si importas el plugin `image` en tu entorno (ej. `--plugin gba --plugin image`), puedes invocar conversiones de disco dinámicas hacia formato GBA.
-
-### `@fill_image_bitmap`
-Lee un `.png`, `.jpg` o `.bmp` de tu disco, le aplica *downsampling por promedio de caja* para suprimir el anti-aliasing negro, y lo convierte al estándar **BGR555**.
+| Fillable | Resultado |
+|---|---|
+| `fill_screen` | Buffer Mode 3 de 240x160 en BGR555. |
+| `fill_screen_text` | Alias de compatibilidad: genera pantalla solida y registra que el texto debe venir de `fonts`. |
+| `fill_frame` | Framebuffer Mode 3 solido para rutinas de frame. |
 
 ```rif
-; Toma "mario.png" y crea el buffer de VRAM "mario_sprite"
-@fill_image_bitmap mario.png mario_sprite
+@green@fill_screen@screen_bg
+@green@fill_frame@title_screen
 ```
 
-> [!TIP]
-> **Promedio de Caja (Box Average)**: Si tu imagen original no cuadra matemáticamente con los pixeles de tu buffer, el algoritmo no descarta píxeles de forma ruda (nearest-neighbor), sino que promedia sus canales de color.
+GBA no incluye una fuente propia ni sabe como dibujar glyphs. Para texto,
+importa `fonts`, genera la tabla bitmap y consumela desde una rutina de render
+del proyecto.
 
----
+## Imagenes
 
-## 🎵 Motor de Audio (Plugin `sound`)
-
-Si usas el plugin `sound`, puedes pedir a RIF que convierta pistas de audio modernas (`.wav`, `.mp3`) para que el GBA pueda streamearlas vía **Direct Sound A**.
-
-### `@fill_sound_wav`
-Llama a **FFmpeg** en segundo plano, re-muestrea tu pista, la convierte a canal mono, la fuerza a 8-bits con signo (`pcm_s8`) y la emite en memoria lista para DMA.
+Con el plugin `image` importado por el pack:
 
 ```rif
-; Pasa "music.mp3" a 16000 Hz firmados, etiqueta "bgm_sample"
-@fill_sound_wav bgm_sample music.mp3 16000
+@"assets/mario.png" 128 false@fill_image_bitmap@mario_sprite
 ```
-- **Arg 1**: Etiqueta (El plugin anexará sufijos automáticos para controlar el DMA: `_timer_reload`, `_dma_control`).
-- **Arg 2**: Ruta al archivo local de audio.
-- **Arg 3**: Frecuencia de muestreo destino (ej. `16000`, `22050`).
+
+El pipeline convierte imagenes a datos adecuados para GBA. Para VRAM directa,
+prefiere halfwords BGR555 y escritura con `strh`/`arm_strh`.
+
+## Audio
+
+Con el plugin `sound`:
+
+```rif
+@"assets/music.mp3" 16000 8 0 0.85 0.25@sound_mp3@bgm_sample
+@bgm_sample 16000@gba_dsound_start@bgm_sample_player
+```
+
+El primer fillable genera muestras PCM; el segundo genera una rutina de arranque
+para Direct Sound/DMA cuando el plugin de sonido la expone.
+
+## Fuentes
+
+Con el plugin `fonts`:
+
+```rif
+@"RIF GBA"@fonts_fill_5x7x1@title_text
+@"HP 99" 3x5@fonts_fill_text_u16@hud_text
+```
+
+El resultado es una tabla bitmap independiente de GBA. El renderer decide si la
+copia a Mode 3, tiles, sprites, RAM temporal o cualquier otro formato propio.
+
+## `fills.json`
+
+Despues del link, `fills.json` guarda informacion de labels generados. Los
+helpers de `basics` (`fillid`, `vfillid`) pueden resolver direcciones fisicas o
+virtuales de esos datos cuando el codigo generado necesita punteros.

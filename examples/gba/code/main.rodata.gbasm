@@ -1,5 +1,5 @@
-@"Hola y bienvenido"@fonts_fill_5x7x1
-@"Pulsa Start"@fonts_fill_5x7x1
+@"Hola y bienvenido"@fonts_fill_5x7x1@hola_y_bienvenido_42ca0482
+@"Pulsa Start"@fonts_fill_5x7x1@pulsa_start_47dc16c7
 
 mario_sprite:
 dh 0x03E0
@@ -517,4 +517,4 @@ dh 0x1CE7
 dh 0x1CE7
 dh 0x2108
 
-@sound_mp3 "assets/Waltz in A minor, B. 150.mp3" bgm_sample 8192 8 5 3.0 0.35
+@"assets/Waltz in A minor, B. 150.mp3" 8192 8 5 3.0 0.35@sound_mp3@bgm_sample

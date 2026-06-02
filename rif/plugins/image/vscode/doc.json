@@ -22,11 +22,11 @@
         },
         {
           "type": "code",
-          "content": "@image_bitmap \"assets/sprite.png\" sprite_bitmap 128 false"
+          "content": "@\"assets/sprite.png\" 128 false@image_bitmap@sprite_bitmap"
         },
         {
           "type": "text",
-          "content": "Argumentos: archivo, simbolo, umbral opcional e invertir opcional. El plugin solo transforma assets; el proyecto decide como dibujarlos."
+          "content": "Forma unica: @args@namefunc@namelabel. Argumentos: archivo, umbral opcional e invertir opcional. namelabel queda registrado en fills.json."
         },
         {
           "type": "note",
@@ -42,7 +42,7 @@
         },
         {
           "type": "code",
-          "content": "@fill_image_bitmap \"assets/sprite.png\" sprite_bitmap"
+          "content": "@\"assets/sprite.png\"@fill_image_bitmap@sprite_bitmap"
         }
       ]
     }

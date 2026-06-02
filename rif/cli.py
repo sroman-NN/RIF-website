@@ -382,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"packer.precompile={config.precompilers}")
             print(f"packer.types={config.types}")
             print(f"packer.output={config.output}")
-            print(f"reader.sources={config.source_extensions}")
+            print(f"reader.sources={[config.ext] if config.ext else []}")
             return 0
 
         if args.cmd == "pack":
@@ -433,20 +433,28 @@ def main(argv: list[str] | None = None) -> int:
             if args.plugin:
                 import fnmatch
                 all_plugins = [d.name for d in _plugin_dirs()]
+                requested_plugins = [args.plugin]
+                if args.source and args.source in all_plugins:
+                    requested_plugins.append(args.source)
+                requested_plugins.extend(item for item in (args.instruction or []) if item in all_plugins)
                 matched = []
-                if any(char in args.plugin for char in "*?[]"):
-                    matched = [name for name in all_plugins if fnmatch.fnmatch(name, args.plugin)]
-                else:
-                    if args.plugin in all_plugins:
-                        matched = [args.plugin]
+                for requested in requested_plugins:
+                    if any(char in requested for char in "*?[]"):
+                        for name in all_plugins:
+                            if fnmatch.fnmatch(name, requested) and name not in matched:
+                                matched.append(name)
+                    elif requested in all_plugins and requested not in matched:
+                        matched.append(requested)
                 if not matched:
                     matched = [name for name in all_plugins if fnmatch.fnmatch(name, args.plugin)]
                     if not matched:
                         raise RIFError(f"plugin no encontrado o ningun plugin coincide con: {args.plugin}")
 
-                main_plugin = matched[0]
+                main_plugin = _first_plugin_with_pack(matched) or matched[0]
                 linked = list(args.link or [])
-                for m in matched[1:]:
+                for m in matched:
+                    if m == main_plugin:
+                        continue
                     if m not in linked:
                         linked.append(m)
 
@@ -756,6 +764,20 @@ def _find_plugin_dir(name: str) -> Path:
     raise RIFError(f"plugin no encontrado: {name}")
 
 
+def _first_plugin_with_pack(names: list[str]) -> str | None:
+    for name in names:
+        plugin_root = _rif_plugins_dir() / name
+        for base_name in ("packs", "pack"):
+            base = plugin_root / base_name
+            if not base.exists():
+                continue
+            if base.is_dir() and any(base.glob("*.pack")):
+                return name
+            if any(path.is_file() for path in base.rglob("*.pack")):
+                return name
+    return None
+
+
 def _rif_plugins_dir() -> Path:
     import rif
 
@@ -922,7 +944,10 @@ def _plugin_help_entries() -> dict[str, dict[str, object]]:
         for plugin_dir in sorted(path for path in plugins_root.iterdir() if path.is_dir() and path.name != "__pycache__"):
             root_doc = _plugin_root_doc(plugin_dir)
             pages = _plugin_pages(plugin_dir)
-            if root_doc is None and not pages:
+            extern_doc = plugin_dir / "extern-documentation.html"
+            has_extern = extern_doc.exists()
+            
+            if root_doc is None and not pages and not has_extern:
                 continue
 
             combined_parts: list[str] = []
@@ -942,6 +967,7 @@ def _plugin_help_entries() -> dict[str, dict[str, object]]:
                 "combined": combined_path,
                 "root": root_doc,
                 "pages": pages,
+                "extern": extern_doc if has_extern else None,
             }
     return entries
 
@@ -1015,7 +1041,7 @@ def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
                 {name}
               </a>
             </li>\n'''
-            docs_json.append(f'      "{key}": {json.dumps(content)}')
+            docs_json.append(f'      "{key}": {json.dumps(content).replace("<", "\\u003c").replace(">", "\\u003e")}')
             for page in entry["pages"]:
                 page_key = f"plugin_{name}/{page['key']}"
                 page_content = page["path"].read_text(encoding="utf-8")
@@ -1025,7 +1051,18 @@ def _inject_dynamic_help(index: Path, topics: dict[str, Path]) -> Path:
                 {page['title']}
               </a>
             </li>\n'''
-                docs_json.append(f'      "{page_key}": {json.dumps(page_content)}')
+                docs_json.append(f'      "{page_key}": {json.dumps(page_content).replace("<", "\\u003c").replace(">", "\\u003e")}')
+
+            if entry.get("extern"):
+                page_key = f"plugin_{name}/extern_doc"
+                page_content = entry["extern"].read_text(encoding="utf-8")
+                menu_html += f'''<li>
+              <a href="#" class="menu-link" data-key="{page_key}" style="padding-left:34px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                Docs Externas
+              </a>
+            </li>\n'''
+                docs_json.append(f'      "{page_key}": {json.dumps(page_content).replace("<", "\\u003c").replace(">", "\\u003e")}')
 
     menu_html += '</ul>\n</div>'
 

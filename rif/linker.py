@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -320,204 +321,10 @@ class BinaryLinker:
         self._materialize_headers(blocks)
         self._assign_offsets(blocks)
         self._relocate_source_data(blocks)
-    def _subprefix(self, path: Path, base: str, ext: str) -> str | None:
-        """Determina y valida el subprefijo del nombre de un archivo de fragmento.
-
-        Args:
-            path: Ruta del fragmento.
-            base: Nombre base del archivo principal.
-            ext: Extensión de archivos esperada.
-
-        Returns:
-            El subprefijo como cadena si es válido, o None en caso contrario.
-        """
-        name = path.name
-        prefix = f"{base}."
-        if not name.startswith(prefix) or not name.endswith(ext):
-            return None
-        middle = name[len(prefix):-len(ext)]
-        if not middle or "." in middle:
-            return None
-        return middle
-
-    def _merge(self, source: str, config: PackerConfig, fragments: list[Path]) -> str:
-        """Fusiona el contenido de todos los fragmentos con el archivo fuente base.
-
-        Args:
-            source: Contenido original del archivo principal.
-            config: Configuración del empaquetador.
-            fragments: Lista de rutas de fragmentos a mezclar.
-
-        Returns:
-            Código fuente unificado y enlazado.
-        """
-        buckets: dict[str, list[str]] = {}
-        base = self.source_path.stem
-
-        for fragment in fragments:
-            subprefix = self._subprefix(fragment, base, config.ext)
-            if subprefix is None:
-                continue
-            target = config.prefix_to_section.get(subprefix)
-            if target is None:
-                continue
-
-            body = self._fragment_body(fragment, target)
-            if body.strip():
-                buckets.setdefault(target, []).append(body.rstrip())
-
-        if not buckets:
-            return source
-
-        return self._append_to_sections(source, config, buckets)
-
-    def _fragment_body(self, path: Path, target: str) -> str:
-        """Extrae el contenido pertinente de un archivo de fragmento.
-
-        Si el fragmento contiene declaraciones de secciones explícitas, aísla únicamente
-        el cuerpo de la sección destino.
-
-        Args:
-            path: Ruta del archivo de fragmento.
-            target: Nombre de la sección destino.
-
-        Returns:
-            Texto con el cuerpo del fragmento extraído.
-        """
-        text = path.read_text(encoding="utf-8")
-
-        if not _contains_section_header(text):
-            return text
-
-        parsed = Parser(text, path).parse()
-        section = parsed.section(target)
-        if section is None:
-            return ""
-        return "\n".join(raw for _, raw in section.body_lines)
-
-    def _append_to_sections(
-        self,
-        source: str,
-        config: PackerConfig,
-        buckets: dict[str, list[str]],
-    ) -> str:
-        """Inserta los fragmentos agrupados en sus correspondientes secciones dentro del código fuente.
-
-        Args:
-            source: Código fuente original.
-            config: Configuración del empaquetador.
-            buckets: Diccionario de fragmentos agrupados por sección destino.
-
-        Returns:
-            Código fuente final con los fragmentos insertados en los límites de sección.
-        """
-        lines = source.splitlines()
-        ranges = _section_ranges(lines)
-        output_lines = list(lines)
-
-        sort_key = lambda item: ranges.get(item[0], (10**12, 10**12))[1]
-        for section, fragments in sorted(buckets.items(), key=sort_key, reverse=True):
-            if section in ranges:
-                _, end = ranges[section]
-                output_lines[end:end] = [""] + _flat_fragments(fragments)
-            else:
-                header = _section_header(config, section)
-                output_lines.extend(["", header])
-                output_lines.extend(_flat_fragments(fragments))
-
-        return "\n".join(output_lines).rstrip() + "\n"
-
-    def build_binary(
-        self,
-        source: str = "",
-        output_path: str | Path | None = None,
-        write: bool = True,
-    ) -> BinaryLinkResult:
-        """Enlaza las fuentes y genera directamente el archivo ejecutable binario.
-
-        Args:
-            source: Código ensamblador complementario opcional a compilar.
-            output_path: Ruta destino para escribir los bytes.
-            write: Si es True, escribe los bytes del binario en el archivo.
-
-        Returns:
-            El resultado detallado BinaryLinkResult del enlazado binario.
-        """
-        linked = self.link(write=False)
-        return BinaryLinker(linked.program).build(source, output_path, write=write)
-
-    def build_project(
-        self,
-        project_path: str | Path,
-        output_path: str | Path | None = None,
-        write: bool = True,
-    ) -> BinaryLinkResult:
-        """Construye el proyecto enlazado leyendo las fuentes del proyecto y compilándolas."""
-        from .package_packer import PackagePacker
-        from .source_reader import SourceReader
-
-        linked = PackagePacker(self.source_path).pack(write=False)
-        setattr(linked.program, "project_path", Path(project_path).resolve())
-        setattr(linked.program, "cache_project_path", Path(project_path).resolve())
-        config = parse_packer_config(linked.program)
-        source = SourceReader(linked.program, config).read_project_source(project_path)
-        output = Path(output_path) if output_path is not None else _project_output_path(Path(project_path), self.source_path, config)
-        return BinaryLinker(linked.program).build(source, output, write=write)
-
-
-class BinaryLinker:
-    """Linker binario genérico para programas RIF parseados.
-
-    El núcleo del linker comprende primitivas de diseño y ordenación neutras
-    (`link:offset`, `link:size`, `link:count`, `link:each`, etc.). Nombres de
-    propiedades específicos de cada arquitectura (como `amd64:entry`) se delegan
-    a ganchos (hooks) opcionales de compiladores plugins o se registran como placeholders.
-    """
-
-    def __init__(self, program: Program):
-        """Inicializa el linker binario a partir del AST de un programa parseado.
-
-        Args:
-            program: Estructura de datos AST del programa.
-        """
-        self.program = program
-        self.config = parse_packer_config(program)
-        run_precompilers(program, self.config)
-        self.plugin_modules = self._load_plugin_compilers()
-        self.blocks: dict[str, LinkBlock] = {}
-        self.placeholders: list[Placeholder] = []
-        self.relocations: list[Any] = []
-        self.labels: dict[str, dict[str, Any]] = {}
-
-    def build(self, source: str = "", output_path: str | Path | None = None, write: bool = True) -> BinaryLinkResult:
-        """Construye y enlaza la imagen binaria final a partir del AST del programa y código fuente adicional.
-
-        Lleva a cabo la planeación de bloques, asignación recursiva de offsets físicos/virtuales,
-        reubicación de símbolos de datos, materialización de cabeceras estructuradas y ensamblado.
-
-        Args:
-            source: Código ensamblador fuente adicional para compilar y linkear.
-            output_path: Ruta del archivo binario de salida.
-            write: Si es True, guarda el binario compilado en disco.
-
-        Returns:
-            El resultado del enlazado binario BinaryLinkResult.
-        """
-        from .fillables import expand_fillables
-
-        source = expand_fillables(self.program, source, phase="link")
-        self.placeholders.clear()
-        self.relocations.clear()
-        blocks = self._plan_blocks(source)
-        self._assign_offsets(blocks)
-        self._relocate_source_data(blocks)
-        self._relocate_memory_regions(blocks)
-        self._materialize_headers(blocks)
-        self._assign_offsets(blocks)
-        self._relocate_source_data(blocks)
         self._relocate_memory_regions(blocks)
         self._materialize_headers(blocks)
 
+        self._write_linked_fills(blocks)
         self._apply_relocations(blocks)
         data = self._assemble_data(blocks)
         if os.environ.get("RIF_LINKER_DEBUG"):
@@ -659,7 +466,8 @@ class BinaryLinker:
         compiler = Compiler(self.program)
         results = compiler.compile_lines(source)
         self.labels.update(compiler.labels)
-        missing = [ph.name for result in results for ph in result.placeholders if ph.kind != "reldis"]
+        link_placeholder_kinds = {"address", "physical", "reldis"}
+        missing = [ph.name for result in results for ph in result.placeholders if ph.kind not in link_placeholder_kinds]
         self.relocations.extend(relocation for result in results for relocation in result.relocations)
         if missing:
             raise PackError("no se puede linkear source con placeholders: " + ", ".join(missing))
@@ -1028,6 +836,80 @@ class BinaryLinker:
 
             block_data[offset_bytes:offset_bytes + width_bytes] = val_bytes
             block.data = bytes(block_data)
+
+    def _write_linked_fills(self, blocks: list[LinkBlock]) -> None:
+        path = self._fills_path()
+        if path is None or not path.exists():
+            return
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+
+        changed = False
+        for plugin, fills in data.items():
+            if plugin == "_meta" or not isinstance(fills, dict):
+                continue
+            for fill_name, fill_row in fills.items():
+                if not isinstance(fill_row, dict):
+                    continue
+                resolved = self._fill_address_info(str(fill_name), blocks)
+                if not resolved:
+                    continue
+                fill_row.update(resolved)
+                changed = True
+
+        if not changed:
+            return
+        meta = data.setdefault("_meta", {})
+        if isinstance(meta, dict):
+            meta["linked"] = True
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    def _fills_path(self) -> Path | None:
+        project = getattr(self.program, "project_path", None) or getattr(self.program, "cache_project_path", None)
+        if project:
+            return Path(project).resolve() / "fills.json"
+        if self.program.source_path:
+            return Path(self.program.source_path).resolve().parent / "fills.json"
+        return None
+
+    def _fill_address_info(self, name: str, blocks: list[LinkBlock]) -> dict[str, Any] | None:
+        row = self.program.objects.get(name)
+        if row is not None:
+            info: dict[str, Any] = {}
+            virtual = row.values.get("addrs")
+            physical = row.values.get("paddrs")
+            if virtual not in (None, ""):
+                info["virtual"] = _intish(virtual, 0)
+                info["addrs"] = info["virtual"]
+            if physical not in (None, ""):
+                info["physical"] = _intish(physical, 0)
+                info["paddrs"] = info["physical"]
+            section = row.values.get("SECTION")
+            if section not in (None, ""):
+                info["section"] = section
+            section_offset = row.values.get("SECTION_OFFSET")
+            if section_offset not in (None, ""):
+                info["section_offset"] = _intish(section_offset, 0)
+            return info or None
+
+        label = self.labels.get(name)
+        if label is None:
+            return None
+        section = label.get("section") or ".text"
+        block = next((b for b in blocks if b.name == section or b.name == "." + section or "." + b.name == section), None)
+        offset = _intish(label.get("offset"), 0)
+        if block is None:
+            return {"virtual": offset, "addrs": offset, "section": section, "section_offset": offset}
+        return {
+            "virtual": block.virtual_offset + offset,
+            "addrs": block.virtual_offset + offset,
+            "physical": block.physical_offset + offset,
+            "paddrs": block.physical_offset + offset,
+            "section": section,
+            "section_offset": offset,
+        }
 
     def _materialize_memory_symbols(self, region: MemoryRegion, row: TableRow) -> None:
         """Materializa y registra símbolos y offsets auxiliares relativos a regiones de memoria (base, limit, sp, cursor).

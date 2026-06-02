@@ -22,11 +22,11 @@
         },
         {
           "type": "code",
-          "content": "@sound_wav \"assets/music.wav\" bgm_sample 8192 6 0 0.85 0.25"
+          "content": "@\"assets/music.wav\" 8192 6 0 0.85 0.25@sound_wav@bgm_sample"
         },
         {
           "type": "text",
-          "content": "Argumentos: archivo, simbolo, sample rate, duracion, inicio, volumen y fade-in."
+          "content": "Forma unica: @args@namefunc@namelabel. Argumentos: archivo, sample rate, duracion, inicio, volumen y fade-in. namelabel queda registrado en fills.json."
         },
         {
           "type": "tip",
@@ -42,7 +42,7 @@
         },
         {
           "type": "code",
-          "content": "@sound_mp3 \"assets/music.mp3\" bgm_sample 8192 8 0 0.35 0.25"
+          "content": "@\"assets/music.mp3\" 8192 8 0 0.35 0.25@sound_mp3@bgm_sample"
         }
       ]
     },
@@ -54,7 +54,7 @@
         },
         {
           "type": "code",
-          "content": "@gba_dsound_start bgm_sample 8192"
+          "content": "@bgm_sample 8192@gba_dsound_start@bgm_sample_player"
         }
       ]
     }

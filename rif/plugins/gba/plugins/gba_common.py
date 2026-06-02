@@ -34,19 +34,6 @@ NINTENDO_LOGO = bytes.fromhex(
     "E4 8B 38 0A AC 72 21 D4 F8 07"
 )
 
-FONT_5X7 = {
-    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
-    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
-    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
-    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
-    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
-    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
-    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
-    " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
-}
-
-
 def u32(value: int) -> bytes:
     return int(value & 0xFFFFFFFF).to_bytes(4, "little")
 
@@ -134,34 +121,11 @@ def make_checksum_block(text: str) -> bytes:
     return bytes(block)
 
 
-def make_frame(text: str, background: int = GREEN, foreground: int = BLACK) -> bytes:
+def make_frame(background: int = GREEN) -> bytes:
     frame = bytearray()
     for _ in range(SCREEN_W * SCREEN_H):
         frame.extend(int(background).to_bytes(2, "little"))
-    x = max(0, (SCREEN_W - len(text) * 18) // 2)
-    draw_text(frame, text.upper(), x=x, y=67, scale=3, color=foreground)
     return bytes(frame)
-
-
-def draw_text(frame: bytearray, text: str, x: int, y: int, scale: int, color: int) -> None:
-    cursor_x = x
-    for ch in text:
-        glyph = FONT_5X7.get(ch.upper(), FONT_5X7[" "])
-        for gy, row in enumerate(glyph):
-            for gx, bit in enumerate(row):
-                if bit != "1":
-                    continue
-                for sy in range(scale):
-                    py = y + gy * scale + sy
-                    if not 0 <= py < SCREEN_H:
-                        continue
-                    for sx in range(scale):
-                        px = cursor_x + gx * scale + sx
-                        if not 0 <= px < SCREEN_W:
-                            continue
-                        off = (py * SCREEN_W + px) * 2
-                        frame[off:off + 2] = int(color).to_bytes(2, "little")
-        cursor_x += 6 * scale
 
 
 def color(value: str, default: int) -> int:

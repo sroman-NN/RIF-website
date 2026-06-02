@@ -1,0 +1,36 @@
+{
+  "instructions": [
+    "md_vectors", "md_header", "md_rompad",
+    "nop", "move_b", "move_w", "move_l", "move_w_imm_d",
+    "clr_l", "add_w_imm_d", "cmp_w_imm_d", "bne", "bra"
+  ],
+  "registers": [
+    "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+    "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "SP",
+    "VDP_DATA", "VDP_CTRL"
+  ],
+  "directives": [
+    ".pack", ".world", ".rules", ".regs", ".types", ".sections", ".words",
+    ".rom", ".ram", ".z80_ram"
+  ],
+  "patterns": [
+    {
+      "name": "entity.name.tag.section.rif",
+      "match": "^\\s*\\.[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    {
+      "name": "keyword.control.rom.megadrive.rif",
+      "match": "\\b(?:md_vectors|md_header|md_rompad)\\b"
+    }
+  ],
+  "completions": [
+    {
+      "label": "megadrive_rom_skeleton",
+            "insertText": ".section rom\\n    md_vectors start\\n    md_header\\n\\nstart:\\n    clr_l D0\\n\\nloop:\\n    add_w_imm_d 0x0001, D0\\n    cmp_w_imm_d 0x0010, D0\\n    bne loop\\n\\ndone:\\n    bra done\\n\\n    md_rompad",
+      "detail": "Mega Drive ROM",
+      "documentation": "Vector table, cabecera Sega y padding a 16 KiB.",
+      "kind": "Snippet",
+      "sortText": "000-megadrive-rom-skeleton"
+    }
+  ]
+}

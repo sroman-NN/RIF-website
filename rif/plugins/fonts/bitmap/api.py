@@ -10,6 +10,16 @@ from .parser import SX7Font, load_font
 
 FONT_DIR = Path(__file__).resolve().parent
 DEFAULT_FONT = "font-5x7x1.f"
+FONT_ALIASES = {
+    "3x5": "font-3x5x1.f",
+    "3x5x1": "font-3x5x1.f",
+    "4x6": "font-4x6x1.f",
+    "4x6x1": "font-4x6x1.f",
+    "5x7": "font-5x7x1.f",
+    "5x7x1": "font-5x7x1.f",
+    "6x8": "font-6x8x1.f",
+    "6x8x1": "font-6x8x1.f",
+}
 
 
 def load_bitmap_font(name: str = DEFAULT_FONT, *, context=None) -> SX7Font:
@@ -17,6 +27,7 @@ def load_bitmap_font(name: str = DEFAULT_FONT, *, context=None) -> SX7Font:
 
 
 def resolve_font_path(name: str = DEFAULT_FONT, *, context=None) -> Path:
+    name = FONT_ALIASES.get(str(name).lower(), name)
     path = Path(name)
     if not path.exists():
         path = FONT_DIR / name

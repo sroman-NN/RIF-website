@@ -55,7 +55,7 @@ def find_emulator(name: str) -> str | None:
 
 
 def add_to_system_path(directory: str) -> bool:
-    """Añade el directorio al PATH del usuario de Windows si no está presente."""
+    """Add the directory to the Windows user PATH when it is not already present."""
     import sys
     if sys.platform != "win32":
         return False
@@ -83,6 +83,6 @@ def add_to_system_path(directory: str) -> bool:
             )
             return True
     except Exception as e:
-        print(f"Advertencia: No se pudo modificar el PATH automáticamente ({e})")
+        print(f"Advertencia: no se pudo modificar el PATH automaticamente ({e})")
 
     return False

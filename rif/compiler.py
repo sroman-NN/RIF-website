@@ -182,6 +182,20 @@ class Compiler:
                 raise PackError(f"{tokens[0]} requiere un identificador de destino")
             target = tokens[1]
             kind = "physical" if tokens[0] == "dw_phys" else "abs"
+            direct_value = _parse_direct_int(target)
+            if direct_value is not None:
+                encoded = direct_value.to_bytes(4, byteorder=self._byteorder(), signed=False)
+                bits = "".join(format(byte, "08b") for byte in encoded)
+                return CompileResult(
+                    rule_name=tokens[0],
+                    source=source,
+                    data=encoded,
+                    bits=bits,
+                    placeholders=[],
+                    expressions=[],
+                    resolved_placeholders=[],
+                    relocations=[],
+                )
             runtime = _Runtime(
                 rule_name=tokens[0],
                 source=source,
@@ -1940,6 +1954,10 @@ class Compiler:
                 bits += "0" * (fixed_width - len(bits))
             elif len(bits) != fixed_width:
                 raise PackError(f"emit {instruction.mode} produjo {len(bits)} bits; se esperaban {fixed_width}")
+        elif instruction.mode == "cbits":
+            padding = (-len(bits)) % 8
+            if padding:
+                bits += "0" * padding
         elif instruction.requires_byte and len(bits) % 8 != 0:
             raise PackError(f"emit produjo {len(bits)} bits; se esperaba múltiplo de 8")
 
@@ -2328,6 +2346,21 @@ def _parse_immediate_value(token: str, allow_string: bool = True) -> dict[str, A
     width = max(1, value.bit_length())
     bits = format(value, f"0{width}b")
     return {"raw": raw, "value": value, "size": width, "binary": bits}
+
+
+def _parse_direct_int(token: str) -> int | None:
+    text = str(token).strip().replace("_", "")
+    if not text:
+        return None
+    try:
+        value = int(text, 0)
+    except ValueError:
+        return None
+    if value < 0:
+        raise PackError("dw_virt/dw_phys no aceptan direcciones negativas")
+    if value >= (1 << 32):
+        raise PackError("dw_virt/dw_phys requieren una direccion de 32 bits")
+    return value
 
 
 def _type_allows_string(type_def: TypeDefinition, program: Program) -> bool:

@@ -10,7 +10,7 @@
   "completions": [
     {
       "label": "sprite_bitmap_asset",
-      "insertText": "@image_bitmap \"${1:assets/sprite.png}\" ${2:sprite_bitmap} ${3:128} ${4:false}",
+      "insertText": "@\"${1:assets/sprite.png}\" ${3:128} ${4:false}@image_bitmap@${2:sprite_bitmap}",
       "detail": "image",
       "documentation": "Convierte un sprite a bitmap 1bpp con threshold configurable.",
       "kind": "Snippet",
@@ -18,13 +18,13 @@
     },
     {
       "label": "image_bitmap",
-      "insertText": "@image_bitmap \"${1:assets/image.png}\" ${2:image_data}",
+      "insertText": "@\"${1:assets/image.png}\"@image_bitmap@${2:image_data}",
       "detail": "fillable",
       "documentation": "Convierte una imagen a datos bitmap 1bpp."
     },
     {
       "label": "fill_image_bitmap",
-      "insertText": "@fill_image_bitmap \"${1:assets/image.png}\" ${2:image_data}",
+      "insertText": "@\"${1:assets/image.png}\"@fill_image_bitmap@${2:image_data}",
       "detail": "fillable",
       "documentation": "Alias compatible para image_bitmap."
     }
@@ -32,10 +32,10 @@
   "errors": [
     {
       "match": "@(?:fill_)?image_bitmap\\s*(?:\\r?\\n|$)",
-      "message": "Image: falta la ruta de imagen. Ejemplo: @image_bitmap \"assets/sprite.png\" sprite_bitmap.",
+      "message": "Image: falta la ruta o namelabel. Ejemplo: @\"assets/sprite.png\"@image_bitmap@sprite_bitmap.",
       "severity": "error",
       "code": "image-missing-path",
-      "suggest": "Completa la llamada con ruta y simbolo: @image_bitmap \"assets/sprite.png\" sprite_bitmap."
+      "suggest": "Completa la llamada con ruta y namelabel: @\"assets/sprite.png\"@image_bitmap@sprite_bitmap."
     },
     {
       "match": "@(?:fill_)?image_bitmap\\s+[^\"\\s][^\\s]*",

@@ -1,0 +1,13 @@
+{
+  "name": "megadrive",
+  "version": "1.0.0",
+  "description": "Soporte oficial para Motorola 68000 y Sega Genesis en RIF",
+  "author": "GrandKenzy",
+  "purpose": "Este plugin proporciona soporte completo para la arquitectura de la consola Sega Genesis, tambien conocida como Mega Drive. Permite compilar codigo ensamblador para el procesador principal Motorola 68000 (M68K). Ademas, sienta las bases para un futuro soporte del coprocesador Zilog Z80 utilizado para controlar el subsistema de sonido. Incluye definiciones de registros, tipos de datos, secciones de memoria y una tabla de instrucciones basica para iniciar el desarrollo de homebrew en esta consola clasica.",
+  "packs": [
+    {
+      "name": "example",
+      "entry": "packs/example/megadrive.pack"
+    }
+  ]
+}

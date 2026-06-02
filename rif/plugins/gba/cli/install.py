@@ -23,9 +23,9 @@ def main(args) -> int:
         if requested_path:
             dir_path = str(Path(path).parent)
             if add_to_system_path(dir_path):
-                print(f"Directorio {dir_path} añadido al PATH correctamente.")
+                print(f"Directorio {dir_path} anadido al PATH correctamente.")
             else:
-                print(f"Directorio {dir_path} ya estaba en el PATH o no se pudo añadir.")
+                print(f"Directorio {dir_path} ya estaba en el PATH o no se pudo anadir.")
     else:
         print(f"{emulator} registrado sin ruta; agrega el ejecutable al PATH o repite con --add-path RUTA")
     return 0

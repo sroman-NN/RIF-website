@@ -1,43 +1,93 @@
-# Registros de CPU y MMIO (GBA)
+# Registros de CPU y MMIO
 
-La consola GBA tiene a su disposición los 16 registros de la familia ARM. Sin embargo, al operar bajo las reglas del conjunto **Thumb** de 16-bits para reducir el uso de memoria, hay ciertas restricciones sobre qué registros puedes tocar de forma aritmética.
+La tabla `gba.regs.pack` contiene registros de CPU, aliases, registros
+bancarizados, MMIO y regiones de memoria. Cada fila incluye metadatos para saber
+si el simbolo sirve en ARM, Thumb, como registro bajo, como MMIO o como region.
 
-## 🗄️ Registros de Hardware (R0-R15)
+## CPU
 
-| Registro (ARM) | ID Binario | Acceso en Thumb | Propósito Principal (APCS) |
-| :--- | :--- | :--- | :--- |
-| **`R0` - `R3`** | `000` - `011` | ✅ Absoluto | Argumentos de funciones y valores de retorno. |
-| **`R4` - `R7`** | `100` - `111` | ✅ Absoluto | Variables de propósito general (Callee-saved). |
-| **`R8` - `R12`**| `1000`-`1100`| ❌ Denegado | *Solo accesibles en modo ARM o con trucos avanzados.* |
-| **`SP` (`R13`)**| `1101`        | ⚠️ Especial | **S**tack **P**ointer (Puntero a la Pila). Usa `push`/`pop`. |
-| **`LR` (`R14`)**| `1110`        | ⚠️ Especial | **L**ink **R**egister (Dirección de retorno de subrutinas). |
-| **`PC` (`R15`)**| `1111`        | ⚠️ Especial | **P**rogram **C**ounter (Puntero de la instrucción actual + 4). |
+| Registro | Uso |
+|---|---|
+| `R0-R3` | Argumentos, temporales y retornos. |
+| `R4-R7` | Registros generales bajos; utiles para variables locales. |
+| `R8-R12` | Registros altos; mas comodos en ARM que en Thumb. |
+| `SP` / `R13` | Stack pointer. |
+| `LR` / `R14` | Link register, retorno de subrutinas. |
+| `PC` / `R15` | Program counter. |
+| `CPSR` | Estado actual: flags, modo CPU, bit Thumb. |
+| `SPSR_*` | Estados guardados por modos privilegiados. |
 
-> [!WARNING]  
-> Nunca modifiques el registro `PC` (`R15`) manualmente a través de sumas aritméticas en Thumb. Utiliza siempre las directivas nativas `jump` (para flujos locales) o `call` (para subrutinas).
+## Video y LCD
 
----
+| Registro | Direccion | Funcion |
+|---|---:|---|
+| `DISPCNT` | `0x04000000` | Modo de video, BGs, sprites y frame select. |
+| `DISPSTAT` | `0x04000004` | Estado VBlank/HBlank/VCOUNT e IRQs. |
+| `VCOUNT` | `0x04000006` | Linea actual de pantalla, 0-227. |
+| `BG0CNT`-`BG3CNT` | `0x04000008` | Control de fondos. |
+| `BGxHOFS/BGxVOFS` | `0x04000010` | Scroll de fondos. |
+| `BG2PA`-`BG3Y` | `0x04000020` | Matrices y offsets affine. |
+| `WIN*`, `MOSAIC`, `BLDCNT` | `0x04000040+` | Ventanas, mosaico y blending. |
 
-## 📞 Convención de Llamada
+## Sonido
 
-Cuando programes rutinas complejas o funciones reutilizables, sigue la convención APCS de ARM:
-- Utiliza **`R0`, `R1`, `R2`, y `R3`** para pasar variables a la función.
-- El resultado del cálculo devuélvelo siempre en **`R0`**.
-- Si tu función necesita usar los registros **`R4-R7`**, estás obligado a guardarlos en la pila con `push` al iniciar tu función, y restaurarlos con `pop` justo antes del salto de retorno.
+| Registro | Direccion | Funcion |
+|---|---:|---|
+| `SOUND1CNT_*`-`SOUND4CNT_*` | `0x04000060+` | Canales PSG heredados. |
+| `SOUNDCNT_L` | `0x04000080` | Mezcla PSG. |
+| `SOUNDCNT_H` | `0x04000082` | Direct Sound A/B, volumen y DMA. |
+| `SOUNDCNT_X` | `0x04000084` | Master enable y estado de canales. |
+| `SOUNDBIAS` | `0x04000088` | Bias de salida. |
+| `FIFO_A`, `FIFO_B` | `0x040000A0+` | FIFOs de Direct Sound. |
 
-## 🕹️ Memory-Mapped I/O (Registros de Hardware)
+## DMA y timers
 
-El GBA controla el hardware de la consola, la pantalla y los botones escribiendo números mágicos en direcciones específicas de memoria (`0x04000000`).
+| Registro | Direccion | Funcion |
+|---|---:|---|
+| `DMA0SAD/DAD/CNT` | `0x040000B0` | DMA0. |
+| `DMA1SAD/DAD/CNT` | `0x040000BC` | DMA1, comun para audio FIFO. |
+| `DMA2SAD/DAD/CNT` | `0x040000C8` | DMA2. |
+| `DMA3SAD/DAD/CNT` | `0x040000D4` | DMA3, transferencias grandes. |
+| `TM0CNT`-`TM3CNT` | `0x04000100` | Timers. |
 
-| Nombre del Registro | Dirección Hex | Función |
-| :--- | :--- | :--- |
-| **`DISPCNT`** | `0x04000000` | Display Control. Sirve para activar fondos, objetos y el modo de video (Ej. Mode 3). |
-| **`DISPSTAT`** | `0x04000004` | Display Status. Monitorea cuando la pantalla se apaga (VBlank/HBlank) para evitar parpadeos. |
-| **`VCOUNT`** | `0x04000006` | Vertical Count. Devuelve qué línea de píxeles (0-227) está dibujando el cañón de electrones. |
-| **`SOUNDCNT_L`** | `0x04000060` | Control de volúmenes de los canales del Game Boy clásico. |
-| **`SOUNDCNT_H`** | `0x04000082` | Control principal del flujo DMA (Direct Sound) para audio de alta calidad. |
-| **`KEYINPUT`** | `0x04000130` | Lector de los botones (Pad y Gatillos). *Atención: La señal es activa en bajo (0 es presionado).* |
-| **`IME` / `IE` / `IF`** | `0x04000200` | Sistema maestro de habilitación y banderas de interrupciones de hardware (IRQs). |
+Los registros de 32 bits tambien tienen subpartes de 16 bits con sufijos `00`
+y `01`, por ejemplo `DMA1CNT00` y `DMA1CNT01`.
 
-> [!TIP]
-> Debido a que las direcciones (como `0x04000000`) son muy grandes para cargarse directamente en Thumb con la instrucción `store Rd = imm` (que solo acepta de 0 a 255), RIF incluye soporte para componer números altos iterativamente o apoyarse en el _Literal Pool_ con el plugin GBA.
+## Entrada
+
+| Registro | Direccion | Detalle |
+|---|---:|---|
+| `KEYINPUT` | `0x04000130` | Botones activos en bajo: `0` significa presionado. |
+| `KEYCNT` | `0x04000132` | Control de IRQ de botones. |
+
+Mascaras:
+
+| Mascara | Valor |
+|---|---:|
+| `KEY_A` | `0x0001` |
+| `KEY_B` | `0x0002` |
+| `KEY_SELECT` | `0x0004` |
+| `KEY_START` | `0x0008` |
+| `KEY_RIGHT` | `0x0010` |
+| `KEY_LEFT` | `0x0020` |
+| `KEY_UP` | `0x0040` |
+| `KEY_DOWN` | `0x0080` |
+| `KEY_R` | `0x0100` |
+| `KEY_L` | `0x0200` |
+
+## Interrupciones y sistema
+
+| Registro | Direccion | Uso |
+|---|---:|---|
+| `IE` | `0x04000200` | Interrupt enable. |
+| `IF` | `0x04000202` | Interrupt flags; escribe 1 para limpiar bits. |
+| `IME` | `0x04000208` | Master interrupt enable. |
+| `WAITCNT` | `0x04000204` | Waitstates de cartucho y prefetch. |
+| `POSTFLG` | `0x04000300` | Estado post-boot. |
+| `HALTCNT` | `0x04000301` | Halt/stop. |
+
+## Regiones
+
+`BIOS`, `EWRAM`, `IWRAM`, `IOREG`, `PALRAM`, `VRAM`, `OAM`, `ROM_WS0`,
+`ROM_WS1`, `ROM_WS2` y `SRAM` estan declaradas como regiones para documentar el
+mapa y permitir referencias consistentes.

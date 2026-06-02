@@ -201,8 +201,20 @@ def _label_offset(label: str) -> int | None:
     return None
 
 
+
+def _get_endianness() -> str:
+    ctx = globals().get("CONTEXT")
+    if ctx is not None and getattr(ctx, "program", None) is not None and hasattr(ctx.program, "world"):
+        raw = ctx.program.world.values.get("endianness", ctx.program.world.values.get("endianess", "little"))
+        if isinstance(raw, int):
+            return "big" if raw else "little"
+        text = str(raw).strip().lower()
+        if text in {"big", "be", "1"}:
+            return "big"
+    return "little"
+
 def _emit32(opcode: int):
-    return emit_bytes(int(opcode & 0xFFFFFFFF).to_bytes(4, "little"))
+    return emit_bytes(int(opcode & 0xFFFFFFFF).to_bytes(4, _get_endianness()))
 
 
 def _branch(target: Any, *, link: bool, cond: int) -> int:

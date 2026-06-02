@@ -81,7 +81,17 @@ mov_imm:
     need VALUE, imm
     thumb_ins mov_imm, rd, imm
 
+movs:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins mov_imm, rd, imm
+
 cmp_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins cmp_imm, rd, imm
+
+cmpi:
     need REG, rd
     need VALUE, imm
     thumb_ins cmp_imm, rd, imm
@@ -91,7 +101,17 @@ add_imm:
     need VALUE, imm
     thumb_ins add_imm, rd, imm
 
+addi:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins add_imm, rd, imm
+
 sub_imm:
+    need REG, rd
+    need VALUE, imm
+    thumb_ins sub_imm, rd, imm
+
+subi:
     need REG, rd
     need VALUE, imm
     thumb_ins sub_imm, rd, imm
@@ -106,13 +126,30 @@ mov:
     need REG, rs
     thumb_ins mov, rd, rs
 
+mov_hi:
+    need REG, rd
+    need REG, rs
+    thumb_ins mov, rd, rs
+
 add:
     need REG, rd
     need REG, rs
     need REG, rn
     thumb_ins add, rd, rs, rn
 
+adds:
+    need REG, rd
+    need REG, rs
+    need REG, rn
+    thumb_ins add, rd, rs, rn
+
 sub:
+    need REG, rd
+    need REG, rs
+    need REG, rn
+    thumb_ins sub, rd, rs, rn
+
+subs:
     need REG, rd
     need REG, rs
     need REG, rn
@@ -161,17 +198,32 @@ lsl:
     need VALUE, imm
     thumb_ins lsl, rd, rs, imm
 
+lsl_reg:
+    need REG, rd
+    need REG, rs
+    thumb_ins lsl_reg, rd, rs
+
 lsr:
     need REG, rd
     need REG, rs
     need VALUE, imm
     thumb_ins lsr, rd, rs, imm
 
+lsr_reg:
+    need REG, rd
+    need REG, rs
+    thumb_ins lsr_reg, rd, rs
+
 asr:
     need REG, rd
     need REG, rs
     need VALUE, imm
     thumb_ins asr, rd, rs, imm
+
+asr_reg:
+    need REG, rd
+    need REG, rs
+    thumb_ins asr_reg, rd, rs
 
 adc:
     need REG, rd
@@ -332,6 +384,11 @@ ldr_pc_label:
     need LABEL, target
     thumb_ins ldr_pc_label, rd, target
 
+ldr_literal:
+    need REG, rd
+    need LABEL, target
+    thumb_ins ldr_pc_label, rd, target
+
 str_sp:
     need REG, rd
     need VALUE, imm
@@ -370,8 +427,8 @@ bx:
     thumb_ins bx, rm
 
 push:
-    need REG, rd
-    thumb_ins push, rd
+    need REG, SYMBOL, regs
+    thumb_ins push, regs
 
 push_mask:
     need VALUE, mask
@@ -382,8 +439,8 @@ push_list:
     thumb_ins push_list, regs
 
 pop:
-    need REG, rd
-    thumb_ins pop, rd
+    need REG, SYMBOL, regs
+    thumb_ins pop, regs
 
 pop_mask:
     need VALUE, mask
@@ -502,6 +559,10 @@ swi:
     need VALUE, imm
     thumb_ins swi, imm
 
+svc:
+    need VALUE, imm
+    thumb_ins swi, imm
+
 arm_bx:
     need REG, rm
     arm_ins bx, rm
@@ -528,7 +589,67 @@ arm_blcond:
     need LABEL, target
     arm_ins bl, target, cond
 
+arm_beq:
+    need LABEL, target
+    arm_ins b, target, eq
+
+arm_bne:
+    need LABEL, target
+    arm_ins b, target, ne
+
+arm_bcs:
+    need LABEL, target
+    arm_ins b, target, cs
+
+arm_bcc:
+    need LABEL, target
+    arm_ins b, target, cc
+
+arm_bmi:
+    need LABEL, target
+    arm_ins b, target, mi
+
+arm_bpl:
+    need LABEL, target
+    arm_ins b, target, pl
+
+arm_bvs:
+    need LABEL, target
+    arm_ins b, target, vs
+
+arm_bvc:
+    need LABEL, target
+    arm_ins b, target, vc
+
+arm_bhi:
+    need LABEL, target
+    arm_ins b, target, hi
+
+arm_bls:
+    need LABEL, target
+    arm_ins b, target, ls
+
+arm_bge:
+    need LABEL, target
+    arm_ins b, target, ge
+
+arm_blt:
+    need LABEL, target
+    arm_ins b, target, lt
+
+arm_bgt:
+    need LABEL, target
+    arm_ins b, target, gt
+
+arm_ble:
+    need LABEL, target
+    arm_ins b, target, le
+
 arm_swi:
+    need VALUE, imm
+    arm_ins swi, imm
+
+arm_svc:
     need VALUE, imm
     arm_ins swi, imm
 

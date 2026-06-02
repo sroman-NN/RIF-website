@@ -4,28 +4,23 @@
       "doc": [
         {
           "type": "text",
-          "content": "Bundle de soporte para ensamblar ROMs de Game Boy Advance con RIF sin acoplar el plugin a un juego concreto."
+          "content": "Soporte RIF para ROMs Game Boy Advance con ARM7TDMI, cabecera de cartucho, MMIO, recursos y ejecucion con mGBA."
         },
         {
-          "type": "image",
-          "src": "assets/gba/gba-memory.svg",
-          "alt": "GBA memory map",
-          "caption": "Mapa visual de memoria usado por los snippets y diagnostics del plugin."
-        },
-        {
-          "type": "tip",
-          "content": "El plugin conoce ARM7TDMI, registros y espacios de memoria; el proyecto decide sprites, musica y gameplay."
+          "type": "code",
+          "content": "python -m rif build examples/gba --plugin gba --name example"
         }
       ],
       "links": [
-        "https://problemkaputt.de/gbatek.htm"
+        "https://problemkaputt.de/gbatek.htm",
+        "https://gbadev.net/tonc/"
       ]
     },
     "set_headers": {
       "doc": [
         {
           "type": "text",
-          "content": "Inserta la entrada ARM inicial requerida por una ROM de Game Boy Advance."
+          "content": "Emite la instruccion ARM inicial de la cabecera GBA en 0x08000000."
         }
       ]
     },
@@ -33,7 +28,7 @@
       "doc": [
         {
           "type": "text",
-          "content": "Inserta el logo oficial requerido por la cabecera de cartucho GBA."
+          "content": "Inserta los 156 bytes del logo requerido por la BIOS de GBA."
         }
       ]
     },
@@ -41,7 +36,19 @@
       "doc": [
         {
           "type": "text",
-          "content": "Calcula y escribe el checksum de cabecera GBA."
+          "content": "Escribe metadatos de cabecera y calcula el checksum complementario."
+        },
+        {
+          "type": "code",
+          "content": "set_checksum \"RIF GBA\""
+        }
+      ]
+    },
+    "set_entry": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Inserta una entrada ARM para iniciar codigo despues de la cabecera."
         }
       ]
     },
@@ -49,7 +56,7 @@
       "doc": [
         {
           "type": "text",
-          "content": "Inserta el puente de arranque que cambia del modo ARM al modo Thumb."
+          "content": "Inserta el puente ARM -> Thumb usando Branch and Exchange."
         }
       ]
     },
@@ -57,7 +64,15 @@
       "doc": [
         {
           "type": "text",
-          "content": "Rellena la ROM hasta el siguiente tamano valido de cartucho usando 0xFF."
+          "content": "Alias de set_rompad. Rellena la ROM con 0xFF hasta un tamano valido/alineado."
+        }
+      ]
+    },
+    "set_rompad": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Rellena la ROM con 0xFF hasta un tamano valido/alineado."
         }
       ]
     },
@@ -65,7 +80,7 @@
       "doc": [
         {
           "type": "text",
-          "content": "Alias de Thumb MOV inmediato: carga un valor de 8 bits en un registro bajo."
+          "content": "Alias Thumb de MOVS inmediato. Carga un valor de 8 bits en un registro bajo R0-R7."
         },
         {
           "type": "code",
@@ -73,23 +88,27 @@
         }
       ]
     },
-    "strb": {
-      "doc": [
-        {
-          "type": "warning",
-          "content": "En VRAM de GBA evita escrituras byte a byte. Para pixeles/colores usa strh."
-        },
-        {
-          "type": "code",
-          "content": "strh R0, R1, 0"
-        }
-      ]
-    },
-    "ldr": {
+    "movs": {
       "doc": [
         {
           "type": "text",
-          "content": "Carga una palabra desde memoria usando registros Thumb."
+          "content": "MOVS Thumb inmediato: Rd = imm8. Actualiza flags."
+        }
+      ]
+    },
+    "adds": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "ADDS Thumb de tres registros bajos: Rd = Rs + Rn."
+        }
+      ]
+    },
+    "subs": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "SUBS Thumb de tres registros bajos: Rd = Rs - Rn."
         }
       ]
     },
@@ -97,7 +116,27 @@
       "doc": [
         {
           "type": "text",
-          "content": "Guarda un halfword de 16 bits; es la forma normal para escribir colores BGR555 en VRAM."
+          "content": "Guarda un halfword de 16 bits. Forma recomendada para VRAM, OAM y Palette RAM."
+        }
+      ]
+    },
+    "strb": {
+      "doc": [
+        {
+          "type": "warning",
+          "content": "Evita strb en VRAM/OAM/PALRAM: el hardware duplica el byte en el halfword."
+        }
+      ]
+    },
+    "arm_mov_imm": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "MOV inmediato en modo ARM. Util para cargar direcciones MMIO grandes como 0x04000000 o 0x06000000."
+        },
+        {
+          "type": "code",
+          "content": "arm_mov_imm R0, 0x04000000"
         }
       ]
     },
@@ -105,11 +144,31 @@
       "doc": [
         {
           "type": "text",
-          "content": "Carga en un registro ARM la direccion de una etiqueta usando literal pool/relocalizacion."
+          "content": "Carga la direccion de una etiqueta mediante literal/relocacion."
         },
         {
           "type": "code",
-          "content": "arm_ldr_label R1, sprite_data"
+          "content": "arm_ldr_label R10, sprite_ptr"
+        }
+      ]
+    },
+    "arm_strh": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Store halfword ARM. Comun para DISPCNT, VCOUNT indirecto, VRAM y colores BGR555."
+        }
+      ]
+    },
+    "arm_bcond": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Branch ARM condicionado. Condiciones comunes: eq, ne, lt, gt, ge, le, cs, cc."
+        },
+        {
+          "type": "code",
+          "content": "arm_bcond ne, loop"
         }
       ]
     },
@@ -117,11 +176,127 @@
       "doc": [
         {
           "type": "text",
-          "content": "Emite una relocacion directa usada por rutinas ARM/GBA generadas."
+          "content": "Emite una relocacion directa usada para punteros a labels o datos generados."
         },
         {
           "type": "code",
-          "content": "apply_reloc abs, sprite_data, 32"
+          "content": "apply_reloc abs, mario_sprite, 32"
+        }
+      ]
+    },
+    "DISPCNT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000000. Display Control: modo de video, BG enable, OBJ enable y pagina activa."
+        },
+        {
+          "type": "code",
+          "content": "0x0403 = Mode 3 | BG2 enable"
+        }
+      ]
+    },
+    "DISPSTAT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000004. Estado de VBlank/HBlank/VCOUNT e interrupciones asociadas."
+        }
+      ]
+    },
+    "VCOUNT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000006. Linea vertical actual. VBlank empieza normalmente en 160."
+        }
+      ]
+    },
+    "VRAM": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x06000000. Video RAM de 96 KiB. En Mode 3 cada pixel ocupa un halfword BGR555."
+        }
+      ]
+    },
+    "PALRAM": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x05000000. Palette RAM; escribe colores como halfwords BGR555."
+        }
+      ]
+    },
+    "OAM": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x07000000. Object Attribute Memory para sprites."
+        }
+      ]
+    },
+    "KEYINPUT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000130. Botones activos en bajo: un bit en 0 significa boton presionado."
+        }
+      ]
+    },
+    "KEY_DOWN": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Mascara 0x0080 para Down en KEYINPUT. Activa en bajo."
+        }
+      ]
+    },
+    "SOUNDCNT_H": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000082. Control de Direct Sound A/B, volumen y ruteo hacia DMA/FIFO."
+        }
+      ]
+    },
+    "FIFO_A": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "FIFO de Direct Sound A. Normalmente se alimenta por DMA."
+        }
+      ]
+    },
+    "DMA1CNT": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "Control del canal DMA1, comun para streaming de audio hacia FIFO."
+        }
+      ]
+    },
+    "IE": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000200. Interrupt Enable."
+        }
+      ]
+    },
+    "IF": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000202. Interrupt Flags. Escribe 1 en bits para limpiarlos."
+        }
+      ]
+    },
+    "IME": {
+      "doc": [
+        {
+          "type": "text",
+          "content": "0x04000208. Master interrupt enable."
         }
       ]
     }

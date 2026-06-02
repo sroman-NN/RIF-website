@@ -189,7 +189,7 @@
 | KEY_RIGHT   | 16        | 00000000000000000000000000010000 | 0x0010     | KEY_RIGHT   | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
 | KEY_LEFT    | 16        | 00000000000000000000000000100000 | 0x0020     | KEY_LEFT    | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
 | KEY_UP      | 16        | 00000000000000000000000001000000 | 0x0040     | KEY_UP      | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
-| KEY_DOWN    | 16        | 00000000000000000000000010000080 | 0x0080     | KEY_DOWN    | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
+| KEY_DOWN    | 16        | 00000000000000000000000010000000 | 0x0080     | KEY_DOWN    | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
 | KEY_R       | 16        | 00000000000000000000000100000000 | 0x0100     | KEY_R       | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
 | KEY_L       | 16        | 00000000000000000000001000000000 | 0x0200     | KEY_L       | 5    | no  | yes | yes   | no   | no    | no  | no  | no  | no   | no     | no     | no    | 0    |
 | IE          | 16        | 00000100000000000000001000000000 | 0x04000200 | IE          | 7    | no  | yes | yes   | no   | no    | no  | no  | no  | yes  | no     | no     | no    | 0    |

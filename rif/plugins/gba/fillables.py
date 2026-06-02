@@ -43,9 +43,9 @@ def fill_entry_thumb(*_args, context=None) -> str:
     return "set_entry_thumb"
 
 
-def fill_frame(text: str = "HELLO", bg: str = "green", fg: str = "black", *_args, context=None) -> str:
-    _record(context, "frame", size=SCREEN_W * SCREEN_H * 2, bits=SCREEN_W * SCREEN_H * 16, type="bgr555-frame", text=text, width=SCREEN_W, height=SCREEN_H, bg=bg, fg=fg)
-    return "set_frame"
+def fill_frame(bg: str = "green", *_args, context=None) -> str:
+    _record(context, "frame", size=SCREEN_W * SCREEN_H * 2, bits=SCREEN_W * SCREEN_H * 16, type="bgr555-frame", width=SCREEN_W, height=SCREEN_H, bg=bg)
+    return f"set_frame {bg}"
 
 
 def fill_rompad(*_args, context=None) -> str:
@@ -54,6 +54,7 @@ def fill_rompad(*_args, context=None) -> str:
 
 
 def fill_screen(color: str = "black", symbol: str = "screen_data", *_args, context=None) -> str:
+    symbol = str(context.get("fill_label") or symbol) if isinstance(context, dict) else symbol
     col_val = COLORS.get(color.lower(), 0x0000)
     data = bytearray()
     for _ in range(SCREEN_W * SCREEN_H):
@@ -63,10 +64,10 @@ def fill_screen(color: str = "black", symbol: str = "screen_data", *_args, conte
 
 
 def fill_screen_text(text: str = "HELLO", fg: str = "white", bg: str = "green", symbol: str = "screen_frame", *_args, context=None) -> str:
-    fg_val = COLORS.get(fg.lower(), 0x7FFF)
+    symbol = str(context.get("fill_label") or symbol) if isinstance(context, dict) else symbol
     bg_val = COLORS.get(bg.lower(), 0x03E0)
-    data = make_frame(text, background=bg_val, foreground=fg_val)
-    _record(context, symbol, size=len(data), bits=len(data) * 8, type="bgr555-frame", text=text, width=SCREEN_W, height=SCREEN_H, bg=bg, fg=fg)
+    data = make_frame(background=bg_val)
+    _record(context, symbol, size=len(data), bits=len(data) * 8, type="bgr555-frame", text_asset="external-fonts", legacy_text=text, width=SCREEN_W, height=SCREEN_H, bg=bg, fg=fg)
     return f"{symbol} u8[{len(data)}] = 0x{data.hex()}"
 
 

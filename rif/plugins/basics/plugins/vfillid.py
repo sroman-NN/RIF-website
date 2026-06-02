@@ -32,16 +32,20 @@ def fill_VFILLID(*args, context=None) -> str:
     except Exception as exc:
         raise PackError(f"Error al leer fills.json: {exc}")
 
-    found = False
+    found_row = None
     for k, v in data.items():
         if k == "_meta":
             continue
         if isinstance(v, dict) and id_name in v:
-            found = True
+            found_row = v[id_name]
             break
 
-    if not found:
+    if found_row is None:
         raise PackError(f"El ID '{id_name}' no existe en fills.json. Revisa tus definiciones de fillables.")
+
+    virtual = _pick_address(found_row, "virtual", "addrs", "vaddr", "voffset")
+    if virtual is not None:
+        return f"dw_virt 0x{virtual:X}"
 
     return f"dw_virt {id_name}"
 
@@ -54,3 +58,17 @@ def _exists_in_context(id_name: str, context=None) -> bool:
     if not isinstance(records, dict):
         return False
     return any(isinstance(section, dict) and id_name in section for section in records.values())
+
+
+def _pick_address(row, *keys: str) -> int | None:
+    if not isinstance(row, dict):
+        return None
+    for key in keys:
+        value = row.get(key)
+        if value in (None, ""):
+            continue
+        try:
+            return int(str(value).replace("_", ""), 0)
+        except (TypeError, ValueError):
+            continue
+    return None
