@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from . import __version__
     parser = argparse.ArgumentParser(prog="rif", description="RIF lexer/parser/packer tools")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_lex = sub.add_parser("lex", help="lex a source file")
@@ -66,9 +66,10 @@ def main(argv: list[str] | None = None) -> int:
     p_compile.add_argument("-icon", "--icon", dest="icon", help="icon file for the generated VSIX package")
     p_compile.add_argument("-p", "--plugin", help="create a dedicated compiler for this plugin")
     p_compile.add_argument("--link", nargs="*", default=[], help="plugins to include in the dedicated compiler")
-    p_compile.add_argument("--name", help="pack name inside the plugin")
+    p_compile.add_argument("--name", help="pack name inside the plugin or custom name for the compiler executable")
     p_compile.add_argument("-o", "--output", help="output path for generated tooling")
     p_compile.add_argument("--no-exe", action="store_true", help="only generate the dedicated Python launcher")
+    p_compile.add_argument("--target", nargs=2, metavar=("OS", "ARCH"), help="target OS and architecture, e.g. linux amd64")
 
     p_build = sub.add_parser("build", help="build a linked binary from a RIF file")
     p_build.add_argument("source", help="RIF rule/link file")
@@ -87,6 +88,19 @@ def main(argv: list[str] | None = None) -> int:
     group_install = p_install.add_mutually_exclusive_group(required=True)
     group_install.add_argument("--package", help="GitHub URL or local plugin folder")
     group_install.add_argument("--vscode", help="Install a .vsix extension into VS Code")
+
+    p_self = sub.add_parser("self", help="manage RIF's own global installation")
+    p_self_sub = p_self.add_subparsers(dest="self_cmd", required=True)
+    
+    p_self_sub.add_parser("freeze", help="freeze the current RIF installation globally")
+    p_self_sub.add_parser("update", help="update RIF from GitHub")
+    p_self_sub.add_parser("uninstall", help="uninstall RIF globally")
+    
+    p_self_rollback = p_self_sub.add_parser("rollback", help="manage and restore global RIF versions")
+    p_self_rollback.add_argument("target", nargs="?", help="version date or index (e.g., -1 for previous) to restore, or 'clear'")
+    p_self_rollback.add_argument("-max", type=int, help="set maximum number of backup versions to keep")
+    
+    p_self_sub.add_parser("doc", help="open RIF's README.md in a beautiful HTML viewer")
 
     p_plugins = sub.add_parser("plugins", help="manage RIF plugins")
     p_plugins.add_argument("-list", action="store_true", dest="list_plugins", help="list installed plugins")
@@ -155,8 +169,21 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "help":
             return _run_help(args.topic, args.open)
 
+        if args.cmd == "self":
+            from .system_install import self_freeze, self_update, self_uninstall, self_rollback, self_doc
+            if args.self_cmd == "freeze":
+                return self_freeze()
+            elif args.self_cmd == "update":
+                return self_update()
+            elif args.self_cmd == "uninstall":
+                return self_uninstall()
+            elif args.self_cmd == "rollback":
+                return self_rollback(getattr(args, "target", None), getattr(args, "max", None))
+            elif args.self_cmd == "doc":
+                return self_doc()
+
         if args.cmd == "install":
-            if args.vscode:
+            if getattr(args, "vscode", None):
                 import subprocess
                 import shutil
                 code_cmd = shutil.which("code")
@@ -172,10 +199,13 @@ def main(argv: list[str] | None = None) -> int:
                 print("Extension instalada exitosamente en Visual Studio Code.")
                 return 0
 
-            from .plugin_security import install_plugin_package
-            dest = install_plugin_package(args.package, _rif_plugins_dir())
-            print(f"plugin instalado: {dest}")
-            return 0
+            if getattr(args, "package", None):
+                from .plugin_security import install_plugin_package
+                dest = install_plugin_package(args.package, _rif_plugins_dir())
+                print(f"plugin instalado: {dest}")
+                return 0
+                
+            raise RIFError("usa: rif install rif | --package <url> | --vscode <vsix>")
 
         if args.cmd == "plugins":
             return _run_plugins_command(args)
@@ -375,9 +405,18 @@ def main(argv: list[str] | None = None) -> int:
                 vscode_plugins = [*(args.vscode or []), *(args.vscode_plugins or [])]
                 if not vscode_plugins:
                     raise RIFError("usa: rif compile --vscode <plugin...> o rif compile --vscode --p <plugin...>")
+                extensions = args.extensions or []
+                if not extensions:
+                    from .dedicated import _get_plugin_extension
+                    for p_name in vscode_plugins:
+                        p_dir = _rif_plugins_dir() / p_name
+                        p_ext = _get_plugin_extension(p_dir)
+                        if p_ext and p_ext not in extensions:
+                            extensions.append(p_ext)
+
                 from .plugins.basics.cli.build_doc import build_vsix
 
-                result = build_vsix(output=args.output, plugins=vscode_plugins, extensions=args.extensions, icon=args.icon)
+                result = build_vsix(output=args.output, plugins=vscode_plugins, extensions=extensions, icon=args.icon)
                 print("vscode_vsix=ok")
                 print(f"vsix={result.output}")
                 print(f"name={result.name}")
@@ -392,14 +431,52 @@ def main(argv: list[str] | None = None) -> int:
                 raise RIFError("usa --p junto con --vscode para construir una extension VSIX")
 
             if args.plugin:
+                import fnmatch
+                all_plugins = [d.name for d in _plugin_dirs()]
+                matched = []
+                if any(char in args.plugin for char in "*?[]"):
+                    matched = [name for name in all_plugins if fnmatch.fnmatch(name, args.plugin)]
+                else:
+                    if args.plugin in all_plugins:
+                        matched = [args.plugin]
+                if not matched:
+                    matched = [name for name in all_plugins if fnmatch.fnmatch(name, args.plugin)]
+                    if not matched:
+                        raise RIFError(f"plugin no encontrado o ningun plugin coincide con: {args.plugin}")
+
+                main_plugin = matched[0]
+                linked = list(args.link or [])
+                for m in matched[1:]:
+                    if m not in linked:
+                        linked.append(m)
+
+                compiler_name = args.name
+                pack_name = None
+                if args.name:
+                    import rif as _rif
+                    plugin_root = Path(_rif.__file__).resolve().parent / "plugins" / main_plugin
+                    has_pack_dir = False
+                    for base_name in ("packs", "pack"):
+                        if (plugin_root / base_name / args.name).exists():
+                            has_pack_dir = True
+                            break
+                    if has_pack_dir:
+                        pack_name = args.name
+
+                target_os = args.target[0] if getattr(args, "target", None) else None
+                target_arch = args.target[1] if getattr(args, "target", None) else None
+
                 from .dedicated import create_dedicated_compiler
 
                 result = create_dedicated_compiler(
-                    args.plugin,
-                    linked_plugins=args.link,
-                    pack_name=args.name,
+                    main_plugin,
+                    linked_plugins=linked,
+                    pack_name=pack_name,
                     output=args.output,
                     make_exe=not args.no_exe,
+                    compiler_name=compiler_name,
+                    target_os=target_os,
+                    target_arch=target_arch,
                 )
                 print("dedicated_compiler=ok")
                 print(f"plugin={result.plugin}")
@@ -410,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
                 if result.exe_path is not None:
                     print(f"exe={result.exe_path}")
                 else:
-                    print("exe=<no generado; instala PyInstaller o usa --no-exe>")
+                    print("exe=<no generado; instala PyInstaller, compila para el host o usa --no-exe>")
                 return 0
 
             if not args.source or not args.instruction:

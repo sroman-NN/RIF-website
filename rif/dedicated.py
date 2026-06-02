@@ -20,6 +20,18 @@ class DedicatedCompilerResult:
     exe_path: Path | None
 
 
+def _get_plugin_extension(plugin_dir: Path) -> str | None:
+    if not plugin_dir.exists() or not plugin_dir.is_dir():
+        return None
+    for item in sorted(plugin_dir.iterdir()):
+        if item.is_file() and item.name.startswith("ext."):
+            ext = item.name[4:]  # starts with "ext."
+            if not ext.startswith("."):
+                ext = "." + ext
+            return ext
+    return None
+
+
 def create_dedicated_compiler(
     plugin: str,
     *,
@@ -27,12 +39,35 @@ def create_dedicated_compiler(
     pack_name: str | None = None,
     output: str | Path | None = None,
     make_exe: bool = True,
+    compiler_name: str | None = None,
+    target_os: str | None = None,
+    target_arch: str | None = None,
 ) -> DedicatedCompilerResult:
     plugin = _safe_name(plugin)
     links = tuple(dict.fromkeys(_safe_name(item) for item in linked_plugins if item))
+
+    # 1. Download/Install dependencies from requirements.txt of plugin and linked_plugins
+    import rif as _rif
+    plugins_dir = Path(_rif.__file__).resolve().parent / "plugins"
+    for p_name in (plugin, *links):
+        req_file = plugins_dir / p_name / "requirements.txt"
+        if req_file.exists():
+            print(f"Instalando dependencias de '{p_name}' desde {req_file.name}...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(req_file)], check=False)
+
     pack_source = _plugin_pack_dir(plugin, pack_name)
 
-    root = Path(output).resolve() if output is not None else (Path.cwd() / "build" / f"rif-{plugin}-compiler").resolve()
+    # 2. Determine target compiler name and detect extension from ext.* files
+    target_name = compiler_name or f"rif-{plugin}-compiler"
+    plugin_ext = _get_plugin_extension(plugins_dir / plugin)
+    if not plugin_ext:
+        for link in links:
+            plugin_ext = _get_plugin_extension(plugins_dir / link)
+            if plugin_ext:
+                break
+
+    # 3. Setup build root directory
+    root = Path(output).resolve() if output is not None else (Path.cwd() / "build" / target_name).resolve()
     root.mkdir(parents=True, exist_ok=True)
     pack_dir = root / "dedicated_pack"
     if pack_dir.exists():
@@ -42,20 +77,69 @@ def create_dedicated_compiler(
     root_pack = _root_pack_file(pack_dir, plugin)
     _ensure_plugins(root_pack, plugin, links)
 
-    script_path = root / f"rif-{plugin}-compiler.py"
-    script_path.write_text(_launcher_source(plugin, links, pack_dir), encoding="utf-8")
+    # 4. Generate the launcher script
+    script_path = root / f"{target_name}.py"
+    script_path.write_text(_launcher_source(plugin, links, pack_dir, plugin_ext), encoding="utf-8")
+
+    # 5. Copy the RIF source package next to the launcher to make the directory portable/self-contained
+    rif_pkg_src = Path(_rif.__file__).resolve().parent
+    rif_pkg_dest = root / "rif"
+    if rif_pkg_dest.exists():
+        shutil.rmtree(rif_pkg_dest)
+    shutil.copytree(rif_pkg_src, rif_pkg_dest, ignore=shutil.ignore_patterns("__pycache__", ".git", "cache", ".cache"))
 
     metadata = {
         "plugin": plugin,
         "linked_plugins": list(links),
         "pack": str(pack_dir),
         "script": str(script_path),
+        "target_os": target_os,
+        "target_arch": target_arch,
+        "extension": plugin_ext,
     }
     (root / "compiler.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
+    # 6. Generate cross-platform execution launchers
+    # Generate bash script launcher (for macOS / Linux)
+    sh_launcher = root / target_name
+    sh_launcher.write_text(f'#!/bin/sh\nexec python3 "$(dirname "$0")/{target_name}.py" "$@"\n', encoding="utf-8")
+    try:
+        sh_launcher.chmod(sh_launcher.stat().st_mode | 0o755)
+    except Exception:
+        pass
+
+    # Generate batch script launcher (for Windows)
+    bat_launcher = root / f"{target_name}.bat"
+    bat_launcher.write_text(f'@echo off\npython "%~dp0{target_name}.py" %*\n', encoding="utf-8")
+
+    # 7. Zip the entire portable build folder as `{target_name}-{target_os}-{target_arch}.zip` if target is specified
+    if target_os and target_arch:
+        import zipfile
+        archive_name = root.parent / f"{target_name}-{target_os}-{target_arch}.zip"
+        print(f"Creando paquete portatil autocontenido para {target_os} {target_arch} en: {archive_name}")
+        with zipfile.ZipFile(archive_name, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file_path in root.rglob("*"):
+                if "__pycache__" in file_path.parts:
+                    continue
+                if file_path.is_file():
+                    zf.write(file_path, file_path.relative_to(root))
+        print("Paquete portatil creado con exito!")
+
+    # 8. Check if host matches target before trying PyInstaller (or if no target is requested, we assume host target)
+    host_os = "windows" if sys.platform == "win32" else "linux" if sys.platform.startswith("linux") else "macos"
+    if sys.platform == "darwin":
+        host_os = "macos"
+
+    is_same_os = True
+    if target_os and target_os.lower() != host_os:
+        is_same_os = False
+
     exe_path = None
-    if make_exe:
-        exe_path = _build_exe(root, script_path, plugin, pack_dir)
+    if make_exe and is_same_os:
+        exe_path = _build_exe(root, script_path, plugin, pack_dir, target_name)
+    else:
+        if make_exe and not is_same_os:
+            print(f"Nota: Se omite PyInstaller nativo porque el target '{target_os}' es diferente del host '{host_os}'. Usa el paquete portatil .zip generado.")
 
     return DedicatedCompilerResult(
         plugin=plugin,
@@ -67,7 +151,7 @@ def create_dedicated_compiler(
     )
 
 
-def _build_exe(root: Path, script_path: Path, plugin: str, pack_dir: Path) -> Path | None:
+def _build_exe(root: Path, script_path: Path, plugin: str, pack_dir: Path, name: str) -> Path | None:
     import rif as _rif
 
     pyinstaller = shutil.which("pyinstaller")
@@ -78,7 +162,6 @@ def _build_exe(root: Path, script_path: Path, plugin: str, pack_dir: Path) -> Pa
     rif_plugins = Path(_rif.__file__).resolve().parent / "plugins"
     dist = root / "dist"
     work = root / "pyinstaller"
-    name = f"rif-{plugin}-compiler"
     add_data_sep = ";" if sys.platform == "win32" else ":"
     cmd = [
         pyinstaller,
@@ -144,11 +227,10 @@ def _plugin_pack_dir(plugin: str, pack_name: str | None) -> Path:
 
     candidates: list[Path] = []
     for base_name in ("packs", "pack"):
-        base = plugin_root / base_name
         if pack_name:
-            candidates.append(base / pack_name)
-        candidates.append(base / "example")
-        candidates.append(base)
+            candidates.append(plugin_root / base_name / pack_name)
+        candidates.append(plugin_root / base_name / "example")
+        candidates.append(plugin_root / base_name)
 
     for candidate in candidates:
         if candidate.exists() and candidate.is_dir() and any(candidate.glob("*.pack")):
@@ -191,7 +273,7 @@ def _ensure_plugins(pack_path: Path, plugin: str, links: tuple[str, ...]) -> Non
     pack_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _launcher_source(plugin: str, links: tuple[str, ...], pack_dir: Path) -> str:
+def _launcher_source(plugin: str, links: tuple[str, ...], pack_dir: Path, extension: str | None) -> str:
     import rif as _rif
 
     rif_parent = Path(_rif.__file__).resolve().parent.parent
@@ -207,6 +289,7 @@ PLUGIN = {plugin!r}
 LINKED_PLUGINS = {list(links)!r}
 FALLBACK_PACK_DIR = Path({str(pack_dir)!r})
 FALLBACK_RIF_PARENT = Path({str(rif_parent)!r})
+EXTENSION = {extension!r}
 
 
 def _pack_dir() -> Path:
@@ -236,6 +319,8 @@ def main(argv=None) -> int:
             print(f"plugin={{PLUGIN}}")
             print("linked=" + ",".join(LINKED_PLUGINS))
             print(f"pack={{pack}}")
+            if EXTENSION:
+                print(f"extension={{EXTENSION}}")
 
         source = Path(args.source)
         output = Path(args.output) if args.output else None

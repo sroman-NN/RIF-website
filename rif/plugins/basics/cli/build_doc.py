@@ -243,7 +243,24 @@ def _merge_plugin_vscode(
         plugin_vscode = plugin_root / "vscode"
         if not plugin_vscode.is_dir():
             continue
-        _merge_build(build, _read_jsonc(plugin_vscode / "build.json", required=False))
+        override_build = _read_jsonc(plugin_vscode / "build.json", required=False)
+        _merge_build(build, override_build)
+        
+        # Auto-resolve icon source from plugin vscode folder
+        if "icon" in override_build and "_iconSource" not in build:
+            icon_rel = override_build["icon"]
+            icon_src = plugin_vscode / icon_rel
+            if icon_src.exists():
+                build["_iconSource"] = str(icon_src)
+        
+        # Fallback to vscode/assets/icon.png etc.
+        if "_iconSource" not in build and not build.get("icon"):
+            for icon_name in ("icon.png", "icon.svg", "icon.jpg", "icon.jpeg"):
+                candidate = plugin_vscode / "assets" / icon_name
+                if candidate.exists():
+                    build["_iconSource"] = str(candidate)
+                    break
+
         _merge_docs(doc, _read_jsonc(plugin_vscode / "doc.json", required=False))
         _merge_syntax(syntax, _read_jsonc(plugin_vscode / "syntaxs.json", required=False))
         _collect_assets(plugin_name, plugin_vscode, assets)
@@ -690,22 +707,23 @@ def _grammar_json(build: dict[str, Any], doc: dict[str, Any], syntax: dict[str, 
         {"name": "comment.line.number-sign.rif", "match": r"#.*$"},
         {"name": "string.quoted.double.rif", "begin": '"', "end": '"', "patterns": [{"name": "constant.character.escape.rif", "match": r"\\."}]},
         {"name": "constant.numeric.rif", "match": r"\b(0x[0-9A-Fa-f_]+|0b[01_]+|[0-9][0-9_]*)\b"},
-        {"name": "entity.name.label.rif", "match": r"^\s*([A-Za-z_][A-Za-z0-9_]*):", "captures": {"1": {"name": "entity.name.label.rif"}}},
+        {"name": "keyword.operator.rif", "match": r"[=\+\-\*\/&\|<>!~,:]"},
+        {"name": "entity.name.function.label.rif", "match": r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(:)", "captures": {"1": {"name": "entity.name.function.label.rif"}, "2": {"name": "keyword.operator.rif"}}},
         {"name": "support.function.fillable.rif", "match": r"@[A-Za-z_][A-Za-z0-9_]*"},
         {"name": "support.function.fillable.reverse.rif", "match": r"@(?:[^@\"']|\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')+@[A-Za-z_][A-Za-z0-9_]*"},
         {"name": "variable.other.symbol.rif", "match": r"\b[A-Za-z_][A-Za-z0-9_]*(?=\s+(?:u8|u16|u32|s8|b8|b16|b32)\[)"},
     ]
 
     if directives:
-        patterns.append({"name": "entity.name.section.rif", "match": _word_pattern(directives, boundary=False)})
+        patterns.append({"name": "keyword.control.directive.rif", "match": _word_pattern(directives, boundary=False)})
     if words:
         patterns.append({"name": "keyword.control.rif", "match": _word_pattern(words)})
     if builtins:
-        patterns.append({"name": "support.function.rif", "match": _word_pattern(builtins)})
+        patterns.append({"name": "support.function.builtin.rif", "match": _word_pattern(builtins)})
     if types:
-        patterns.append({"name": "support.type.rif", "match": _word_pattern(types)})
+        patterns.append({"name": "storage.type.rif", "match": _word_pattern(types)})
     if registers:
-        patterns.append({"name": "variable.language.register.rif", "match": _word_pattern(registers)})
+        patterns.append({"name": "constant.language.register.rif", "match": _word_pattern(registers)})
 
     custom_patterns = syntax.get("patterns")
     if isinstance(custom_patterns, list):

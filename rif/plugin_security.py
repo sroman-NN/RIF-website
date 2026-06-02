@@ -148,6 +148,10 @@ def install_plugin_package(package: str, plugins_dir: Path) -> Path:
     if dest.exists():
         raise RIFError(f"plugin '{manifest.name}' ya existe en {dest}")
     shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", ".git", "cache", ".cache"))
+    req = dest / "requirements.txt"
+    if req.exists():
+        print(f"Instalando dependencias de plugin '{manifest.name}' desde {req.name}...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(req)], check=False)
     return dest
 
 
@@ -161,6 +165,10 @@ def install_plugin_folder(src: Path, plugins_dir: Path) -> Path:
     if dest.exists():
         raise RIFError(f"plugin '{manifest.name}' ya existe en {dest}")
     shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__", ".git", "cache", ".cache"))
+    req = dest / "requirements.txt"
+    if req.exists():
+        print(f"Instalando dependencias de plugin '{manifest.name}' desde {req.name}...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(req)], check=False)
     return dest
 
 

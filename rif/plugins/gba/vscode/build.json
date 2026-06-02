@@ -7,7 +7,7 @@
   },
   "version": "0.2.0",
   "license": "MIT",
-  "extensions": [".gbasm", ".rif"],
+  "extensions": [".gbasm"],
   "categories": ["Programming Languages", "Snippets", "Other"],
   "keywords": ["rif", "gba", "arm7tdmi", "thumb", "assembly", "game-boy-advance"]
 }
