@@ -1,4 +1,0 @@
-| NAME | type | perms | align | fill | emit | order | voffset |
-| rom | code | rx | 1 | 00 | yes | 0 | 0x00000000 |
-| ram | data | rw | 1 | 00 | no | 0 | 0x00FF0000 |
-| z80_ram | data | rw | 1 | 00 | no | 0 | 0x00A00000 |

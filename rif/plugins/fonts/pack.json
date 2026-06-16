@@ -1,7 +1,0 @@
-{
-  "name": "fonts",
-  "version": "0.1.0",
-  "author": "RIF Contributors",
-  "license": "MIT",
-  "purpose": "El plugin fonts aporta soporte para fuentes bitmap SX7 y fillables que transforman texto en bytes de bitmap reutilizables por packs de consola, demos o ROMs pequenas. Su proposito es administrar glifos simples, generar datos binarios desde cadenas y cachear el resultado por proyecto para que cambios repetidos de codigo no obliguen a recalcular la misma representacion visual."
-}

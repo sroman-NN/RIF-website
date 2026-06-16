@@ -1,8 +1,0 @@
-{
-  "name": "amd64",
-  "version": "0.1.0",
-  "author": "RIF Contributors",
-  "architecture": "AMD64",
-  "license": "MIT",
-  "purpose": "El plugin amd64 provee un hook de precompilacion para completar valores y cabeceras por defecto cuando un pack RIF apunta a imagenes de arquitectura x86-64, especialmente en escenarios Windows PE. Su proposito es mantener decisiones de plataforma fuera del nucleo del compilador y permitir que el linker consulte offsets simbolicos especificos de esta arquitectura."
-}

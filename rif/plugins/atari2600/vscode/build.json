@@ -1,7 +1,0 @@
-{
-  "displayName": "RIF Atari 2600",
-  "description": "Soporte oficial de VS Code para Atari 2600 (MOS 6502) en Retargetable ISA Foundry.",
-  "keywords": ["atari2600", "6502", "assembly", "rif"],
-  "categories": ["Programming Languages", "Snippets"],
-  "extensions": [".a26asm"]
-}

@@ -1,7 +1,0 @@
-{
-  "displayName": "RIF Sega Genesis / Mega Drive",
-  "description": "Soporte oficial de VS Code para Motorola 68000 en Retargetable ISA Foundry.",
-  "keywords": ["megadrive", "sega genesis", "m68k", "68000", "assembly", "rif"],
-  "categories": ["Programming Languages", "Snippets"],
-  "extensions": [".mdasm"]
-}

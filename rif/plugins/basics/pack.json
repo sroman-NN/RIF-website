@@ -1,7 +1,0 @@
-{
-  "name": "basics",
-  "version": "0.1.0",
-  "author": "RIF Contributors",
-  "license": "MIT",
-  "purpose": "El plugin basics provee las piezas internas que los packs usan para describir reglas de ensamblado sin escribir codigo Python nuevo por cada instruccion. Incluye validacion de operandos, comparadores, transformaciones de bits, emision exacta, alineacion, padding, relocaciones y utilidades de direccionamiento. Su proposito es ser una base conservadora para generar bits y metadatos de compilacion dentro de RIF."
-}
