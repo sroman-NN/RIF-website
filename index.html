@@ -41,7 +41,7 @@
 
 
 <article>
-<p><strong>RIF</strong> is a low-level framework designed to abstract the creation of toolchains (assemblers, linkers, compilers) without the rigid coupling to a specific <a href="[https://en.wikipedia.org/wiki/Central_processing_unit](https://en.wikipedia.org/wiki/Central_processing_unit)">CPU</a> architecture. The premise is to transform <a href="[https://en.wikipedia.org/wiki/Instruction_set_architecture](https://en.wikipedia.org/wiki/Instruction_set_architecture)">ISA</a> definitions into an automated production system through configuration tables and extensible plugins.</p>
+<p><strong>RIF</strong> is a low-level framework designed to abstract the creation of toolchains (assemblers, linkers, compilers) without the rigid coupling to a specific <a href="https://en.wikipedia.org/wiki/Central_processing_unit">CPU</a> architecture. The premise is to transform <a href="https://en.wikipedia.org/wiki/Instruction_set_architecture">ISA</a> definitions into an automated production system through configuration tables and extensible plugins.</p>
 
 <hr>
 
@@ -50,9 +50,9 @@
 
 <ul>
     <li><strong>Retargeting via <code>.pack</code>:</strong> Full definition of registers, memory, sections, and emission rules. Instruction semantics and encoding are configured without modifying the core.</li>
-    <li><strong>Integrated Pipeline:</strong> Complete orchestration of the <code>lexer -> parser -> compiler -> linker</code> workflow via a <a href="[https://en.wikipedia.org/wiki/Command-line_interface](https://en.wikipedia.org/wiki/Command-line_interface)">CLI</a> that resolves inter-section dependencies, relocations, and final binary generation.</li>
-    <li><strong>Extensibility via <a href="[https://www.python.org/](https://www.python.org/)">Python</a> Plugins:</strong> The framework allows injecting custom logic for asset handling (<code>fillables</code>), pre-processing, or extended CLI commands, enabling each architecture to manage its own quirks (ROM padding, checksums, headers).</li>
-    <li><strong>Developer Tooling:</strong> Automated generation of <a href="[https://code.visualstudio.com/](https://code.visualstudio.com/)">VS Code</a> extensions (VSIX) with support for diagnostics, autocompletion, and syntax highlighting, optimizing the <em>workflow</em> without sacrificing the project's <em>bare-metal</em> nature.</li>
+    <li><strong>Integrated Pipeline:</strong> Complete orchestration of the <code>lexer -> parser -> compiler -> linker</code> workflow via a <a href="https://en.wikipedia.org/wiki/Command-line_interface">CLI</a> that resolves inter-section dependencies, relocations, and final binary generation.</li>
+    <li><strong>Extensibility via <a href="https://www.python.org/">Python</a> Plugins:</strong> The framework allows injecting custom logic for asset handling (<code>fillables</code>), pre-processing, or extended CLI commands, enabling each architecture to manage its own quirks (ROM padding, checksums, headers).</li>
+    <li><strong>Developer Tooling:</strong> Automated generation of <a href="https://code.visualstudio.com/">VS Code</a> extensions (VSIX) with support for diagnostics, autocompletion, and syntax highlighting, optimizing the <em>workflow</em> without sacrificing the project's <em>bare-metal</em> nature.</li>
 </ul>
 
 <hr>
@@ -61,8 +61,8 @@
 <p>RIF abstracts complexity through a modular structure:</p>
 <ul>
     <li><strong><code>basics</code>:</strong> Primitive layer for expressions, bitwise operations (<code>bitcat</code>, <code>trunc</code>, <code>zext</code>), symbol management, and alignment rules.</li>
-    <li><strong>Architecture Support:</strong> Native implementations and plugins for <strong><a href="[https://en.wikipedia.org/wiki/Game_Boy_Advance](https://en.wikipedia.org/wiki/Game_Boy_Advance)">GBA</a> (<a href="[https://en.wikipedia.org/wiki/ARM_architecture](https://en.wikipedia.org/wiki/ARM_architecture)">ARM</a>/Thumb)</strong>, <strong><a href="[https://en.wikipedia.org/wiki/Atari_2600](https://en.wikipedia.org/wiki/Atari_2600)">Atari 2600</a></strong>, and experimental support for <strong><a href="[https://en.wikipedia.org/wiki/X86-64](https://en.wikipedia.org/wiki/X86-64)">AMD64</a></strong>.</li>
-    <li><strong>Asset Management:</strong> Dedicated plugins for converting images, <a href="[https://en.wikipedia.org/wiki/Pulse-code_modulation](https://en.wikipedia.org/wiki/Pulse-code_modulation)">PCM</a> audio, and bitmap fonts, featuring a caching system to optimize build times.</li>
+    <li><strong>Architecture Support:</strong> Native implementations and plugins for <strong><a href="https://en.wikipedia.org/wiki/Game_Boy_Advance">GBA</a> (<a href="https://en.wikipedia.org/wiki/ARM_architecture">ARM</a>/Thumb)</strong>, <strong><a href="https://en.wikipedia.org/wiki/Atari_2600">Atari 2600</a></strong>, and experimental support for <strong><a href="https://en.wikipedia.org/wiki/X86-64">AMD64</a></strong>.</li>
+    <li><strong>Asset Management:</strong> Dedicated plugins for converting images, <a href="https://en.wikipedia.org/wiki/Pulse-code_modulation">PCM</a> audio, and bitmap fonts, featuring a caching system to optimize build times.</li>
 </ul>
 
 <hr>
@@ -71,7 +71,7 @@
 <p>The tool is designed for professional/enthusiast development environments, enabling a complete lifecycle from the terminal:</p>
 <code>
     # Editable installation<br>
-    <a href="[https://www.python.org/downloads/](https://www.python.org/downloads/)">python</a> -m pip install -e .<br><br>
+    <a href="https://www.python.org/downloads/">python</a> -m pip install -e .<br><br>
     # Build projects and invoke emulators via plugin<br>
     python -m rif build examples/gba --plugin gba --name example<br>
     python -m rif -pcli gba run examples/gba/gba.gba -nd
@@ -87,7 +87,7 @@
 
 <hr>
 
-<p>For detailed technical references and internal <a href="[https://en.wikipedia.org/wiki/API](https://en.wikipedia.org/wiki/API)">API</a> documentation, consult the local portal generated by the <code>rif help</code> command.</p>
+<p>For detailed technical references and internal <a href="https://en.wikipedia.org/wiki/API">API</a> documentation, consult the local portal generated by the <code>rif help</code> command.</p>
 
 </article>
 
