@@ -8,8 +8,9 @@
 
 
             body {
-                font-family: 'Courier New', Courier, monospace;
+                font-family: 'Courier New', Courier, regular;
                     background-color: #f8ffde; 
+                   font-styles: normal;
             }
 
 
