@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIF - Retargetable ISA Foundry</title>
+    <meta name="description" content="A low-level framework for building retargetable assemblers, linkers, and compilers for any CPU architecture.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-">
+    <meta property="og:title" content="RIF - Retargetable ISA Foundry">
+    <meta property="og:description" content="A low-level framework for building retargetable assemblers, linkers, and compilers for any CPU architecture.">
+    <meta property="og:image" content="guapo.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="RIF - Retargetable ISA Foundry">
+    <meta property="twitter:description" content="A low-level framework for building retargetable assemblers, linkers, and compilers for any CPU architecture.">
+    <meta property="twitter:image" content="guapo.jpg">
+
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="theme-engine.js"></script>
+</head>
+<body>
+
+    <div class="TITLE">
+        <img src="RIF.png" alt="Logo">
+        <h1>RIF - Retargetable ISA Foundry</h1>
+        <a href="https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-" target="_blank" class="github-link">
+            <img src="github logo.png" alt="GitHub" class="github-logo">
+        </a>
+    </div>
+
+    <div class="nav-bar">
+    <a href="index.html">HOME</a>
+    <a href="docs.html">DOCS</a>
+    <a href="example.html">EXAMPLES</a>
+    <a href="releases.html">RELEASES</a>
+</div>
+
+
+<article>
+<p><strong>RIF</strong> is a low-level framework designed to abstract the creation of toolchains (assemblers, linkers, compilers) without the rigid coupling to a specific <a href="[https://en.wikipedia.org/wiki/Central_processing_unit](https://en.wikipedia.org/wiki/Central_processing_unit)">CPU</a> architecture. The premise is to transform <a href="[https://en.wikipedia.org/wiki/Instruction_set_architecture](https://en.wikipedia.org/wiki/Instruction_set_architecture)">ISA</a> definitions into an automated production system through configuration tables and extensible plugins.</p>
+
+<hr>
+
+<h2>Architecture and Capabilities</h2>
+<p>The system decouples core logic (parser, linker, emitter) from hardware specifications, allowing architectures to be modeled via declarative <code>.pack</code> tables.</p>
+
+<ul>
+    <li><strong>Retargeting via <code>.pack</code>:</strong> Full definition of registers, memory, sections, and emission rules. Instruction semantics and encoding are configured without modifying the core.</li>
+    <li><strong>Integrated Pipeline:</strong> Complete orchestration of the <code>lexer -> parser -> compiler -> linker</code> workflow via a <a href="[https://en.wikipedia.org/wiki/Command-line_interface](https://en.wikipedia.org/wiki/Command-line_interface)">CLI</a> that resolves inter-section dependencies, relocations, and final binary generation.</li>
+    <li><strong>Extensibility via <a href="[https://www.python.org/](https://www.python.org/)">Python</a> Plugins:</strong> The framework allows injecting custom logic for asset handling (<code>fillables</code>), pre-processing, or extended CLI commands, enabling each architecture to manage its own quirks (ROM padding, checksums, headers).</li>
+    <li><strong>Developer Tooling:</strong> Automated generation of <a href="[https://code.visualstudio.com/](https://code.visualstudio.com/)">VS Code</a> extensions (VSIX) with support for diagnostics, autocompletion, and syntax highlighting, optimizing the <em>workflow</em> without sacrificing the project's <em>bare-metal</em> nature.</li>
+</ul>
+
+<hr>
+
+<h2>Core Components</h2>
+<p>RIF abstracts complexity through a modular structure:</p>
+<ul>
+    <li><strong><code>basics</code>:</strong> Primitive layer for expressions, bitwise operations (<code>bitcat</code>, <code>trunc</code>, <code>zext</code>), symbol management, and alignment rules.</li>
+    <li><strong>Architecture Support:</strong> Native implementations and plugins for <strong><a href="[https://en.wikipedia.org/wiki/Game_Boy_Advance](https://en.wikipedia.org/wiki/Game_Boy_Advance)">GBA</a> (<a href="[https://en.wikipedia.org/wiki/ARM_architecture](https://en.wikipedia.org/wiki/ARM_architecture)">ARM</a>/Thumb)</strong>, <strong><a href="[https://en.wikipedia.org/wiki/Atari_2600](https://en.wikipedia.org/wiki/Atari_2600)">Atari 2600</a></strong>, and experimental support for <strong><a href="[https://en.wikipedia.org/wiki/X86-64](https://en.wikipedia.org/wiki/X86-64)">AMD64</a></strong>.</li>
+    <li><strong>Asset Management:</strong> Dedicated plugins for converting images, <a href="[https://en.wikipedia.org/wiki/Pulse-code_modulation](https://en.wikipedia.org/wiki/Pulse-code_modulation)">PCM</a> audio, and bitmap fonts, featuring a caching system to optimize build times.</li>
+</ul>
+
+<hr>
+
+<h2>Integration and CLI</h2>
+<p>The tool is designed for professional/enthusiast development environments, enabling a complete lifecycle from the terminal:</p>
+<code>
+    # Editable installation<br>
+    <a href="[https://www.python.org/downloads/](https://www.python.org/downloads/)">python</a> -m pip install -e .<br><br>
+    # Build projects and invoke emulators via plugin<br>
+    python -m rif build examples/gba --plugin gba --name example<br>
+    python -m rif -pcli gba run examples/gba/gba.gba -nd
+</code>
+
+<hr>
+
+<h2>VSIX Automation</h2>
+<p>RIF includes an integrated extension generator that bundles metadata, TextMate syntax, and local documentation. This allows any defined architecture to immediately have a functional editing environment:</p>
+<code>
+    python -m rif compile --vscode --ext .gbasm -icon icon.png --p gba sound fonts basics
+</code>
+
+<hr>
+
+<p>For detailed technical references and internal <a href="[https://en.wikipedia.org/wiki/API](https://en.wikipedia.org/wiki/API)">API</a> documentation, consult the local portal generated by the <code>rif help</code> command.</p>
+
+</article>
+
+</body>
+</html>

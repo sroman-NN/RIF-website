@@ -1,0 +1,200 @@
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        
+ 
+
+            body {
+                font-family: 'Courier New', Courier, monospace;
+                    background-color: #f8ffde; 
+            }
+
+
+        .TITLE {
+            width: 100%;
+            height: 90px;
+            background-color: #eeeeee; 
+            display: flex;
+            align-items: center; 
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .TITLE img {
+            width: 70px;
+            height: 70px;
+            margin-right: 20px;
+        }
+
+        .TITLE h1 {
+            color: rgb(0, 0, 0);
+            font-size: 2rem;
+        }
+
+        .github-link {
+            margin-left: auto;
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .github-logo {
+            width: 40px;
+            height: 40px;
+        }
+
+
+        
+        .nav-bar {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #888;
+            border-width: 1px;
+            border-color: #000000;
+            border-style: solid;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+
+        .nav-bar {
+            display: flex;
+            height: 100%; 
+        }
+
+        .nav-bar a {
+            display: flex;
+            align-items: center;
+            padding: 0 20px; 
+            border-left: 1px solid #000;
+            border-right: 1px solid #000;  
+            color: #000000;
+             text-decoration: none;
+       }
+
+        .nav-bar a:first-child {
+            border-left: none; 
+      }
+
+
+      .nav-bar a:hover {
+    background: linear-gradient(to bottom, #777, transparent);
+    cursor: pointer;
+    color: #000000;
+}
+
+.nav-bar a:active {
+    color: #fff;
+    text-decoration: underline;
+}
+
+article {
+
+    color: #000000;           
+    padding: 40px;             
+    line-height: 1.6;       
+    margin: 0 auto;            
+}
+
+article h1 {
+    color: #464646;            
+    margin-bottom: 20px;
+    border-bottom: 1px solid #464646; 
+    padding-bottom: 10px;
+}
+
+
+article p, article li, article span {
+    color: #000000;
+}
+
+
+article code {
+    background-color: #e5ecd0; 
+    color: #000;
+    padding: 2px 5px;
+    font-family: monospace;
+}
+
+
+        code2 {
+            display: block;
+            background-color: #3a3a3a;
+            color: #ffffff;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-style: solid;
+            border-width: 2px;  
+            border-color: #000000;
+        }
+
+        code2::selection {
+    background-color: #008b2a; 
+    color: #000000;            
+    }
+
+
+            .release-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 10px;
+            position: relative;
+            border: 1pt solid transparent;
+        }
+
+        .release-item:hover {
+            border: 1pt solid #000;
+            cursor: pointer;
+        }
+
+        .release-item img {
+            width: 90px;
+            height: 90px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .release-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .release-info h3 {
+            margin: 0;
+            color: #464646;
+            font-size: 1.5rem;
+            border-bottom: none; 
+            padding-bottom: 0;
+        }
+
+        .release-meta {
+            margin-top: 5px;
+            display: flex;
+            align-items: baseline;
+            gap: 15px;
+        }
+
+        .release-meta strong {
+            font-size: 0.9rem;
+            color: #000;
+        }
+
+        .release-meta span {
+            font-size: 0.75rem;
+            color: #000;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #464646;
+            margin: 0;
+        }
+
+
+        .release-item:first-of-type {
+            padding-top: 0;
+        }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIF - Documentation</title>
+    <meta name="description" content="Technical documentation and reference for RIF.">
+    
+    
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="RIF - Technical Documentation">
+    <meta property="og:description" content="Technical documentation and reference for RIF.">
+    <meta property="og:image" content="guapo.jpg">
+
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="theme-engine.js"></script>
+</head>
+<body>
+
+    <div class="TITLE">
+        <img src="RIF.png" alt="Logo">
+        <h1>RIF - Retargetable ISA Foundry</h1>
+        <a href="https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-" target="_blank" class="github-link">
+            <img src="github logo.png" alt="GitHub" class="github-logo">
+        </a>
+    </div>
+
+    <div class="nav-bar">
+    <a href="index.html">HOME</a>
+    <a href="docs.html">DOCS</a>
+    <a href="example.html">EXAMPLES</a>
+    <a href="releases.html">RELEASES</a>
+</div>
+
+<article>
+    <p>Welcome to the technical reference for the <strong>Retargetable ISA Foundry (RIF)</strong>. This document outlines the operational principles and workflow of the system.</p>
+
+    <hr>
+
+    <h2>What is RIF?</h2>
+    <p>RIF is a retargetable generator designed to define assemblers, packers, and linkers through packages (<code>.pack</code>) and Python plugins.</p>
+    <p>The system's architecture is based on an agnostic core that contains no hardware-specific rules. The core is responsible for:</p>
+    <ul>
+        <li>Processing data structures and tables.</li>
+        <li>Executing common DSL instructions.</li>
+        <li>Resolving <em>placeholders</em> and memory labels.</li>
+        <li>Organizing sections and delegating concrete semantics to installed plugins.</li>
+    </ul>
+
+    <hr>
+
+    <h2>Workflow (Quick Start)</h2>
+    <p>To work with RIF, a <code>.pack</code> file is defined to describe the world, registers, instruction rules, and memory configuration.</p>
+    
+    <p><strong>Compiling an isolated instruction:</strong></p>
+    <code>python -m rif compile examples/minimal.pack byte 0xf</code>
+    <p>This allows for quick verification of the binary output (bits/hex) of a specific instruction.</p>
+
+    <p><strong>Building a complete project:</strong></p>
+    <code>python -m rif build examples/minimal.pack --source-text "byte 0x2a"</code>
+    <p>Or simply pointing to a folder containing the architecture definition:</p>
+    <code>python -m rif build gba</code>
+
+    <hr>
+
+    <h2>Plugin System and Tools</h2>
+    <p>RIF allows extending its capabilities through plugins that add commands to the CLI:</p>
+    <ul>
+        <li><code>python -m rif -pcli fonts list</code>: Lists available glyphs in the fonts plugin.</li>
+        <li><code>python -m rif help instructions</code>: Opens local documentation about instruction syntax.</li>
+    </ul>
+    
+    <p>The ultimate goal of RIF is to allow any new architecture to be fully integrated into the tool ecosystem without needing to modify the engine's original source code.</p>
+</article>

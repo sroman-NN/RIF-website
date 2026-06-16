@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIF - Real-World Examples</title>
+    <meta name="description" content="See RIF in action with real examples for GBA and other architectures.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="RIF -  Examples">
+    <meta property="og:description" content="See RIF in action with real examples for GBA and other architectures..">
+    <meta property="og:image" content="guapo.jpg">
+
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="theme-engine.js"></script>
+</head>
+<body>
+
+    <div class="TITLE">
+        <img src="RIF.png" alt="Logo">
+        <h1>RIF - Retargetable ISA Foundry</h1>
+        <a href="https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-" target="_blank" class="github-link">
+            <img src="github logo.png" alt="GitHub" class="github-logo">
+        </a>
+    </div>
+
+    <div class="nav-bar">
+    <a href="index.html">HOME</a>
+    <a href="docs.html">DOCS</a>
+    <a href="example.html">EXAMPLES</a>
+    <a href="releases.html">RELEASES</a>
+</div>
+
+<article>
+    <p>Explore how RIF handles low-level architectures through real code snippets. These examples demonstrate the power of the retargetable engine when applied to classic hardware.</p>
+
+    <hr>
+
+    <h2>Game Boy Advance (ARM7TDMI)</h2>
+    <p>This snippet from the GBA example shows the entry point of a ROM, setting up the display and clearing the screen using ARM assembly instructions defined in the RIF <code>gba</code> plugin.</p>
+    
+    <code2>.rom
+entry:
+    arm_mov_imm R3, 0x04000000
+    arm_mov_imm R0, 0x04000000
+    arm_mov_imm R1, 0x0400
+    arm_add_imm R1, R1, 0x03
+    arm_strh R1, R0, 0
+
+clear_title_screen:
+    arm_mov_imm R2, 0x06000000
+    arm_mov_imm R9, 0x06000000
+    arm_add_imm R9, R9, 0x12C00
+    arm_mov_imm R5, 0x01E0
+clear_title_loop:
+    arm_strh R5, R2, 0
+    arm_add_imm R2, R2, 2
+    arm_cmp R2, R9
+    arm_bcond ne, clear_title_loop</code2>
+
+    <hr>
+
+    <h2>Defining a Minimal Pack</h2>
+    <p>A <code>.pack</code> file is the heart of any RIF project. It defines how instructions are emitted and how the memory is structured.</p>
+
+    <code2># minimal.pack
+commit "Minimal ISA"
+comment "#"
+separator ","
+
+[rules]
+byte $val:
+    emit u8 $val
+
+word $val:
+    emit u16 $val
+
+[memory]
+ROM:
+    origin 0x08000000
+    size 0x10000
+    fill 0x00</code2>
+
+    <hr>
+
+    <h2>Multimedia Integration</h2>
+    <p>Using the <code>image</code> and <code>fonts</code> plugins, you can inject binary data directly from the source code without external converters.</p>
+
+    <code2># Injecting a bitmap font
+.rodata
+my_font:
+    @fill_font "fonts/standard.f"
+
+# Converting and injecting a sprite
+my_sprite:
+    @fill_image "assets/mario.png" palette=gba_4bpp</code2>
+
+</article>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIF -  Releases</title>
+    <meta name="description" content="Download stable and frozen versions of  RIF">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="RIF -  Releases">
+    <meta property="og:description" content="Download stable and frozen versions of  RIF">
+    <meta property="og:image" content="guapo.jpg">
+
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="theme-engine.js"></script>
+</head>
+<body>
+
+    <div class="TITLE">
+        <img src="RIF.png" alt="Logo">
+        <h1>RIF - Retargetable ISA Foundry</h1>
+        <a href="https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-" target="_blank" class="github-link">
+            <img src="github logo.png" alt="GitHub" class="github-logo">
+        </a>
+    </div>
+
+    <div class="nav-bar">
+        <a href="index.html">HOME</a>
+        <a href="docs.html">DOCS</a>
+        <a href="example.html">EXAMPLES</a>
+        <a href="releases.html">RELEASES</a>
+    </div>
+
+    <article id="releases-container">
+        <h1>Get Releases</h1>
+        <p>Download stable, frozen versions of the RIF toolchain and architecture packs.</p>
+        <div id="list"></div>
+        <h1>Clone Actual Repository</h1>
+        <p>Clone the latest version of the RIF repository from GitHub.</p>
+       
+        <strong> Clone the repository</strong> <hr>
+         <code2>git clone https://github.com/GrandKenzy/Retargetable-ISA-Foundry-RIF-.git</code2>
+       <strong> Enter the project directory<hr> </strong>
+        <code2>cd Retargetable-ISA-Foundry-RIF-</code2>
+       <strong> Install the package in editable mode</strong><hr>
+       <code2> python -m pip install -e .</code2>
+    </article>
+
+
+    <script src="release-parser.js"></script>
+
+</body>
+</html>
